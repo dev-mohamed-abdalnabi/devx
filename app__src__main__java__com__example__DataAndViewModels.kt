@@ -3,7 +3,6 @@ package com.example
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -13,19 +12,16 @@ import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- API Models ---
+// --- API Models (كل الداتا جايه من APIs رسمية عامة، مفيش أي Gemini/AI هنا) ---
 @JsonClass(generateAdapter = true) data class AladhanResponse(@Json(name = "data") val data: AladhanData)
 @JsonClass(generateAdapter = true) data class AladhanData(@Json(name = "timings") val timings: Map<String, String>, @Json(name = "date") val date: AladhanDate)
 @JsonClass(generateAdapter = true) data class AladhanDate(@Json(name = "hijri") val hijri: HijriDate)
@@ -47,26 +43,33 @@ interface AladhanApi {
 interface AlQuranApi {
     @GET("surah") suspend fun getAllSurahs(): QuranSurahResponse
     @GET("surah/{number}") suspend fun getSurah(@Path("number") number: Int): SurahDetailResponse
-    @GET("surah/{number}/ar.alafasy") suspend fun getSurahAudio(@Path("number") number: Int): SurahDetailResponse
-}
-
-@JsonClass(generateAdapter = true) data class GeminiRequest(val contents: List<GeminiContent>)
-@JsonClass(generateAdapter = true) data class GeminiContent(val parts: List<GeminiPart>, val role: String? = null)
-@JsonClass(generateAdapter = true) data class GeminiPart(val text: String)
-@JsonClass(generateAdapter = true) data class GeminiResponse(val candidates: List<GeminiCandidate>?)
-@JsonClass(generateAdapter = true) data class GeminiCandidate(val content: GeminiContent?)
-
-interface GeminiApiService {
-    @POST("v1beta/models/gemini-3.5-flash:generateContent")
-    suspend fun generateContent(@Query("key") apiKey: String, @Body request: GeminiRequest): GeminiResponse
+    // edition قابلة للتغيير عشان يبقى فيه اختيار شيخ
+    @GET("surah/{number}/{edition}") suspend fun getSurahAudio(@Path("number") number: Int, @Path("edition") edition: String = "ar.alafasy"): SurahDetailResponse
+    // تفسير الميسر - API رسمي عام (alquran.cloud) بديل الـ AI تمامًا
+    @GET("surah/{number}/ar.muyassar") suspend fun getSurahTafsir(@Path("number") number: Int): SurahDetailResponse
 }
 
 object ApiClient {
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     val aladhanApi: AladhanApi by lazy { Retrofit.Builder().baseUrl("https://api.aladhan.com/v1/").addConverterFactory(MoshiConverterFactory.create(moshi)).build().create(AladhanApi::class.java) }
     val alQuranApi: AlQuranApi by lazy { Retrofit.Builder().baseUrl("https://api.alquran.cloud/v1/").addConverterFactory(MoshiConverterFactory.create(moshi)).build().create(AlQuranApi::class.java) }
-    val geminiApi: GeminiApiService by lazy { Retrofit.Builder().baseUrl("https://generativelanguage.googleapis.com/").addConverterFactory(MoshiConverterFactory.create(moshi)).build().create(GeminiApiService::class.java) }
 }
+
+// --- قائمة الشيوخ (كلهم متاحين فعليًا في alquran.cloud) ---
+data class Reciter(val edition: String, val name: String)
+
+val RECITERS = listOf(
+    Reciter("ar.alafasy", "مشاري العفاسي"),
+    Reciter("ar.husary", "محمود خليل الحصري"),
+    Reciter("ar.minshawi", "محمد صديق المنشاوي"),
+    Reciter("ar.abdulbasitmurattal", "عبد الباسط عبد الصمد"),
+    Reciter("ar.abdurrahmaansudais", "عبد الرحمن السديس"),
+    Reciter("ar.saoodshuraym", "سعود الشريم"),
+    Reciter("ar.mahermuaiqly", "ماهر المعيقلي"),
+    Reciter("ar.muhammadayyoub", "محمد أيوب"),
+    Reciter("ar.ahmedajamy", "أحمد بن علي العجمي"),
+    Reciter("ar.hanirifai", "هاني الرفاعي")
+)
 
 // --- ViewModels ---
 
@@ -129,25 +132,49 @@ class SurahDetailViewModel : ViewModel() {
     }
 }
 
+// تفسير الميسر - نفس شكل بيانات السورة، بس النص هنا نص التفسير مش نص الآية
+class TafsirViewModel : ViewModel() {
+    var tafsir by mutableStateOf<SurahDetail?>(null)
+        private set
+    var isLoading by mutableStateOf(true)
+        private set
+    fun loadTafsir(number: Int) {
+        isLoading = true
+        viewModelScope.launch {
+            try { tafsir = ApiClient.alQuranApi.getSurahTafsir(number).data } catch (e: Exception) { } finally { isLoading = false }
+        }
+    }
+}
+
 class AudioPlayerViewModel : ViewModel() {
     var selectedSurah by mutableStateOf<SurahDetail?>(null)
     var isPlaying by mutableStateOf(false)
     var currentAyahIndex by mutableStateOf(0)
     var isLoading by mutableStateOf(true)
+    var selectedReciter by mutableStateOf(RECITERS.first())
+        private set
+    private var currentSurahNumber = 1
     private var mediaPlayer: MediaPlayer? = null
 
     init { loadSurahAudio(1) }
 
     private fun loadSurahAudio(number: Int) {
+        currentSurahNumber = number
         isLoading = true
         stopAudio()
         viewModelScope.launch {
             try {
-                selectedSurah = ApiClient.alQuranApi.getSurahAudio(number).data
+                selectedSurah = ApiClient.alQuranApi.getSurahAudio(number, selectedReciter.edition).data
                 currentAyahIndex = 0
                 playCurrentAyah()
             } catch (e: Exception) { } finally { isLoading = false }
         }
+    }
+
+    fun changeReciter(reciter: Reciter) {
+        if (reciter.edition == selectedReciter.edition) return
+        selectedReciter = reciter
+        loadSurahAudio(currentSurahNumber)
     }
 
     private fun playCurrentAyah() {
@@ -162,6 +189,7 @@ class AudioPlayerViewModel : ViewModel() {
                 setOnCompletionListener {
                     if (currentAyahIndex < (selectedSurah?.ayahs?.size ?: 0) - 1) { currentAyahIndex++; playCurrentAyah() } else { this@AudioPlayerViewModel.isPlaying = false }
                 }
+                setOnErrorListener { _, _, _ -> this@AudioPlayerViewModel.isPlaying = false; true }
             } catch (e: Exception) {}
         }
     }
@@ -176,31 +204,36 @@ class AudioPlayerViewModel : ViewModel() {
     fun stopAudio() { mediaPlayer?.release(); mediaPlayer = null; isPlaying = false }
 }
 
-class ChatMessage(val text: String, val isUser: Boolean)
-class TafseerViewModel : ViewModel() {
-    var messages = mutableStateListOf<ChatMessage>()
-        private set
-    var isLoading by mutableStateOf(false)
-        private set
-    init { messages.add(ChatMessage("السلام عليكم، أنا المساعد الذكي لتفسير القرآن وعلوم الدين. كيف يمكنني مساعدتك اليوم؟", false)) }
-    fun sendMessage(text: String) {
-        if (text.isBlank()) return
-        messages.add(ChatMessage(text, true))
-        isLoading = true
-        val apiKey = try { BuildConfig::class.java.getField("GEMINI_API_KEY").get(null) as String } catch (e: Exception) { "" }
-        if (apiKey.isBlank()) { messages.add(ChatMessage("عذراً، لم يتم العثور على مفتاح API.", false)); isLoading = false; return }
-        viewModelScope.launch {
-            try {
-                val contents = messages.map { GeminiContent(parts = listOf(GeminiPart(text = it.text)), role = if (it.isUser) "user" else "model") }
-                val resp = ApiClient.geminiApi.generateContent(apiKey, GeminiRequest(contents))
-                val reply = resp.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "لا يوجد رد."
-                messages.add(ChatMessage(reply, false))
-            } catch (e: Exception) { messages.add(ChatMessage("حدث خطأ: ${e.message}", false)) } finally { isLoading = false }
-        }
-    }
+// --- محتوى ثابت رسمي (نصوص دينية كلاسيكية موثقة) بديل التوليد بالـ AI اللي كان بيفشل من غير مفتاح ---
+data class DynamicItem(val text: String, val subtitle: String)
+
+object IslamicContent {
+    val ahadith = listOf(
+        DynamicItem("إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى", "متفق عليه"),
+        DynamicItem("من حسن إسلام المرء تركه ما لا يعنيه", "رواه الترمذي"),
+        DynamicItem("لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه", "متفق عليه"),
+        DynamicItem("الدين النصيحة", "رواه مسلم"),
+        DynamicItem("من كان يؤمن بالله واليوم الآخر فليقل خيرًا أو ليصمت", "متفق عليه"),
+        DynamicItem("المسلم من سلم المسلمون من لسانه ويده", "متفق عليه"),
+        DynamicItem("الطُّهُورُ شَطْرُ الْإِيمَانِ", "رواه مسلم"),
+        DynamicItem("بُنِيَ الْإِسْلَامُ عَلَى خَمْسٍ", "متفق عليه"),
+        DynamicItem("خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ", "رواه البخاري"),
+        DynamicItem("لَا ضَرَرَ وَلَا ضِرَارَ", "رواه ابن ماجه")
+    )
+    val adhkar = listOf(
+        DynamicItem("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ", "تسبيح"),
+        DynamicItem("أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ", "استغفار"),
+        DynamicItem("لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", "تهليل"),
+        DynamicItem("اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ خَلَقْتَنِي وَأَنَا عَبْدُكَ", "سيد الاستغفار"),
+        DynamicItem("حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ", "أذكار الصباح والمساء"),
+        DynamicItem("اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ", "دعاء جامع"),
+        DynamicItem("رَضِيتُ بِاللَّهِ رَبًّا وَبِالْإِسْلَامِ دِينًا وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا", "أذكار الصباح"),
+        DynamicItem("بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ", "أذكار المساء"),
+        DynamicItem("اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ", "صلاة على النبي"),
+        DynamicItem("سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ", "تسبيح")
+    )
 }
 
-data class DynamicItem(val text: String, val subtitle: String)
 class DynamicListViewModel : ViewModel() {
     var items by mutableStateOf<List<DynamicItem>>(emptyList())
         private set
@@ -209,22 +242,7 @@ class DynamicListViewModel : ViewModel() {
 
     fun loadContent(topic: String) {
         isLoading = true
-        val apiKey = try { BuildConfig::class.java.getField("GEMINI_API_KEY").get(null) as String } catch (e: Exception) { "" }
-        if (apiKey.isBlank()) { items = listOf(DynamicItem("يرجى إضافة مفتاح Gemini API لجلب البيانات.", "خطأ")); isLoading = false; return }
-        viewModelScope.launch {
-            try {
-                val prompt = "أنت خبير إسلامي. قم بإعطائي 10 من $topic باللغة العربية. يجب أن يكون الرد عبارة عن مصفوفة JSON فقط تحتوي على كائنات بها حقل 'text' للنص، وحقل 'subtitle' للمصدر أو التكرار. لا تقم بإضافة أي نص آخر أو علامات Markdown."
-                val resp = ApiClient.geminiApi.generateContent(apiKey, GeminiRequest(listOf(GeminiContent(listOf(GeminiPart(prompt))))))
-                var reply = resp.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "[]"
-                reply = reply.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
-                val jsonArray = JSONArray(reply)
-                val parsedItems = mutableListOf<DynamicItem>()
-                for (i in 0 until jsonArray.length()) {
-                    val obj = jsonArray.getJSONObject(i)
-                    parsedItems.add(DynamicItem(obj.optString("text", ""), obj.optString("subtitle", "")))
-                }
-                items = parsedItems
-            } catch (e: Exception) { items = listOf(DynamicItem("حدث خطأ أثناء جلب البيانات.", "")) } finally { isLoading = false }
-        }
+        items = if (topic.contains("حديث")) IslamicContent.ahadith else IslamicContent.adhkar
+        isLoading = false
     }
 }

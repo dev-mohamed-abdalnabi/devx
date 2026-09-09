@@ -51,7 +51,10 @@ fun AppNavigation() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "dashboard") {
         composable("dashboard") { DashboardScreen(navController) }
-        composable("tafseer") { TafseerAiScreen(navController) }
+        composable("tafseer") { TafsirSurahListScreen(navController) }
+        composable("tafsir/{number}", arguments = listOf(navArgument("number") { type = NavType.IntType })) { backStackEntry ->
+            TafsirReadScreen(navController, backStackEntry.arguments?.getInt("number") ?: 1)
+        }
         composable("alarm") { AlarmScreen(navController) }
         composable("quran") { QuranListScreen(navController) }
         composable("surah/{number}", arguments = listOf(navArgument("number") { type = NavType.IntType })) { backStackEntry ->
@@ -90,19 +93,12 @@ fun DashboardScreen(navController: NavHostController, viewModel: MainViewModel =
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SmallCard("التاريخ الهجري", viewModel.hijriDateText, Icons.Filled.Sensors, { }, Modifier.weight(1f))
-                    SmallCard("التشغيل", "", Icons.Filled.PlayArrow, { navController.navigate("listen") }, Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                    SmallCard("التاريخ الهجري", viewModel.hijriDateText, Icons.Filled.Sensors, { }, Modifier.weight(1f).fillMaxHeight())
+                    SmallCard("التشغيل", "", Icons.Filled.PlayArrow, { navController.navigate("listen") }, Modifier.weight(1f).fillMaxHeight())
                 }
             }
             item { FullWidthCardListen { navController.navigate("listen") } }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    ActionOutlineButton("حسابي", Icons.Outlined.Person, {}, Modifier.weight(1f))
-                    ActionOutlineButton("المفضلة", Icons.Outlined.StarBorder, {}, Modifier.weight(1f))
-                    ActionOutlineButton("استكشف", Icons.Outlined.Explore, {}, Modifier.weight(1f))
-                }
-            }
         }
     }
 }
@@ -144,7 +140,7 @@ fun SmallCard(title: String, sub: String, icon: ImageVector, onClick: () -> Unit
                 Text(text = title, color = TextTitleDark, fontWeight = FontWeight.Bold, fontSize = 16.sp, textAlign = TextAlign.Right)
                 if (sub.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(text = sub, color = TextSubtitleGrey, fontSize = 12.sp, textAlign = TextAlign.Right)
+                    Text(text = sub, color = TextSubtitleGrey, fontSize = 12.sp, textAlign = TextAlign.Right, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
             }
         }
@@ -163,7 +159,7 @@ fun FullWidthCardTafseer(onCardClick: () -> Unit, onAiClick: () -> Unit) {
             Text("تفسير القرآن", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextTitleDark, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.width(16.dp))
             OutlinedButton(onClick = onAiClick, shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, CardBorderColor), colors = ButtonDefaults.outlinedButtonColors(contentColor = TextTitleDark), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp), modifier = Modifier.height(36.dp)) {
-                Text("AI", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("رسمي", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
@@ -198,8 +194,6 @@ fun ActionOutlineButton(text: String, icon: ImageVector, onClick: () -> Unit, mo
 @Composable
 fun BottomNavBar() {
     NavigationBar(containerColor = Color.White, contentColor = TextSubtitleGrey, tonalElevation = 8.dp) {
-        NavigationBarItem(icon = { Icon(Icons.Outlined.Person, contentDescription = "Account") }, label = { Text("حسابي") }, selected = false, onClick = { })
-        NavigationBarItem(icon = { Icon(Icons.Outlined.StarBorder, contentDescription = "Favorite") }, label = { Text("المفضلة") }, selected = false, onClick = { })
         NavigationBarItem(icon = { Icon(Icons.Filled.Home, contentDescription = "Home") }, label = { Text("الرئيسية") }, selected = true, onClick = { }, colors = NavigationBarItemDefaults.colors(selectedIconColor = PrimaryDarkGreen, selectedTextColor = PrimaryDarkGreen, indicatorColor = IconBackgroundLight))
         NavigationBarItem(icon = { Icon(Icons.Outlined.Explore, contentDescription = "Explore") }, label = { Text("استكشف") }, selected = false, onClick = { })
     }
