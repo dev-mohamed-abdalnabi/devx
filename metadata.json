@@ -1,0 +1,6 @@
+{
+  "name": "تطبيق إسلامي",
+  "description": "تطبيق إسلامي شامل لمواعيد الصلاة، تلاوة القرآن، الأذكار والأحاديث.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
