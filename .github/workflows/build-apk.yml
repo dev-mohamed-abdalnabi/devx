@@ -25,8 +25,14 @@ jobs:
           java-version: '17'
 
       - name: Create .env file (Gemini API key)
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+          if [ -n "$GEMINI_KEY" ]; then
+            echo "GEMINI_API_KEY=$GEMINI_KEY" > .env
+          else
+            echo "# GEMINI_API_KEY not set as a repo secret yet" > .env
+          fi
 
       - name: Generate debug keystore
         run: |
