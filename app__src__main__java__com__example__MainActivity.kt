@@ -1,9 +1,14 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -35,9 +40,16 @@ import androidx.navigation.navArgument
 import com.example.ui.theme.*
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         setContent {
             MyApplicationTheme {
                 AppNavigation()
@@ -62,7 +74,20 @@ fun AppNavigation() {
         }
         composable("ahadith") { DynamicListScreen(navController, "أحاديث الرسول", "أحاديث نبوية صحيحة") }
         composable("adhkar") { DynamicListScreen(navController, "أدعية", "أذكار وأدعية إسلامية") }
-        composable("listen") { AudioPlayerScreen(navController) }
+        composable("reciters") { ReciterSelectScreen(navController) }
+        composable("reciter_quran/{edition}", arguments = listOf(navArgument("edition") { type = NavType.StringType })) { backStackEntry ->
+            ReciterQuranListScreen(navController, backStackEntry.arguments?.getString("edition") ?: "ar.alafasy")
+        }
+        composable(
+            "listen/{edition}/{number}",
+            arguments = listOf(navArgument("edition") { type = NavType.StringType }, navArgument("number") { type = NavType.IntType })
+        ) { backStackEntry ->
+            AudioPlayerScreen(
+                navController,
+                backStackEntry.arguments?.getString("edition") ?: "ar.alafasy",
+                backStackEntry.arguments?.getInt("number") ?: 1
+            )
+        }
     }
 }
 
@@ -78,7 +103,7 @@ fun DashboardScreen(navController: NavHostController, viewModel: MainViewModel =
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { HeroCard(onClick = { navController.navigate("listen") }) }
+            item { HeroCard(onClick = { navController.navigate("reciters") }) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     SmallCard("قراءة القرآن", "منه ورده", Icons.AutoMirrored.Filled.MenuBook, { navController.navigate("quran") }, Modifier.weight(1f))
@@ -93,12 +118,12 @@ fun DashboardScreen(navController: NavHostController, viewModel: MainViewModel =
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-                    SmallCard("التاريخ الهجري", viewModel.hijriDateText, Icons.Filled.Sensors, { }, Modifier.weight(1f).fillMaxHeight())
-                    SmallCard("التشغيل", "", Icons.Filled.PlayArrow, { navController.navigate("listen") }, Modifier.weight(1f).fillMaxHeight())
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SmallCard("التاريخ الهجري", viewModel.hijriDateText, Icons.Filled.Sensors, { }, Modifier.weight(1f))
+                    SmallCard("التشغيل", "", Icons.Filled.PlayArrow, { navController.navigate("reciters") }, Modifier.weight(1f))
                 }
             }
-            item { FullWidthCardListen { navController.navigate("listen") } }
+            item { FullWidthCardListen { navController.navigate("reciters") } }
         }
     }
 }
@@ -130,7 +155,7 @@ fun HeroCard(onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmallCard(title: String, sub: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, CardBorderColor), onClick = onClick) {
+    Surface(modifier = modifier.fillMaxWidth().height(96.dp), shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, CardBorderColor), onClick = onClick) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(48.dp).background(IconBackgroundLight, CircleShape), contentAlignment = Alignment.Center) {
                 Icon(icon, contentDescription = title, tint = TextTitleDark, modifier = Modifier.size(24.dp))

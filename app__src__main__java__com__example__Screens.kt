@@ -2,6 +2,7 @@ package com.example
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,6 +68,81 @@ fun QuranListScreen(navController: NavHostController, viewModel: QuranViewModel 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun ReciterSelectScreen(navController: NavHostController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("اختر الشيخ", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryDarkGreen, titleContentColor = Color.White, navigationIconContentColor = Color.White)
+            )
+        },
+        containerColor = BackgroundCream
+    ) { padding ->
+        LazyColumn(contentPadding = padding, modifier = Modifier.fillMaxSize()) {
+            items(RECITERS) { reciter ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { navController.navigate("reciter_quran/${reciter.edition}") },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, CardBorderColor)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(44.dp).background(IconBackgroundLight, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Person, contentDescription = null, tint = TextTitleDark, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Text(reciter.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextTitleDark, modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReciterQuranListScreen(navController: NavHostController, edition: String, viewModel: QuranViewModel = viewModel()) {
+    val reciterName = RECITERS.find { it.edition == edition }?.name ?: ""
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (reciterName.isNotEmpty()) "اختر السورة - $reciterName" else "اختر السورة", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryDarkGreen, titleContentColor = Color.White, navigationIconContentColor = Color.White)
+            )
+        },
+        containerColor = BackgroundCream
+    ) { padding ->
+        if (viewModel.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PrimaryDarkGreen) }
+        } else {
+            LazyColumn(contentPadding = padding, modifier = Modifier.fillMaxSize()) {
+                items(viewModel.surahs) { surah ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { navController.navigate("listen/$edition/${surah.number}") },
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, CardBorderColor)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(40.dp).background(IconBackgroundLight, CircleShape), contentAlignment = Alignment.Center) {
+                                Text("${surah.number}", color = TextTitleDark, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(surah.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextTitleDark)
+                                Text("${surah.revelationType} - ${surah.numberOfAyahs} آيات", fontSize = 14.sp, color = TextSubtitleGrey)
+                            }
+                            Icon(Icons.Filled.PlayCircleFilled, contentDescription = "استماع", tint = PrimaryDarkGreen, modifier = Modifier.size(28.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun SurahReadScreen(navController: NavHostController, surahNumber: Int, viewModel: SurahDetailViewModel = viewModel()) {
     LaunchedEffect(surahNumber) { viewModel.loadSurah(surahNumber) }
     Scaffold(
@@ -82,13 +158,28 @@ fun SurahReadScreen(navController: NavHostController, surahNumber: Int, viewMode
         if (viewModel.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PrimaryDarkGreen) }
         } else {
+            val ayahs = viewModel.surahDetail?.ayahs ?: emptyList()
             LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.fillMaxSize().padding(padding)) {
-                val ayahs = viewModel.surahDetail?.ayahs ?: emptyList()
                 item {
-                    Text(
-                        text = ayahs.joinToString(" ") { "${it.text} ﴿${it.numberInSurah}﴾" },
-                        fontSize = 22.sp, lineHeight = 38.sp, color = TextTitleDark, textAlign = TextAlign.Justify, modifier = Modifier.fillMaxWidth().padding(8.dp)
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .background(Color.White, RoundedCornerShape(20.dp))
+                            .border(BorderStroke(1.dp, CardBorderColor), RoundedCornerShape(20.dp))
+                            .padding(20.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().height(3.dp).background(PrimaryDarkGreen, RoundedCornerShape(2.dp)))
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = viewModel.surahDetail?.name ?: "",
+                            fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PrimaryDarkGreen,
+                            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            text = ayahs.joinToString(" ") { "${it.text} ﴿${it.numberInSurah}﴾" },
+                            fontSize = 22.sp, lineHeight = 42.sp, color = TextTitleDark, textAlign = TextAlign.Justify, modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -97,9 +188,11 @@ fun SurahReadScreen(navController: NavHostController, surahNumber: Int, viewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AudioPlayerScreen(navController: NavHostController, viewModel: AudioPlayerViewModel = viewModel()) {
+fun AudioPlayerScreen(navController: NavHostController, edition: String, surahNumber: Int, viewModel: AudioPlayerViewModel = viewModel()) {
+    LaunchedEffect(edition, surahNumber) { viewModel.start(edition, surahNumber) }
     DisposableEffect(Unit) { onDispose { viewModel.stopAudio() } }
-    var reciterMenuExpanded by remember { mutableStateOf(false) }
+    var showReciterSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -122,23 +215,13 @@ fun AudioPlayerScreen(navController: NavHostController, viewModel: AudioPlayerVi
                         Spacer(Modifier.height(20.dp))
                         Text(viewModel.selectedSurah?.name ?: "", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = TextTitleDark)
                         Spacer(Modifier.height(6.dp))
-                        Box {
-                            Surface(shape = RoundedCornerShape(20.dp), color = Color.White, border = BorderStroke(1.dp, CardBorderColor), onClick = { reciterMenuExpanded = true }) {
-                                Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.Person, contentDescription = "الشيخ", tint = TextSubtitleGrey, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(viewModel.selectedReciter.name, fontSize = 14.sp, color = TextSubtitleGrey, fontWeight = FontWeight.SemiBold)
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "اختيار الشيخ", tint = TextSubtitleGrey, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                            DropdownMenu(expanded = reciterMenuExpanded, onDismissRequest = { reciterMenuExpanded = false }) {
-                                RECITERS.forEach { reciter ->
-                                    DropdownMenuItem(
-                                        text = { Text(reciter.name, fontWeight = if (reciter.edition == viewModel.selectedReciter.edition) FontWeight.Bold else FontWeight.Normal) },
-                                        onClick = { viewModel.changeReciter(reciter); reciterMenuExpanded = false }
-                                    )
-                                }
+                        Surface(shape = RoundedCornerShape(20.dp), color = Color.White, border = BorderStroke(1.dp, CardBorderColor), onClick = { showReciterSheet = true }) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Person, contentDescription = "الشيخ", tint = TextSubtitleGrey, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(viewModel.selectedReciter.name, fontSize = 14.sp, color = TextSubtitleGrey, fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Filled.ArrowDropDown, contentDescription = "اختيار الشيخ", tint = TextSubtitleGrey, modifier = Modifier.size(18.dp))
                             }
                         }
                         Spacer(Modifier.height(28.dp))
@@ -162,6 +245,27 @@ fun AudioPlayerScreen(navController: NavHostController, viewModel: AudioPlayerVi
                             }
                         }
                         IconButton(onClick = { viewModel.previousAyah() }) { Icon(Icons.Filled.SkipNext, contentDescription = "Prev Ayah (RTL)", modifier = Modifier.size(44.dp), tint = PrimaryDarkGreen) }
+                    }
+                }
+            }
+        }
+        if (showReciterSheet) {
+            ModalBottomSheet(onDismissRequest = { showReciterSheet = false }, sheetState = sheetState, containerColor = BackgroundCream) {
+                Text("اختر الشيخ", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextTitleDark, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), textAlign = TextAlign.Center)
+                LazyColumn(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                    items(RECITERS) { reciter ->
+                        val isSelected = reciter.edition == viewModel.selectedReciter.edition
+                        Row(
+                            modifier = Modifier.fillMaxWidth().clickable { viewModel.changeReciter(reciter); showReciterSheet = false }.padding(horizontal = 20.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.size(36.dp).background(if (isSelected) PrimaryDarkGreen else IconBackgroundLight, CircleShape), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Filled.Person, contentDescription = null, tint = if (isSelected) Color.White else TextTitleDark, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Text(reciter.name, fontSize = 16.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = TextTitleDark, modifier = Modifier.weight(1f))
+                            if (isSelected) { Icon(Icons.Filled.Check, contentDescription = "مختار", tint = PrimaryDarkGreen) }
+                        }
                     }
                 }
             }

@@ -1,10 +1,24 @@
 package com.example
 
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.squareup.moshi.Json
@@ -146,7 +160,13 @@ class TafsirViewModel : ViewModel() {
     }
 }
 
-class AudioPlayerViewModel : ViewModel() {
+private const val ACTION_PLAY_PAUSE = "com.example.ACTION_PLAY_PAUSE"
+private const val ACTION_NEXT = "com.example.ACTION_NEXT"
+private const val ACTION_PREV = "com.example.ACTION_PREV"
+private const val NOTIFICATION_CHANNEL_ID = "quran_playback"
+private const val NOTIFICATION_ID = 501
+
+class AudioPlayerViewModel(application: Application) : AndroidViewModel(application) {
     var selectedSurah by mutableStateOf<SurahDetail?>(null)
     var isPlaying by mutableStateOf(false)
     var currentAyahIndex by mutableStateOf(0)
@@ -154,14 +174,45 @@ class AudioPlayerViewModel : ViewModel() {
     var selectedReciter by mutableStateOf(RECITERS.first())
         private set
     private var currentSurahNumber = 1
+    private var started = false
     private var mediaPlayer: MediaPlayer? = null
+    private var receiverRegistered = false
 
-    init { loadSurahAudio(1) }
+    private val actionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                ACTION_PLAY_PAUSE -> togglePlayPause()
+                ACTION_NEXT -> nextAyah()
+                ACTION_PREV -> previousAyah()
+            }
+        }
+    }
+
+    fun start(edition: String, surahNumber: Int) {
+        ensureReceiverRegistered()
+        if (started && selectedReciter.edition == edition && currentSurahNumber == surahNumber) return
+        started = true
+        selectedReciter = RECITERS.find { it.edition == edition } ?: RECITERS.first()
+        loadSurahAudio(surahNumber)
+    }
+
+    private fun ensureReceiverRegistered() {
+        if (receiverRegistered) return
+        val filter = IntentFilter().apply { addAction(ACTION_PLAY_PAUSE); addAction(ACTION_NEXT); addAction(ACTION_PREV) }
+        val context = getApplication<Application>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(actionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(actionReceiver, filter)
+        }
+        receiverRegistered = true
+    }
 
     private fun loadSurahAudio(number: Int) {
         currentSurahNumber = number
         isLoading = true
-        stopAudio()
+        stopAudio(clearNotification = false)
         viewModelScope.launch {
             try {
                 selectedSurah = ApiClient.alQuranApi.getSurahAudio(number, selectedReciter.edition).data
@@ -185,11 +236,11 @@ class AudioPlayerViewModel : ViewModel() {
             try {
                 setDataSource(audioUrl)
                 prepareAsync()
-                setOnPreparedListener { start(); this@AudioPlayerViewModel.isPlaying = true }
+                setOnPreparedListener { start(); this@AudioPlayerViewModel.isPlaying = true; updateNotification() }
                 setOnCompletionListener {
-                    if (currentAyahIndex < (selectedSurah?.ayahs?.size ?: 0) - 1) { currentAyahIndex++; playCurrentAyah() } else { this@AudioPlayerViewModel.isPlaying = false }
+                    if (currentAyahIndex < (selectedSurah?.ayahs?.size ?: 0) - 1) { currentAyahIndex++; playCurrentAyah() } else { this@AudioPlayerViewModel.isPlaying = false; updateNotification() }
                 }
-                setOnErrorListener { _, _, _ -> this@AudioPlayerViewModel.isPlaying = false; true }
+                setOnErrorListener { _, _, _ -> this@AudioPlayerViewModel.isPlaying = false; updateNotification(); true }
             } catch (e: Exception) {}
         }
     }
@@ -197,11 +248,58 @@ class AudioPlayerViewModel : ViewModel() {
     fun togglePlayPause() {
         mediaPlayer?.let {
             if (it.isPlaying) { it.pause(); isPlaying = false } else { it.start(); isPlaying = true }
+            updateNotification()
         } ?: playCurrentAyah()
     }
     fun nextAyah() { if (currentAyahIndex < (selectedSurah?.ayahs?.size ?: 0) - 1) { currentAyahIndex++; playCurrentAyah() } }
     fun previousAyah() { if (currentAyahIndex > 0) { currentAyahIndex--; playCurrentAyah() } }
-    fun stopAudio() { mediaPlayer?.release(); mediaPlayer = null; isPlaying = false }
+
+    fun stopAudio() = stopAudio(clearNotification = true)
+
+    private fun stopAudio(clearNotification: Boolean) {
+        mediaPlayer?.release(); mediaPlayer = null; isPlaying = false
+        if (clearNotification) {
+            val context = getApplication<Application>()
+            NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+        }
+    }
+
+    private fun actionPendingIntent(action: String, requestCode: Int): PendingIntent {
+        val context = getApplication<Application>()
+        val intent = Intent(action).setPackage(context.packageName)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        return PendingIntent.getBroadcast(context, requestCode, intent, flags)
+    }
+
+    private fun updateNotification() {
+        val context = getApplication<Application>()
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
+            nm.createNotificationChannel(NotificationChannel(NOTIFICATION_CHANNEL_ID, "تشغيل القرآن", NotificationManager.IMPORTANCE_LOW))
+        }
+        val playPauseIcon = if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+        val builder = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle(selectedSurah?.name ?: "القرآن الكريم")
+            .setContentText(selectedReciter.name)
+            .setOngoing(isPlaying)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(android.R.drawable.ic_media_previous, "السابق", actionPendingIntent(ACTION_PREV, 1))
+            .addAction(playPauseIcon, if (isPlaying) "إيقاف" else "تشغيل", actionPendingIntent(ACTION_PLAY_PAUSE, 2))
+            .addAction(android.R.drawable.ic_media_next, "التالي", actionPendingIntent(ACTION_NEXT, 3))
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopAudio(clearNotification = true)
+        if (receiverRegistered) {
+            try { getApplication<Application>().unregisterReceiver(actionReceiver) } catch (e: Exception) {}
+        }
+    }
 }
 
 // --- محتوى ثابت رسمي (نصوص دينية كلاسيكية موثقة) بديل التوليد بالـ AI اللي كان بيفشل من غير مفتاح ---
