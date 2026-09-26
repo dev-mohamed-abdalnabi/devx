@@ -2,60 +2,50 @@ name: Build APK
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Restore real project structure from flat files
-        run: bash restore.sh
-
-      - name: Set up JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Create .env file (Gemini API key)
-        env:
-          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          if [ -n "$GEMINI_KEY" ]; then
-            echo "GEMINI_API_KEY=$GEMINI_KEY" > .env
-          else
-            echo "# GEMINI_API_KEY not set as a repo secret yet" > .env
-          fi
-
-      - name: Generate debug keystore
-        run: |
-          keytool -genkeypair -v \
-            -keystore debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          gradle-version: 9.3.1
+          flutter-version: '3.24.0'
+          channel: 'stable'
 
-      - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+      # يضيف مجلد android الناقص فقط دون المساس بملفاتك الحالية (lib, pubspec.yaml)
+      - name: Ensure Android platform files exist
+        run: flutter create --platforms=android --org com.azkarapp .
 
-      - name: Upload APK artifact
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK as build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: azkar-app-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: نسخة تلقائية ${{ github.run_number }}
+          files: build/app/outputs/flutter-apk/app-release.apk
