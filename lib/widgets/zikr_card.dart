@@ -17,9 +17,9 @@ class ZikrCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       decoration: BoxDecoration(
-        color: done ? scheme.primaryContainer.withValues(alpha: 0.35) : scheme.surface,
+        color: done ? scheme.primaryContainer.withOpacity(0.35) : scheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.4)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -44,7 +44,7 @@ class ZikrCard extends StatelessWidget {
                   fontSize: 19 * provider.fontScale,
                   height: 1.9,
                   fontWeight: FontWeight.w500,
-                  color: done ? scheme.onSurface.withValues(alpha: 0.6) : scheme.onSurface,
+                  color: done ? scheme.onSurface.withOpacity(0.6) : scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 14),

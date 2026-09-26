@@ -19,7 +19,7 @@ final _icons = {
   'flight': Icons.flight,
   'storefront': Icons.storefront,
   'healing': Icons.healing,
-  'sentiment_stressed': Icons.sentiment_stressed,
+  'sentiment_stressed': Icons.sentiment_very_dissatisfied,
   'mood_bad': Icons.mood_bad,
   'payments': Icons.payments,
   'thunderstorm': Icons.thunderstorm,
@@ -101,7 +101,7 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      color: scheme.surfaceContainerHighest.withOpacity(0.4),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
