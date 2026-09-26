@@ -30,6 +30,54 @@ jobs:
       - name: Ensure Android platform files exist
         run: flutter create --platforms=android --org com.azkarapp .
 
+      - name: Enable core library desugaring (required by flutter_local_notifications)
+        run: |
+          python3 << 'EOF'
+          import pathlib
+
+          kts = pathlib.Path('android/app/build.gradle.kts')
+          groovy = pathlib.Path('android/app/build.gradle')
+
+          if kts.exists():
+              path = kts
+              content = path.read_text()
+              if 'isCoreLibraryDesugaringEnabled' not in content:
+                  content = content.replace(
+                      'compileOptions {',
+                      'compileOptions {\n        isCoreLibraryDesugaringEnabled = true',
+                      1
+                  )
+              if 'coreLibraryDesugaring(' not in content:
+                  if 'dependencies {' in content:
+                      content = content.replace(
+                          'dependencies {',
+                          'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")',
+                          1
+                      )
+                  else:
+                      content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+              path.write_text(content)
+          else:
+              path = groovy
+              content = path.read_text()
+              if 'coreLibraryDesugaringEnabled' not in content:
+                  content = content.replace(
+                      'compileOptions {',
+                      'compileOptions {\n        coreLibraryDesugaringEnabled true',
+                      1
+                  )
+              if 'coreLibraryDesugaring ' not in content:
+                  if 'dependencies {' in content:
+                      content = content.replace(
+                          'dependencies {',
+                          "dependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'",
+                          1
+                      )
+                  else:
+                      content += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
+              path.write_text(content)
+          EOF
+
       - name: Install dependencies
         run: flutter pub get
 
