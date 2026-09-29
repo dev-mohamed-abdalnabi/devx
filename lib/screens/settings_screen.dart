@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/azkar_provider.dart';
-import '../providers/notification_service.dart';
+import '../features/reminders/reminders_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -47,48 +47,13 @@ class SettingsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _SectionCard(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.wb_sunny_outlined),
-                title: const Text('تذكير أذكار الصباح'),
-                subtitle: const Text('يومياً الساعة 6:00 ص'),
-                trailing: Switch(
-                  value: true,
-                  onChanged: (v) async {
-                    if (v) {
-                      await NotificationService.scheduleDailyReminder(
-                        id: 1,
-                        title: 'حان وقت أذكار الصباح',
-                        body: 'لا تنسَ أذكارك الصباحية 🌅',
-                        hour: 6,
-                        minute: 0,
-                      );
-                    }
-                  },
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.nightlight_outlined),
-                title: const Text('تذكير أذكار المساء'),
-                subtitle: const Text('يومياً الساعة 5:00 م'),
-                trailing: Switch(
-                  value: true,
-                  onChanged: (v) async {
-                    if (v) {
-                      await NotificationService.scheduleDailyReminder(
-                        id: 2,
-                        title: 'حان وقت أذكار المساء',
-                        body: 'لا تنسَ أذكارك المسائية 🌙',
-                        hour: 17,
-                        minute: 0,
-                      );
-                    }
-                  },
-                ),
-              ),
-            ],
+          child: ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('التذكيرات'),
+            subtitle: const Text('الأذكار والقرآن والتحديات وتذكيرات مخصصة'),
+            trailing: const Icon(Icons.chevron_left),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const RemindersScreen())),
           ),
         ),
         const SizedBox(height: 20),

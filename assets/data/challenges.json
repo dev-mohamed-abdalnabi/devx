@@ -1,0 +1,360 @@
+{
+ "challenges": [
+  {
+   "id": "q1",
+   "cat": "quran",
+   "period": "day",
+   "title": "اقرأ صفحتين من القرآن",
+   "auto": "pages",
+   "target": 2
+  },
+  {
+   "id": "q2",
+   "cat": "quran",
+   "period": "day",
+   "title": "اقرأ صفحة واحدة بتدبّر",
+   "auto": "pages",
+   "target": 1
+  },
+  {
+   "id": "q3",
+   "cat": "quran",
+   "period": "day",
+   "title": "اقرأ خمس صفحات من القرآن",
+   "auto": "pages",
+   "target": 5
+  },
+  {
+   "id": "q4",
+   "cat": "quran",
+   "period": "day",
+   "title": "اقرأ سورة قصيرة"
+  },
+  {
+   "id": "q5",
+   "cat": "quran",
+   "period": "day",
+   "title": "راجع ما تحفظه من القرآن"
+  },
+  {
+   "id": "d1",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "أذكار الصباح",
+   "auto": "azkar:morning",
+   "target": 1
+  },
+  {
+   "id": "d2",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "أذكار المساء",
+   "auto": "azkar:evening",
+   "target": 1
+  },
+  {
+   "id": "d3",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "أذكار النوم",
+   "auto": "azkar:sleep",
+   "target": 1
+  },
+  {
+   "id": "d4",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "استغفر ١٠٠ مرة",
+   "auto": "tasbeeh:istighfar",
+   "target": 100
+  },
+  {
+   "id": "d5",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "صلِّ على النبي ٥٠ مرة",
+   "auto": "tasbeeh:salawat",
+   "target": 50
+  },
+  {
+   "id": "d6",
+   "cat": "dhikr",
+   "period": "day",
+   "title": "سبّح ١٠٠ تسبيحة",
+   "auto": "tasbeeh:subhan",
+   "target": 100
+  },
+  {
+   "id": "p1",
+   "cat": "prayer",
+   "period": "day",
+   "title": "حافظ على الصلوات في أوقاتها"
+  },
+  {
+   "id": "p2",
+   "cat": "prayer",
+   "period": "day",
+   "title": "صلِّ الوتر"
+  },
+  {
+   "id": "p3",
+   "cat": "prayer",
+   "period": "day",
+   "title": "صلِّ صلاة الجماعة عند الاستطاعة"
+  },
+  {
+   "id": "p4",
+   "cat": "prayer",
+   "period": "day",
+   "title": "قيام الليل ولو بركعتين"
+  },
+  {
+   "id": "p5",
+   "cat": "prayer",
+   "period": "day",
+   "title": "صلِّ الضحى"
+  },
+  {
+   "id": "w1",
+   "cat": "worship",
+   "period": "day",
+   "title": "خصّص دقائق للدعاء لنفسك ولمن تحب"
+  },
+  {
+   "id": "w2",
+   "cat": "worship",
+   "period": "day",
+   "title": "ابدأ يومك بنيّة صالحة"
+  },
+  {
+   "id": "w3",
+   "cat": "worship",
+   "period": "day",
+   "title": "صلِّ ركعتين نافلة"
+  },
+  {
+   "id": "w4",
+   "cat": "worship",
+   "period": "day",
+   "title": "تأمّل في نعمة من نعم الله عليك واشكره عليها"
+  },
+  {
+   "id": "g1",
+   "cat": "good",
+   "period": "day",
+   "title": "تصدّق ولو بالقليل"
+  },
+  {
+   "id": "g2",
+   "cat": "good",
+   "period": "day",
+   "title": "ساعد شخصًا"
+  },
+  {
+   "id": "g3",
+   "cat": "good",
+   "period": "day",
+   "title": "افعل معروفًا لا يعرفه أحد"
+  },
+  {
+   "id": "g4",
+   "cat": "good",
+   "period": "day",
+   "title": "ادعُ لشخص في ظهر الغيب"
+  },
+  {
+   "id": "g5",
+   "cat": "good",
+   "period": "day",
+   "title": "ساعد في أعمال المنزل"
+  },
+  {
+   "id": "g6",
+   "cat": "good",
+   "period": "day",
+   "title": "اتصل بمريض أو زُره"
+  },
+  {
+   "id": "m1",
+   "cat": "manners",
+   "period": "day",
+   "title": "لا تغتب أحدًا اليوم"
+  },
+  {
+   "id": "m2",
+   "cat": "manners",
+   "period": "day",
+   "title": "سامح شخصًا"
+  },
+  {
+   "id": "m3",
+   "cat": "manners",
+   "period": "day",
+   "title": "اشكر شخصًا"
+  },
+  {
+   "id": "m4",
+   "cat": "manners",
+   "period": "day",
+   "title": "اتصل بوالديك أو زرهما"
+  },
+  {
+   "id": "m5",
+   "cat": "manners",
+   "period": "day",
+   "title": "صِل رحمك برسالة أو اتصال"
+  },
+  {
+   "id": "m6",
+   "cat": "manners",
+   "period": "day",
+   "title": "تحدّث بلين مع كل من تخاطبه"
+  },
+  {
+   "id": "h1",
+   "cat": "habits",
+   "period": "day",
+   "title": "ابتعد عن الهاتف ٣٠ دقيقة"
+  },
+  {
+   "id": "h2",
+   "cat": "habits",
+   "period": "day",
+   "title": "ابدأ يومك بدون هاتف"
+  },
+  {
+   "id": "h3",
+   "cat": "habits",
+   "period": "day",
+   "title": "نظّم غرفتك"
+  },
+  {
+   "id": "h4",
+   "cat": "habits",
+   "period": "day",
+   "title": "امشِ ٢٠ دقيقة"
+  },
+  {
+   "id": "h5",
+   "cat": "habits",
+   "period": "day",
+   "title": "نم مبكرًا الليلة"
+  },
+  {
+   "id": "s1",
+   "cat": "self",
+   "period": "day",
+   "title": "اقرأ ٥ دقائق في كتاب نافع"
+  },
+  {
+   "id": "s2",
+   "cat": "self",
+   "period": "day",
+   "title": "تعلّم شيئًا جديدًا"
+  },
+  {
+   "id": "s3",
+   "cat": "self",
+   "period": "day",
+   "title": "اقرأ حديثًا وتأمّل معناه"
+  },
+  {
+   "id": "s4",
+   "cat": "self",
+   "period": "day",
+   "title": "حاسب نفسك قبل النوم"
+  },
+  {
+   "id": "s5",
+   "cat": "self",
+   "period": "day",
+   "title": "اترك عادة سيئة اليوم"
+  },
+  {
+   "id": "wk1",
+   "cat": "quran",
+   "period": "week",
+   "title": "اقرأ ٢٠ صفحة من القرآن هذا الأسبوع",
+   "auto": "pages",
+   "target": 20
+  },
+  {
+   "id": "wk2",
+   "cat": "dhikr",
+   "period": "week",
+   "title": "سبّح ٥٠٠ تسبيحة هذا الأسبوع",
+   "auto": "tasbeeh:all",
+   "target": 500
+  },
+  {
+   "id": "wk3",
+   "cat": "worship",
+   "period": "week",
+   "title": "صم يومًا نافلة هذا الأسبوع"
+  },
+  {
+   "id": "wk4",
+   "cat": "manners",
+   "period": "week",
+   "title": "صِل رحمك بزيارة أو مكالمة"
+  },
+  {
+   "id": "wk5",
+   "cat": "good",
+   "period": "week",
+   "title": "تصدّق صدقة ثابتة هذا الأسبوع"
+  },
+  {
+   "id": "wk6",
+   "cat": "self",
+   "period": "week",
+   "title": "استمع إلى درس نافع أو احضر مجلس علم"
+  },
+  {
+   "id": "wk7",
+   "cat": "habits",
+   "period": "week",
+   "title": "خصّص ساعة بلا شاشات"
+  },
+  {
+   "id": "wk8",
+   "cat": "quran",
+   "period": "week",
+   "title": "اقرأ سورة الكهف يوم الجمعة"
+  },
+  {
+   "id": "mo1",
+   "cat": "quran",
+   "period": "month",
+   "title": "اقرأ ١٠٠ صفحة من القرآن هذا الشهر",
+   "auto": "pages",
+   "target": 100
+  },
+  {
+   "id": "mo2",
+   "cat": "dhikr",
+   "period": "month",
+   "title": "استغفر ١٠٠٠ مرة هذا الشهر",
+   "auto": "tasbeeh:istighfar",
+   "target": 1000
+  },
+  {
+   "id": "mo3",
+   "cat": "worship",
+   "period": "month",
+   "title": "صم ثلاثة أيام نافلة هذا الشهر"
+  },
+  {
+   "id": "mo4",
+   "cat": "self",
+   "period": "month",
+   "title": "أنهِ كتابًا نافعًا هذا الشهر"
+  },
+  {
+   "id": "mo5",
+   "cat": "quran",
+   "period": "month",
+   "title": "تعلّم سورة جديدة أو راجع حفظك"
+  }
+ ]
+}

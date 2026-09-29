@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/zikr.dart';
+import '../providers/activity_provider.dart';
 import '../providers/azkar_provider.dart';
 
 class ZikrCard extends StatelessWidget {
@@ -27,6 +28,10 @@ class ZikrCard extends StatelessWidget {
           if (!done) {
             HapticFeedback.lightImpact();
             provider.tapZikr(zikr);
+            context.read<ActivityProvider>().addZikr(
+                  categoryId: zikr.categoryId,
+                  categoryDone: provider.categoryProgress(zikr.categoryId) >= 1,
+                );
             if (zikr.remaining == 0) {
               HapticFeedback.mediumImpact();
             }
