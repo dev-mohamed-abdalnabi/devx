@@ -31,18 +31,8 @@ class HomeDashboard extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(greetingFor(now),
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(arabicDate(now),
-              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.65))),
-          const SizedBox(height: 2),
-          Text(prayer.hijriFor(now).format(),
-              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.65))),
-          const SizedBox(height: 20),
+          _WelcomeHeader(now: now, hijri: prayer.hijriFor(now).format()),
+          const SizedBox(height: 16),
           const PrayerHomeCard(),
           const SizedBox(height: 12),
           if (timeCategory != null) ...[
@@ -111,6 +101,47 @@ class HomeDashboard extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _WelcomeHeader extends StatelessWidget {
+  final DateTime now;
+  final String hijri;
+  const _WelcomeHeader({required this.now, required this.hijri});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [scheme.primary, Color.alphaBlend(scheme.secondary.withOpacity(0.35), scheme.primary)],
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(greetingFor(now), style: TextStyle(color: scheme.onPrimary.withOpacity(0.78), fontSize: 15)),
+                const SizedBox(height: 4),
+                Text('طِب قلبًا بذكر الله', style: TextStyle(color: scheme.onPrimary, fontSize: 23, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 10),
+                Text(arabicDate(now), style: TextStyle(color: scheme.onPrimary.withOpacity(0.82))),
+                const SizedBox(height: 3),
+                Text(hijri, style: TextStyle(color: scheme.onPrimary.withOpacity(0.82))),
+              ],
+            ),
+          ),
+          Icon(Icons.auto_awesome_rounded, size: 54, color: scheme.onPrimary.withOpacity(0.85)),
+        ],
+      ),
+    );
   }
 }
 

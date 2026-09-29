@@ -52,9 +52,41 @@ class AppTheme {
       fontFamily: fontFamily,
       colorScheme: scheme,
       scaffoldBackgroundColor: bg,
+      visualDensity: VisualDensity.standard,
+      appBarTheme: AppBarTheme(
+        backgroundColor: bg,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontSize: 21,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+      ),
+      cardTheme: CardTheme(
+        color: scheme.surface,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        surfaceTintColor: scheme.primary.withOpacity(0.04),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        side: BorderSide.none,
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surface,
         indicatorColor: scheme.primaryContainer,
+        height: 76,
+        elevation: 8,
         labelTextStyle: WidgetStatePropertyAll(
           TextStyle(fontFamily: fontFamily, fontSize: 12, color: scheme.onSurface),
         ),

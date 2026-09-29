@@ -60,8 +60,14 @@ class ZikrCard extends StatelessWidget {
               ],
               Row(
                 children: [
-                  if (!provider.showSources) const Spacer(),
                   const Spacer(),
+                  if (zikr.remaining < zikr.count)
+                    IconButton(
+                      tooltip: 'تراجع عن الضغطة الأخيرة',
+                      icon: const Icon(Icons.undo_rounded),
+                      color: scheme.primary,
+                      onPressed: () => provider.undoZikr(zikr),
+                    ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     icon: Icon(

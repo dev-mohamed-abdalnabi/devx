@@ -20,6 +20,7 @@ class AzkarProvider extends ChangeNotifier {
   static const _morningKey = 'azkar_morning_done';
   static const _eveningKey = 'azkar_evening_done';
   static const _progressKey = 'azkar_progress_v2';
+  static const _progressDateKey = 'azkar_progress_date_v1';
   static const _sourcesKey = 'azkar_show_sources';
 
   Future<void> init() async {
@@ -30,7 +31,13 @@ class AzkarProvider extends ChangeNotifier {
         .toList();
 
     final prefs = await SharedPreferences.getInstance();
-    final savedProgress = prefs.getStringList(_progressKey) ?? [];
+    final today = _dayKey(DateTime.now());
+    final savedDate = prefs.getString(_progressDateKey);
+    final savedProgress = savedDate == today ? prefs.getStringList(_progressKey) ?? [] : <String>[];
+    if (savedDate != today) {
+      await prefs.setString(_progressDateKey, today);
+      await prefs.setStringList(_progressKey, []);
+    }
     final progress = <String, int>{};
     for (final entry in savedProgress) {
       final parts = entry.split('=');
@@ -71,6 +78,15 @@ class AzkarProvider extends ChangeNotifier {
       if (allDone) {
         _markCategoryDone(cat.id);
       }
+      notifyListeners();
+    }
+  }
+
+  /// يتراجع عن ضغطة واحدة لهذا الذكر فقط، دون التأثير على بقية الباب.
+  void undoZikr(Zikr z) {
+    if (z.remaining < z.count) {
+      z.remaining++;
+      _saveProgress();
       notifyListeners();
     }
   }
@@ -162,6 +178,10 @@ class AzkarProvider extends ChangeNotifier {
       for (final category in categories)
         for (final zikr in category.azkar) '${zikr.uniqueKey}=${zikr.remaining}',
     ];
+    await prefs.setString(_progressDateKey, _dayKey(DateTime.now()));
     await prefs.setStringList(_progressKey, values);
   }
+
+  String _dayKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
