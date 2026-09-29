@@ -7,7 +7,8 @@ import '../providers/azkar_provider.dart';
 
 class ZikrCard extends StatelessWidget {
   final Zikr zikr;
-  const ZikrCard({super.key, required this.zikr});
+  final VoidCallback? onCompleted;
+  const ZikrCard({super.key, required this.zikr, this.onCompleted});
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +35,7 @@ class ZikrCard extends StatelessWidget {
                 );
             if (zikr.remaining == 0) {
               HapticFeedback.mediumImpact();
+              onCompleted?.call();
             }
           }
         },
@@ -52,10 +54,13 @@ class ZikrCard extends StatelessWidget {
                   color: done ? scheme.onSurface.withOpacity(0.6) : scheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 14),
+              if (provider.showSources) ...[
+                const SizedBox(height: 14),
+                Text(zikr.source, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+              ],
               Row(
                 children: [
-                  Text(zikr.source, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  if (!provider.showSources) const Spacer(),
                   const Spacer(),
                   IconButton(
                     visualDensity: VisualDensity.compact,

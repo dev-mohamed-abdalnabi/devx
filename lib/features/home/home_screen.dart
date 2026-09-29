@@ -94,17 +94,21 @@ class HomeDashboard extends StatelessWidget {
   }
 
   AzkarCategory? _categoryForTime(AzkarProvider p, DateTime now) {
-    String? id;
     if (now.hour >= 3 && now.hour < 12) {
-      id = 'morning';
+      return _findCategory(p, const ['الصباح']);
     } else if (now.hour >= 15 && now.hour < 20) {
-      id = 'evening';
+      return _findCategory(p, const ['الصباح والمساء', 'المساء']);
     } else if (now.hour >= 21 || now.hour < 3) {
-      id = 'sleep';
+      return _findCategory(p, const ['النوم']);
     }
-    if (id == null) return null;
-    for (final c in p.categories) {
-      if (c.id == id) return c;
+    return null;
+  }
+
+  AzkarCategory? _findCategory(AzkarProvider p, List<String> titles) {
+    for (final title in titles) {
+      for (final category in p.categories) {
+        if (category.title.contains(title)) return category;
+      }
     }
     return null;
   }

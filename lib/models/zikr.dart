@@ -3,6 +3,7 @@ class Zikr {
   final String text;
   final int count;
   final String source;
+  final String sourceUrl;
   final String categoryId;
   int remaining;
 
@@ -11,6 +12,7 @@ class Zikr {
     required this.text,
     required this.count,
     required this.source,
+    this.sourceUrl = '',
     required this.categoryId,
   }) : remaining = count;
 
@@ -40,6 +42,7 @@ class AzkarCategory {
               text: z['text'],
               count: z['count'],
               source: z['source'],
+              sourceUrl: z['sourceUrl'] ?? '',
               categoryId: catId,
             ))
         .toList();

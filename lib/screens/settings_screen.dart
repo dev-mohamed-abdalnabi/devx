@@ -25,6 +25,16 @@ class SettingsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _SectionCard(
+          child: SwitchListTile(
+            title: const Text('إظهار مصدر الذكر'),
+            subtitle: const Text('حصن المسلم ورقم الذكر المرجعي'),
+            secondary: const Icon(Icons.menu_book_outlined),
+            value: provider.showSources,
+            onChanged: (_) => provider.toggleSources(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _SectionCard(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(

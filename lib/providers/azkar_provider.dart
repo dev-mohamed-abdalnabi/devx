@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/text_utils.dart';
 import '../models/zikr.dart';
 
 class AzkarProvider extends ChangeNotifier {
@@ -9,6 +10,7 @@ class AzkarProvider extends ChangeNotifier {
   final Set<String> favorites = {};
   bool isDarkMode = false;
   double fontScale = 1.0;
+  bool showSources = true;
   DateTime? lastMorningDone;
   DateTime? lastEveningDone;
 
@@ -17,6 +19,8 @@ class AzkarProvider extends ChangeNotifier {
   static const _fontKey = 'azkar_font_scale';
   static const _morningKey = 'azkar_morning_done';
   static const _eveningKey = 'azkar_evening_done';
+  static const _progressKey = 'azkar_progress_v2';
+  static const _sourcesKey = 'azkar_show_sources';
 
   Future<void> init() async {
     final raw = await rootBundle.loadString('lib/data/azkar.json');
@@ -26,9 +30,27 @@ class AzkarProvider extends ChangeNotifier {
         .toList();
 
     final prefs = await SharedPreferences.getInstance();
+    final savedProgress = prefs.getStringList(_progressKey) ?? [];
+    final progress = <String, int>{};
+    for (final entry in savedProgress) {
+      final parts = entry.split('=');
+      if (parts.length == 2) {
+        final remaining = int.tryParse(parts[1]);
+        if (remaining != null) progress[parts[0]] = remaining;
+      }
+    }
+    for (final category in categories) {
+      for (final zikr in category.azkar) {
+        final remaining = progress[zikr.uniqueKey];
+        if (remaining != null) {
+          zikr.remaining = remaining.clamp(0, zikr.count).toInt();
+        }
+      }
+    }
     favorites.addAll(prefs.getStringList(_favKey) ?? []);
     isDarkMode = prefs.getBool(_darkKey) ?? false;
     fontScale = prefs.getDouble(_fontKey) ?? 1.0;
+    showSources = prefs.getBool(_sourcesKey) ?? true;
     final m = prefs.getString(_morningKey);
     final e = prefs.getString(_eveningKey);
     if (m != null) lastMorningDone = DateTime.tryParse(m);
@@ -43,6 +65,7 @@ class AzkarProvider extends ChangeNotifier {
   void tapZikr(Zikr z) {
     if (z.remaining > 0) {
       z.remaining--;
+      _saveProgress();
       final cat = categoryById(z.categoryId);
       final allDone = cat.azkar.every((a) => a.remaining == 0);
       if (allDone) {
@@ -75,6 +98,7 @@ class AzkarProvider extends ChangeNotifier {
     for (final z in cat.azkar) {
       z.reset();
     }
+    _saveProgress();
     notifyListeners();
   }
 
@@ -107,7 +131,8 @@ class AzkarProvider extends ChangeNotifier {
   List<Zikr> search(String query) {
     if (query.trim().isEmpty) return [];
     final all = categories.expand((c) => c.azkar).toList();
-    return all.where((z) => z.text.contains(query)).toList();
+    final normalized = normalizeArabic(query);
+    return all.where((z) => normalizeArabic(z.text).contains(normalized)).toList();
   }
 
   Future<void> toggleDarkMode() async {
@@ -122,5 +147,21 @@ class AzkarProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_fontKey, scale);
     notifyListeners();
+  }
+
+  Future<void> toggleSources() async {
+    showSources = !showSources;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_sourcesKey, showSources);
+    notifyListeners();
+  }
+
+  Future<void> _saveProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final values = [
+      for (final category in categories)
+        for (final zikr in category.azkar) '${zikr.uniqueKey}=${zikr.remaining}',
+    ];
+    await prefs.setStringList(_progressKey, values);
   }
 }

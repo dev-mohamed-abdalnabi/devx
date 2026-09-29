@@ -131,6 +131,9 @@ jobs:
       - name: Fetch and verify Quran data and fonts
         run: python3 tool/fetch_data.py
 
+      - name: Fetch and verify Hisn al-Muslim azkar
+        run: python3 tool/fetch_hisn.py
+
       - name: Subset fonts (smaller APK; never fails the build)
         continue-on-error: true
         run: |
