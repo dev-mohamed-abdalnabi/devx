@@ -43,7 +43,10 @@ def fetch_quran():
     if len(surahs) != 114:
         fail(f"عدد السور {len(surahs)} بدل 114")
 
-    basmala = surahs[0]["ayahs"][0]["text"]
+    # يعود المصدر أحيانًا بمحرف BOM في بداية أول آية فقط.
+    basmala = surahs[0]["ayahs"][0]["text"].lstrip("\ufeff")
+    # السورتان 95 و97 تستخدمان شدة مختلفة على الباء في المصدر.
+    basmala_variants = (basmala, basmala.replace("بِسْمِ", "بِّسْمِ"))
     total = 0
     stripped = 0
     out_surahs, out_ayahs = [], []
@@ -52,7 +55,11 @@ def fetch_quran():
         if s["number"] != i:
             fail(f"ترتيب السور مختل عند {i}")
         ayahs = s["ayahs"]
-        if len(ayahs) != s["numberOfAyahs"]:
+        # بعض استجابات alquran.cloud الحديثة لا تعيد numberOfAyahs؛
+        # نستخدم عدد الآيات الفعلي عند غياب الحقل، مع إبقاء التحقق
+        # عند وجوده.
+        expected_ayahs = s.get("numberOfAyahs", len(ayahs))
+        if len(ayahs) != expected_ayahs:
             fail(f"عدد آيات سورة {i} لا يطابق الوصف")
         name = s["name"]
         if name.startswith("سورة "):
@@ -61,10 +68,13 @@ def fetch_quran():
         for k, a in enumerate(ayahs, start=1):
             if a["numberInSurah"] != k:
                 fail(f"ترقيم آيات سورة {i} مختل عند {k}")
-            text = a["text"]
-            if k == 1 and i not in (1, 9) and text.startswith(basmala):
-                text = text[len(basmala):].lstrip()
-                stripped += 1
+            text = a["text"].lstrip("\ufeff")
+            if k == 1 and i not in (1, 9):
+                for prefix in basmala_variants:
+                    if text.startswith(prefix):
+                        text = text[len(prefix):].lstrip()
+                        stripped += 1
+                        break
             if not text.strip():
                 fail(f"آية فارغة {i}:{k}")
             if a["juz"] < prev_juz or a["page"] < prev_page:
