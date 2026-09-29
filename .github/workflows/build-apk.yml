@@ -78,7 +78,7 @@ jobs:
               path.write_text(content)
           EOF
 
-      - name: Align Kotlin JVM target with Java 11
+      - name: Align Android Java and Kotlin JVM targets with Java 11
         run: |
           python3 << 'EOF'
           import pathlib
@@ -88,16 +88,21 @@ jobs:
           if kts.exists():
               path = kts
               content = path.read_text()
-              marker = 'compilerOptions.jvmTarget.set(JvmTarget.JVM_11)'
+              marker = 'targetCompatibility = JavaVersion.VERSION_11.toString()'
               if marker not in content:
-                  content = '''import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+                  content = '''import org.gradle.api.tasks.compile.JavaCompile
+          import org.jetbrains.kotlin.gradle.dsl.JvmTarget
           import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
           ''' + content
                   content += '''
 
-          // Match Flutter's Java 11 target for plugins that still apply KGP.
+          // Keep Java and Kotlin targets aligned across all Flutter plugins.
           subprojects {
+              tasks.withType<JavaCompile>().configureEach {
+                  sourceCompatibility = JavaVersion.VERSION_11.toString()
+                  targetCompatibility = JavaVersion.VERSION_11.toString()
+              }
               tasks.withType<KotlinCompile>().configureEach {
                   compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
               }
@@ -107,12 +112,16 @@ jobs:
           elif groovy.exists():
               path = groovy
               content = path.read_text()
-              marker = 'kotlinOptions.jvmTarget = "11"'
+              marker = 'targetCompatibility = JavaVersion.VERSION_11'
               if marker not in content:
                   content += '''
 
-          // Match Flutter's Java 11 target for plugins that still apply KGP.
+          // Keep Java and Kotlin targets aligned across all Flutter plugins.
           subprojects {
+              tasks.withType(JavaCompile).configureEach {
+                  sourceCompatibility = JavaVersion.VERSION_11
+                  targetCompatibility = JavaVersion.VERSION_11
+              }
               tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
                   kotlinOptions.jvmTarget = "11"
               }
