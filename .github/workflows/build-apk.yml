@@ -56,6 +56,7 @@ jobs:
                       )
                   else:
                       content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+              content = content.replace('JavaVersion.VERSION_11', 'JavaVersion.VERSION_17')
               path.write_text(content)
           else:
               path = groovy
@@ -75,10 +76,11 @@ jobs:
                       )
                   else:
                       content += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
+              content = content.replace('JavaVersion.VERSION_11', 'JavaVersion.VERSION_17')
               path.write_text(content)
           EOF
 
-      - name: Align Kotlin JVM target with Java 11
+      - name: Align Java and Kotlin JVM targets with Java 17
         run: |
           python3 << 'EOF'
           import pathlib
@@ -88,19 +90,23 @@ jobs:
           if kts.exists():
               path = kts
               content = path.read_text()
-              marker = 'jvmTarget.set(JvmTarget.JVM_11)'
+              marker = 'jvmTarget.set(JvmTarget.JVM_17)'
               if marker not in content:
-                  content = '''import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+                  content = '''import org.gradle.api.tasks.compile.JavaCompile
+          import org.jetbrains.kotlin.gradle.dsl.JvmTarget
           import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
           ''' + content
                   content += '''
 
-          // Keep KotlinCompile tasks from plugins (for example flutter_timezone)
-          // compatible with the Java 11 target configured by Flutter.
+          // Keep Java and Kotlin targets aligned across all Flutter plugins.
           subprojects {
+              tasks.withType<JavaCompile>().configureEach {
+                  sourceCompatibility = JavaVersion.VERSION_17.toString()
+                  targetCompatibility = JavaVersion.VERSION_17.toString()
+              }
               tasks.withType<KotlinCompile>().configureEach {
-                  compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+                  compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
               }
           }
           '''
@@ -108,15 +114,18 @@ jobs:
           else:
               path = groovy
               content = path.read_text()
-              marker = 'kotlinOptions.jvmTarget = "11"'
+              marker = 'kotlinOptions.jvmTarget = "17"'
               if marker not in content:
                   content += '''
 
-          // Keep KotlinCompile tasks from plugins (for example flutter_timezone)
-          // compatible with the Java 11 target configured by Flutter.
+          // Keep Java and Kotlin targets aligned across all Flutter plugins.
           subprojects {
+              tasks.withType(JavaCompile).configureEach {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
               tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                  kotlinOptions.jvmTarget = "11"
+                  kotlinOptions.jvmTarget = "17"
               }
           }
           '''
