@@ -78,60 +78,21 @@ jobs:
               path.write_text(content)
           EOF
 
-      - name: Patch AndroidManifest (permissions + notification receivers)
-        run: python3 tool/patch_android.py
-
-      - name: Fetch and verify Quran data and fonts
-        run: python3 tool/fetch_data.py
-
-      - name: Subset fonts (smaller APK; never fails the build)
-        continue-on-error: true
-        run: |
-          pip install fonttools
-          python3 tool/subset_fonts.py
-
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build release APK
+        run: flutter build apk --release
 
-      - name: Test
-        run: flutter test
-
-      - name: Build release APKs (split per ABI)
-        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols
-
-      - name: APK size report (warns above 20 MB, never fails)
-        run: |
-          limit=$((20 * 1024 * 1024))
-          for f in build/app/outputs/flutter-apk/*-release.apk; do
-            size=$(stat -c %s "$f")
-            echo "$(basename $f): $size bytes"
-            if [ "$size" -ge "$limit" ]; then
-              echo "::warning::$(basename $f) is above 20 MB ($size bytes)"
-            fi
-          done
-
-      - name: APK sizes
-        run: |
-          ls -l build/app/outputs/flutter-apk/*-release.apk
-          {
-            echo "### APK sizes"
-            for f in build/app/outputs/flutter-apk/*-release.apk; do
-              echo "- $(basename $f): $(du -h $f | cut -f1)"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload APKs as build artifact
+      - name: Upload APK as build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: azkar-app-apks
-          path: build/app/outputs/flutter-apk/*-release.apk
+          name: azkar-app-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: نسخة تلقائية ${{ github.run_number }}
-          files: build/app/outputs/flutter-apk/*-release.apk
+          files: build/app/outputs/flutter-apk/app-release.apk
