@@ -23,8 +23,6 @@ class HomeDashboard extends StatelessWidget {
     final activity = context.watch<ActivityProvider>();
     final prayer = context.watch<PrayerProvider>();
     final daily = activity.dailyFor(now);
-    final scheme = Theme.of(context).colorScheme;
-
     final timeCategory = _categoryForTime(azkar, now);
 
     return SafeArea(

@@ -65,7 +65,7 @@ class AppTheme {
           color: scheme.onSurface,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: scheme.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
