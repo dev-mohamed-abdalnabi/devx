@@ -78,6 +78,28 @@ jobs:
               path.write_text(content)
           EOF
 
+      - name: Align Kotlin JVM target with Java 11
+        run: |
+          python3 << 'EOF'
+          import pathlib
+
+          path = pathlib.Path('android/build.gradle')
+          content = path.read_text()
+          marker = 'kotlinOptions.jvmTarget = "11"'
+          if marker not in content:
+              content += '''
+
+          // Keep KotlinCompile tasks from plugins (for example flutter_timezone)
+          // compatible with the Java 11 target configured by Flutter.
+          subprojects {
+              tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                  kotlinOptions.jvmTarget = "11"
+              }
+          }
+          '''
+              path.write_text(content)
+          EOF
+
       - name: Patch AndroidManifest (permissions + notification receivers)
         run: python3 tool/patch_android.py
 
