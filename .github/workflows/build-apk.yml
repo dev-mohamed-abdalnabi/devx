@@ -78,7 +78,7 @@ jobs:
               path.write_text(content)
           EOF
 
-      - name: Align Android Java and Kotlin JVM targets with Java 11
+      - name: Align Kotlin JVM targets with Android plugin Java targets
         run: |
           python3 << 'EOF'
           import pathlib
@@ -88,23 +88,22 @@ jobs:
           if kts.exists():
               path = kts
               content = path.read_text()
-              marker = 'targetCompatibility = JavaVersion.VERSION_11.toString()'
+              marker = 'JvmTarget.JVM_17'
               if marker not in content:
-                  content = '''import org.gradle.api.tasks.compile.JavaCompile
-          import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+                  content = '''import org.jetbrains.kotlin.gradle.dsl.JvmTarget
           import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
           ''' + content
                   content += '''
 
-          // Keep Java and Kotlin targets aligned across all Flutter plugins.
+          // Match Android plugin Java targets; flutter_timezone still targets Java 11.
           subprojects {
-              tasks.withType<JavaCompile>().configureEach {
-                  sourceCompatibility = JavaVersion.VERSION_11.toString()
-                  targetCompatibility = JavaVersion.VERSION_11.toString()
-              }
               tasks.withType<KotlinCompile>().configureEach {
-                  compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+                  if (project.name == "flutter_timezone") {
+                      compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+                  } else {
+                      compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+                  }
               }
           }
           '''
@@ -112,18 +111,14 @@ jobs:
           elif groovy.exists():
               path = groovy
               content = path.read_text()
-              marker = 'targetCompatibility = JavaVersion.VERSION_11'
+              marker = 'kotlinOptions.jvmTarget = "17"'
               if marker not in content:
                   content += '''
 
-          // Keep Java and Kotlin targets aligned across all Flutter plugins.
+          // Match Android plugin Java targets; flutter_timezone still targets Java 11.
           subprojects {
-              tasks.withType(JavaCompile).configureEach {
-                  sourceCompatibility = JavaVersion.VERSION_11
-                  targetCompatibility = JavaVersion.VERSION_11
-              }
               tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                  kotlinOptions.jvmTarget = "11"
+                  kotlinOptions.jvmTarget = project.name == "flutter_timezone" ? "11" : "17"
               }
           }
           '''
