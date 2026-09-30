@@ -47,7 +47,7 @@ class MoreScreen extends StatelessWidget {
           const AppSectionHeader(title: 'المكتبة والتخصيص'),
           const SizedBox(height: 10),
           _Tile(icon: Icons.bookmark_border_rounded, title: 'علامات القرآن', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookmarksScreen()))),
-          _Tile(icon: Icons.favorite_border_rounded, title: 'أذكاري المفضلة', onTap: () => _push(context, 'المفضلة', const FavoritesScreen())),
+          _Tile(icon: Icons.favorite_border_rounded, title: 'المفضلة', onTap: () => _push(context, 'المفضلة', const FavoritesScreen())),
           _Tile(icon: Icons.search_rounded, title: 'البحث في الأذكار', onTap: () => _push(context, 'البحث', const SearchScreen())),
           _Tile(icon: Icons.settings_outlined, title: 'الإعدادات', onTap: () => _push(context, 'الإعدادات', const SettingsScreen())),
         ],

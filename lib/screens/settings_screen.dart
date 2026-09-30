@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/azkar_provider.dart';
 import '../features/reminders/reminders_screen.dart';
 import '../widgets/app_ui.dart';
+import 'about_screen.dart';
+import 'privacy_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -75,13 +77,27 @@ class SettingsScreen extends StatelessWidget {
         const AppSectionHeader(title: 'حول التطبيق'),
         const SizedBox(height: 10),
         AppCard(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
           child: Row(
             children: [
-              const AppIconBadge(icon: Icons.auto_awesome_rounded),
+              ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.asset('assets/brand/app_icon.png', width: 48, height: 48)),
               const SizedBox(width: 14),
-              Expanded(child: Text('ذكر\nيعمل بالكامل بدون إنترنت', style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5))),
+              Expanded(child: Text('عن ذكر\nيعمل بالكامل بدون إنترنت', style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5))),
               Text('1.2.0', style: TextStyle(color: scheme.onSurfaceVariant)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_left_rounded),
             ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        AppCard(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+          child: const ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: AppIconBadge(icon: Icons.shield_outlined),
+            title: Text('الخصوصية', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('الموقع والإشعارات والبيانات المحلية'),
+            trailing: Icon(Icons.chevron_left_rounded),
           ),
         ),
       ],

@@ -1,5 +1,5 @@
 name: azkar_app
-description: أذكاري - تطبيق إسلامي يعمل بالكامل بدون إنترنت
+description: ذكر - تطبيق إسلامي يعمل بالكامل بدون إنترنت
 publish_to: 'none'
 version: 1.2.0+3
 
@@ -18,11 +18,13 @@ dependencies:
   flutter_timezone: ^3.0.1
   geolocator: ^13.0.1
   flutter_compass: ^0.8.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -30,6 +32,7 @@ flutter:
     - lib/data/azkar.json
     - assets/data/quran.json
     - assets/data/challenges.json
+    - assets/brand/app_icon.png
   fonts:
     - family: Tajawal
       fonts:
@@ -41,3 +44,10 @@ flutter:
     - family: AmiriQuran
       fonts:
         - asset: assets/fonts/AmiriQuran-Regular.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/brand/app_icon.png
+  adaptive_icon_background: '#003B34'
+  adaptive_icon_foreground: assets/brand/app_icon.png

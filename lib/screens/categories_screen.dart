@@ -56,7 +56,7 @@ class CategoriesScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: const AppSectionHeader(
-              title: 'أذكاري',
+              title: 'ذكر',
               subtitle: 'حفظكم الله بذكره · اختر بابًا للبدء',
             ),
           ),

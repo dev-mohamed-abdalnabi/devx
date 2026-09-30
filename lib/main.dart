@@ -8,7 +8,7 @@ import 'providers/azkar_provider.dart';
 import 'providers/notification_service.dart';
 import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +36,7 @@ class AzkarApp extends StatelessWidget {
       child: Consumer<AzkarProvider>(
         builder: (context, provider, _) {
           return MaterialApp(
-            title: 'أذكاري',
+            title: 'ذكر',
             debugShowCheckedModeBanner: false,
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar')],
@@ -52,7 +52,7 @@ class AzkarApp extends StatelessWidget {
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: provider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const HomeScreen(),
+            home: const StartupScreen(),
           );
         },
       ),

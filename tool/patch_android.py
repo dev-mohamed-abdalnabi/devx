@@ -114,7 +114,8 @@ def main() -> int:
             return 1
         s = s[:idx] + RECEIVERS + '    ' + s[idx:]
 
-    s = s.replace('android:label="azkar_app"', 'android:label="أذكاري"')
+    s = s.replace('android:label="azkar_app"', 'android:label="ذكر"')
+    s = s.replace('android:label="أذكاري"', 'android:label="ذكر"')
     MANIFEST.write_text(s, encoding='utf-8')
     patch_gradle()
     patch_proguard()
