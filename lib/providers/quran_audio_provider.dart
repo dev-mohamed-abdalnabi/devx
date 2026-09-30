@@ -77,14 +77,14 @@ class QuranAudioProvider extends ChangeNotifier {
   }
 
   Future<Directory> _audioDirectory() async {
-    final root = await getApplicationDocumentsDirectory();
+    final root = await getApplicationSupportDirectory();
     final dir = Directory('${root.path}/quran_audio/$selectedReciterId');
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }
 
   Future<File> _zipFile() async {
-    final root = await getApplicationDocumentsDirectory();
+    final root = await getApplicationSupportDirectory();
     final dir = Directory('${root.path}/quran_audio');
     if (!await dir.exists()) await dir.create(recursive: true);
     return File('${dir.path}/$selectedReciterId.zip');
