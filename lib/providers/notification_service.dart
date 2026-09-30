@@ -97,7 +97,7 @@ class NotificationService {
 
     final exact = await canScheduleExact();
     final mode =
-        exact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle;
+        exact ? AndroidScheduleMode.alarmClock : AndroidScheduleMode.inexactAllowWhileIdle;
     final details = _details(r.body);
 
     if (r.days.length == 7) {
@@ -146,7 +146,7 @@ class NotificationService {
         matchDateTimeComponents: match,
       );
     } catch (e) {
-      if (mode != AndroidScheduleMode.exactAllowWhileIdle) rethrow;
+      if (mode != AndroidScheduleMode.alarmClock) rethrow;
       // بعض الأجهزة تعلن السماح بالتنبيه الدقيق ثم ترفضه فعليًا؛ لا نفقد التذكير.
       await _plugin.zonedSchedule(
         id,

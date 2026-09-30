@@ -77,7 +77,12 @@ class RemindersProvider extends ChangeNotifier {
 
   /// يعيد false إن رفض المستخدم إذن الإشعارات.
   Future<bool> setEnabled(Reminder r, bool on) async {
-    if (on && !await NotificationService.requestPermission()) return false;
+    if (on) {
+      if (!await NotificationService.requestPermission()) return false;
+      if (!await NotificationService.canScheduleExact()) {
+        await NotificationService.requestExactPermission();
+      }
+    }
     r.enabled = on;
     await _apply(r);
     return true;

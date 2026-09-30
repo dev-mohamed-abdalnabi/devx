@@ -2,8 +2,9 @@ import 'dart:convert';
 import '../core/text_utils.dart';
 
 String displaySurahName(String name) {
-  final clean = name.trim();
-  return clean.startsWith('سورة') ? clean : 'سورة $clean';
+  final clean = name.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E]'), '').trim();
+  final withoutRepeatedPrefix = clean.replaceFirst(RegExp(r'^(?:سورة\s*)+'), '').trim();
+  return 'سورة $withoutRepeatedPrefix';
 }
 
 class Surah {
