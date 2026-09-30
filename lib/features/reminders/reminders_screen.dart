@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
@@ -10,17 +9,17 @@ import '../../widgets/app_ui.dart';
 IconData _iconFor(String kind) {
   switch (kind) {
     case 'morning':
-      return CupertinoIcons.sun_max_fill;
+      return Icons.wb_sunny_rounded;
     case 'evening':
-      return CupertinoIcons.sunset_fill;
+      return Icons.wb_twilight_rounded;
     case 'sleep':
-      return CupertinoIcons.moon_stars_fill;
+      return Icons.nights_stay_rounded;
     case 'quran':
-      return CupertinoIcons.book_fill;
+      return Icons.menu_book_rounded;
     case 'challenges':
-      return CupertinoIcons.checkmark_seal_fill;
+      return Icons.verified_rounded;
     default:
-      return CupertinoIcons.alarm;
+      return Icons.alarm_rounded;
   }
 }
 
@@ -48,7 +47,7 @@ class RemindersScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'إشعار تجريبي',
-            icon: const Icon(CupertinoIcons.bell_fill),
+            icon: const Icon(Icons.notifications_active_rounded),
             onPressed: () async {
               final ok = await NotificationService.requestPermission();
               if (!context.mounted) return;
@@ -75,7 +74,7 @@ class RemindersScreen extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primaryContainer,
                   child: Row(
                     children: [
-                      const AppIconBadge(icon: CupertinoIcons.bell_fill),
+                      const AppIconBadge(icon: Icons.notifications_active_rounded),
                       const SizedBox(width: 14),
                       Expanded(child: Text(
                         'فعّل المفتاح، اختر الأيام والوقت، وسيعمل التذكير تلقائيًا حتى لو أغلقت التطبيق.',
@@ -89,7 +88,7 @@ class RemindersScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(
                     children: [
-                      const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green),
+                      const Icon(Icons.check_circle_rounded, color: Colors.green),
                       const SizedBox(width: 10),
                       Expanded(child: Text('المجدول الآن: ${p.scheduledCount}', style: const TextStyle(fontWeight: FontWeight.w700))),
                       TextButton.icon(
@@ -103,7 +102,7 @@ class RemindersScreen extends StatelessWidget {
                           await NotificationService.showTest();
                           _snack(context, 'أرسلنا إشعار اختبار الآن.');
                         },
-                        icon: const Icon(CupertinoIcons.paperplane_fill),
+                        icon: const Icon(Icons.send_rounded),
                         label: const Text('اختبار الآن'),
                       ),
                     ],

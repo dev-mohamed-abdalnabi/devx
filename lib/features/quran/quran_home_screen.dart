@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
@@ -73,8 +72,8 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
               controller: _controller,
               onChanged: _onChanged,
               placeholder: 'ابحث باسم السورة أو رقمها أو جزء من آية',
-              prefixIcon: const Icon(CupertinoIcons.search),
-              suffixIcon: const Icon(CupertinoIcons.xmark_circle_fill),
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: const Icon(Icons.cancel_rounded),
               suffixMode: OverlayVisibilityMode.editing,
               onSuffixTap: () {
                 _controller.clear();

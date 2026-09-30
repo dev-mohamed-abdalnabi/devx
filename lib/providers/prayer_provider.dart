@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/hijri.dart';
 import '../core/prayer_times.dart';
 import '../data/cities.dart';
+import 'notification_service.dart';
 
 class NextPrayer {
   final String id;
@@ -20,6 +21,7 @@ class PrayerProvider extends ChangeNotifier {
   bool usingGps = false;
   String methodId = 'egyptian';
   bool hanafi = false;
+  bool adhanEnabled = false;
   int hijriAdjust = 0;
   bool loading = true;
   bool locating = false;
@@ -42,12 +44,14 @@ class PrayerProvider extends ChangeNotifier {
         usingGps = (j['gps'] as bool?) ?? false;
         methodId = (j['method'] as String?) ?? 'egyptian';
         hanafi = (j['hanafi'] as bool?) ?? false;
+        adhanEnabled = (j['adhan'] as bool?) ?? false;
         hijriAdjust = (j['hijri'] as int?) ?? 0;
       } catch (_) {
         await _prefs!.setString('${_key}_corrupt', raw);
       }
     }
     loading = false;
+    if (adhanEnabled && hasLocation) await syncAdhan();
     notifyListeners();
   }
 
@@ -61,6 +65,7 @@ class PrayerProvider extends ChangeNotifier {
         'gps': usingGps,
         'method': methodId,
         'hanafi': hanafi,
+        'adhan': adhanEnabled,
         'hijri': hijriAdjust,
       }),
     );
@@ -93,6 +98,7 @@ class PrayerProvider extends ChangeNotifier {
     placeName = '${c.name}، ${c.country}';
     usingGps = false;
     _save();
+    if (adhanEnabled) syncAdhan();
     notifyListeners();
   }
 
@@ -133,6 +139,7 @@ class PrayerProvider extends ChangeNotifier {
       placeName = near == null ? 'موقعك الحالي' : 'موقعك الحالي (قرب ${near.name})';
       usingGps = true;
       await _save();
+      if (adhanEnabled) await syncAdhan();
       return null;
     } catch (_) {
       return 'تعذّر تحديد موقعك. اختر مدينتك يدويًا.';
@@ -145,12 +152,14 @@ class PrayerProvider extends ChangeNotifier {
   void setMethod(String id) {
     methodId = id;
     _save();
+    if (adhanEnabled) syncAdhan();
     notifyListeners();
   }
 
   void setHanafi(bool v) {
     hanafi = v;
     _save();
+    if (adhanEnabled) syncAdhan();
     notifyListeners();
   }
 
@@ -158,5 +167,34 @@ class PrayerProvider extends ChangeNotifier {
     hijriAdjust = v.clamp(-2, 2);
     _save();
     notifyListeners();
+  }
+
+  Future<bool> setAdhanEnabled(bool value) async {
+    if (value) {
+      if (!await NotificationService.requestPermission()) return false;
+      if (!await NotificationService.canScheduleExact()) {
+        await NotificationService.requestExactPermission();
+      }
+    }
+    adhanEnabled = value;
+    await _save();
+    if (value && hasLocation) {
+      await syncAdhan();
+    } else if (!value) {
+      await NotificationService.cancelAdhan();
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> syncAdhan() async {
+    if (!adhanEnabled || !hasLocation) return;
+    final entries = <PrayerEntry>[];
+    final today = DateTime.now();
+    for (var i = 0; i < 8; i++) {
+      final day = timesFor(DateTime(today.year, today.month, today.day + i));
+      if (day != null) entries.addAll(day.prayers);
+    }
+    await NotificationService.scheduleAdhan(entries);
   }
 }

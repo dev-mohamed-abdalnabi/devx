@@ -298,6 +298,23 @@ class _PrayerScreenState extends State<PrayerScreen> {
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
+                    secondary: const Icon(Icons.volume_up_rounded),
+                    title: const Text('تفعيل الأذان', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(p.adhanEnabled
+                        ? 'سيصلك تنبيه عند دخول كل صلاة'
+                        : 'تنبيه صوتي عند دخول أوقات الصلاة'),
+                    value: p.adhanEnabled,
+                    onChanged: (value) async {
+                      final ok = await p.setAdhanEnabled(value);
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('اسمح بالإشعارات من إعدادات النظام أولًا.')),
+                        );
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  SwitchListTile(
                     secondary: const Icon(Icons.filter_2_outlined),
                     title: const Text('العصر بالمذهب الحنفي'),
                     subtitle: const Text('ظل الشيء مثلاه بدل مثله'),

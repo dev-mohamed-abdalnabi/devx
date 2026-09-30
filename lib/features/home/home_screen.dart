@@ -190,6 +190,16 @@ class _AzkarNowCard extends StatelessWidget {
               Text(done
                   ? 'أتممتها، تقبّل الله منك'
                   : 'أنجزت ${toArabicDigits((progress * 100).round())}٪ · اضغط للمتابعة'),
+              const SizedBox(height: 14),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: FilledButton.tonal(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+                  ),
+                  child: Text(done ? 'مراجعة الأذكار' : 'ابدأ الآن'),
+                ),
+              ),
             ],
           ),
         ),

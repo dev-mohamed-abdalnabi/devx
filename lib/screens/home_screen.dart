@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../features/home/home_screen.dart';
 import '../features/more/more_screen.dart';
@@ -35,22 +34,22 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: _go,
         destinations: const [
           NavigationDestination(
-              icon: Icon(CupertinoIcons.house), selectedIcon: Icon(CupertinoIcons.house_fill), label: 'الرئيسية'),
+              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'الرئيسية'),
           NavigationDestination(
-              icon: Icon(CupertinoIcons.book),
-              selectedIcon: Icon(CupertinoIcons.book_fill),
+              icon: Icon(Icons.menu_book_outlined),
+              selectedIcon: Icon(Icons.menu_book_rounded),
               label: 'القرآن'),
           NavigationDestination(
-              icon: Icon(CupertinoIcons.sparkles),
-              selectedIcon: Icon(CupertinoIcons.sparkles),
+              icon: Icon(Icons.auto_awesome_outlined),
+              selectedIcon: Icon(Icons.auto_awesome),
               label: 'الأذكار'),
           NavigationDestination(
-              icon: Icon(CupertinoIcons.clock),
-              selectedIcon: Icon(CupertinoIcons.clock_fill),
+              icon: Icon(Icons.access_time_outlined),
+              selectedIcon: Icon(Icons.access_time_filled),
               label: 'الصلاة'),
           NavigationDestination(
-              icon: Icon(CupertinoIcons.square_grid_2x2),
-              selectedIcon: Icon(CupertinoIcons.square_grid_2x2_fill),
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view_rounded),
               label: 'المزيد'),
         ],
       ),

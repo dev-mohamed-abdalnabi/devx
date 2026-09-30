@@ -3,12 +3,14 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/reminder.dart';
+import '../core/prayer_times.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _channelId = 'azkar_reminders';
   static const _channelName = 'تذكيرات الأذكار';
   static const _channelDesc = 'تذكيرات الأذكار والقرآن والتحديات في مواعيدها';
+  static const _adhanChannelId = 'adhan_times';
 
   static AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -30,6 +32,13 @@ class NotificationService {
       _channelName,
       description: _channelDesc,
       importance: Importance.high,
+    ));
+    await _android?.createNotificationChannel(const AndroidNotificationChannel(
+      _adhanChannelId,
+      'الأذان ومواقيت الصلاة',
+      description: 'تنبيه عند دخول وقت الصلاة',
+      importance: Importance.max,
+      playSound: true,
     ));
   }
 
@@ -68,6 +77,18 @@ class NotificationService {
         ),
       );
 
+  static NotificationDetails _adhanDetails(String body) => NotificationDetails(
+        android: AndroidNotificationDetails(
+          _adhanChannelId,
+          'الأذان ومواقيت الصلاة',
+          channelDescription: 'تنبيه عند دخول وقت الصلاة',
+          importance: Importance.max,
+          priority: Priority.max,
+          playSound: true,
+          styleInformation: BigTextStyleInformation(body),
+        ),
+      );
+
   static Future<void> showTest() async {
     await _plugin.show(999999, 'إشعار تجريبي', 'التذكيرات تعمل على هذا الجهاز', _details('التذكيرات تعمل على هذا الجهاز'));
   }
@@ -77,6 +98,33 @@ class NotificationService {
       return (await _plugin.pendingNotificationRequests()).length;
     } catch (_) {
       return 0;
+    }
+  }
+
+  static Future<void> cancelAdhan() async {
+    for (var i = 0; i < 42; i++) {
+      try {
+        await _plugin.cancel(70000 + i);
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> scheduleAdhan(Iterable<PrayerEntry> entries) async {
+    await cancelAdhan();
+    final exact = await canScheduleExact();
+    final mode = exact ? AndroidScheduleMode.alarmClock : AndroidScheduleMode.inexactAllowWhileIdle;
+    var index = 0;
+    for (final entry in entries.where((e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
+      if (index >= 42) break;
+      await _scheduleOne(
+        70000 + index++,
+        'أذان ${entry.name}',
+        'حان الآن وقت صلاة ${entry.name}',
+        tz.TZDateTime.from(entry.time, tz.local),
+        _adhanDetails('حان الآن وقت صلاة ${entry.name}'),
+        mode: mode,
+        match: null,
+      );
     }
   }
 
@@ -132,7 +180,7 @@ class NotificationService {
     tz.TZDateTime date,
     NotificationDetails details, {
     required AndroidScheduleMode mode,
-    required DateTimeComponents match,
+    required DateTimeComponents? match,
   }) async {
     try {
       await _plugin.zonedSchedule(

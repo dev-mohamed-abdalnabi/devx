@@ -61,9 +61,8 @@ def fetch_quran():
         expected_ayahs = s.get("numberOfAyahs", len(ayahs))
         if len(ayahs) != expected_ayahs:
             fail(f"عدد آيات سورة {i} لا يطابق الوصف")
-        name = s["name"]
-        if name.startswith("سورة "):
-            name = name[len("سورة "):]
+        # نحتفظ بالاسم كما يورده المصدر، بما فيه كلمة «سورة».
+        name = s["name"].strip()
         out_surahs.append([i, name, 1 if s["revelationType"] == "Meccan" else 0, len(ayahs)])
         for k, a in enumerate(ayahs, start=1):
             if a["numberInSurah"] != k:

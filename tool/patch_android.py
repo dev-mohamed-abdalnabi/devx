@@ -36,7 +36,10 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 # Keep generic type signatures so R8 full mode does not throw Missing type parameter.
 -keepattributes Signature
 -keepattributes *Annotation*
+-keepattributes InnerClasses,EnclosingMethod
 -dontwarn sun.misc.**
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keepclassmembers class com.dexterous.flutterlocalnotifications.** { *; }
 -keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
@@ -44,8 +47,9 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 -keepclassmembers,allowobfuscation class * {
   @com.google.gson.annotations.SerializedName <fields>;
 }
--keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
--keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken { *; }
+-keep class com.google.gson.internal.** { *; }
 -keep class com.google.gson.** { *; }
 # Required by Android notification dependencies when AGP 8/R8 full mode is enabled.
 -keep class org.xmlpull.** { *; }
@@ -61,15 +65,20 @@ def patch_gradle() -> None:
         print('WARNING: لم أجد build.gradle للتطبيق؛ تخطّيت ضغط المكتبات الأصلية')
         return
     c = path.read_text(encoding='utf-8')
-    if 'useLegacyPackaging' in c:
-        return
-    block = ('    packaging {\n        jniLibs {\n            useLegacyPackaging = true\n        }\n    }\n')
-    idx = c.find('android {')
-    if idx < 0:
-        print('WARNING: لم أجد كتلة android {} ؛ تخطّيت ضغط المكتبات الأصلية')
-        return
-    nl = c.find('\n', idx)
-    c = c[:nl + 1] + block + c[nl + 1:]
+    if 'useLegacyPackaging' not in c:
+        block = ('    packaging {\n        jniLibs {\n            useLegacyPackaging = true\n        }\n    }\n')
+        idx = c.find('android {')
+        if idx < 0:
+            print('WARNING: لم أجد كتلة android {} ؛ تخطّيت ضغط المكتبات الأصلية')
+            return
+        nl = c.find('\n', idx)
+        c = c[:nl + 1] + block + c[nl + 1:]
+    # الإشعارات أهم من تصغير APK؛ R8 full mode يسبب Missing type parameter
+    # في بعض إصدارات flutter_local_notifications حتى مع قواعد ProGuard.
+    c = c.replace('minifyEnabled true', 'minifyEnabled false')
+    c = c.replace('shrinkResources true', 'shrinkResources false')
+    c = c.replace('isMinifyEnabled = true', 'isMinifyEnabled = false')
+    c = c.replace('isShrinkResources = true', 'isShrinkResources = false')
     path.write_text(c, encoding='utf-8')
     print(f'تم تفعيل ضغط المكتبات الأصلية في {path}')
 

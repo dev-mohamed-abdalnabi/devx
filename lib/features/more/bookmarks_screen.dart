@@ -44,7 +44,7 @@ class BookmarksScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
                   subtitle: Text(
-                      'سورة ${data!.surahOf(a.surah).name} · آية ${toArabicDigits(a.number)}'),
+                      '${displaySurahName(data!.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
                   trailing: IconButton(
                     tooltip: 'إزالة العلامة',
                     icon: const Icon(Icons.bookmark_remove_outlined),
