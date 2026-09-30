@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/azkar_provider.dart';
+import '../widgets/app_ui.dart';
 import 'zikr_list_screen.dart';
 
 final _icons = {
@@ -46,13 +47,9 @@ class CategoriesScreen extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('أذكاري', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('حفظكم الله بذكره', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-              ],
+            child: const AppSectionHeader(
+              title: 'أذكاري',
+              subtitle: 'حفظكم الله بذكره · اختر بابًا للبدء',
             ),
           ),
         ),
@@ -64,14 +61,26 @@ class CategoriesScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               final cat = provider.categories[i];
               final progress = provider.categoryProgress(cat.id);
-              return _CategoryCard(
-                title: cat.title,
-                icon: _icons[cat.icon] ?? Icons.menu_book,
-                progress: progress,
-                count: cat.azkar.length,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: cat.id)),
+              return AppCard(
+                padding: const EdgeInsets.all(14),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: cat.id))),
+                child: Row(
+                  children: [
+                    AppIconBadge(icon: _icons[cat.icon] ?? Icons.menu_book_rounded),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(cat.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        AppProgressBar(value: progress),
+                        const SizedBox(height: 5),
+                        Text('${cat.azkar.length} أذكار', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      ],
+                    )),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_left_rounded),
+                  ],
                 ),
               );
             },

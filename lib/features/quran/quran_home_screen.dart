@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../../data/quran_data.dart';
 import '../../providers/quran_provider.dart';
+import '../../widgets/app_ui.dart';
 import 'reader_screen.dart';
 
 void openReader(BuildContext context, int page, {String? highlight}) {
@@ -58,13 +59,12 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('القرآن الكريم',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child: AppSectionHeader(
+              title: 'القرآن الكريم',
+              subtitle: 'تابع وردك واقرأ براحة وطمأنينة',
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -124,17 +124,27 @@ class _SurahList extends StatelessWidget {
       itemCount: data.surahs.length,
       itemBuilder: (ctx, i) {
         final s = data.surahs[i];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: CircleAvatar(
-            backgroundColor: scheme.primaryContainer,
-            child: Text(toArabicDigits(s.number),
-                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold)),
-          ),
-          title: Text('سورة ${s.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(
-              '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية · صفحة ${toArabicDigits(s.firstPage)}'),
+        return AppCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           onTap: () => openReader(ctx, s.firstPage),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: scheme.primaryContainer,
+                child: Text(toArabicDigits(s.number), style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('سورة ${s.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text('${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية · صفحة ${toArabicDigits(s.firstPage)}'),
+                ],
+              )),
+              const Icon(Icons.chevron_left_rounded),
+            ],
+          ),
         );
       },
     );
@@ -153,17 +163,21 @@ class _JuzList extends StatelessWidget {
       itemCount: 30,
       itemBuilder: (ctx, i) {
         final page = data.juzStartPages[i];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: CircleAvatar(
-            backgroundColor: scheme.primaryContainer,
-            child: Text(toArabicDigits(i + 1),
-                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold)),
-          ),
-          title: Text('الجزء ${toArabicDigits(i + 1)}',
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text('يبدأ من صفحة ${toArabicDigits(page)}'),
+        return AppCard(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           onTap: () => openReader(ctx, page),
+          child: Row(
+            children: [
+              CircleAvatar(backgroundColor: scheme.primaryContainer, child: Text(toArabicDigits(i + 1), style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold))),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('الجزء ${toArabicDigits(i + 1)}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('يبدأ من صفحة ${toArabicDigits(page)}'),
+              ])),
+              const Icon(Icons.chevron_left_rounded),
+            ],
+          ),
         );
       },
     );

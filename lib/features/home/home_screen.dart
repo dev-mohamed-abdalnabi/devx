@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
+import '../challenges/challenges_screen.dart';
 import '../../models/zikr.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
@@ -44,7 +45,9 @@ class HomeDashboard extends StatelessWidget {
               done: activity.dailyDone(now),
               total: daily.length,
               streak: activity.streak,
-              onTap: () => onSwitchTab(3),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChallengesScreen()),
+              ),
             ),
             const SizedBox(height: 12),
           ],
@@ -113,11 +116,7 @@ class _WelcomeHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [scheme.primary, Color.alphaBlend(scheme.secondary.withOpacity(0.35), scheme.primary)],
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-        ),
+        color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -126,17 +125,17 @@ class _WelcomeHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(greetingFor(now), style: TextStyle(color: scheme.onPrimary.withOpacity(0.78), fontSize: 15)),
+                Text(greetingFor(now), style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.78), fontSize: 15)),
                 const SizedBox(height: 4),
-                Text('طِب قلبًا بذكر الله', style: TextStyle(color: scheme.onPrimary, fontSize: 23, fontWeight: FontWeight.w800)),
+                Text('طِب قلبًا بذكر الله', style: TextStyle(color: scheme.onPrimaryContainer, fontSize: 23, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
-                Text(arabicDate(now), style: TextStyle(color: scheme.onPrimary.withOpacity(0.82))),
+                Text(arabicDate(now), style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.82))),
                 const SizedBox(height: 3),
-                Text(hijri, style: TextStyle(color: scheme.onPrimary.withOpacity(0.82))),
+                Text(hijri, style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.82))),
               ],
             ),
           ),
-          Icon(Icons.auto_awesome_rounded, size: 54, color: scheme.onPrimary.withOpacity(0.85)),
+          Icon(Icons.auto_awesome_rounded, size: 54, color: scheme.primary.withOpacity(0.85)),
         ],
       ),
     );
