@@ -183,7 +183,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'سورة $surahName · الجزء ${toArabicDigits(juz)}',
+                      '$surahName · الجزء ${toArabicDigits(juz)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: palette.muted, fontSize: 15),
                     ),

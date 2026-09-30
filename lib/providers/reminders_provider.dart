@@ -39,7 +39,7 @@ class RemindersProvider extends ChangeNotifier {
       try {
         await NotificationService.schedule(r);
       } catch (e) {
-        lastError = 'تعذّرت جدولة «${r.title}»: $e';
+        lastError = _friendlyError(r.title, e);
       }
     }
   }
@@ -59,9 +59,16 @@ class RemindersProvider extends ChangeNotifier {
       await NotificationService.schedule(r);
       lastError = null;
     } catch (e) {
-      lastError = 'تعذّرت جدولة «${r.title}»: $e';
+      lastError = _friendlyError(r.title, e);
     }
     notifyListeners();
+  }
+
+  String _friendlyError(String title, Object error) {
+    if (error.toString().contains('Missing type parameter')) {
+      return 'تعذّرت جدولة «$title» بسبب توافق قديم مع بيانات الإشعارات. أعد فتح التطبيق بعد تحديثه.';
+    }
+    return 'تعذّرت جدولة «$title». تأكد من إذن الإشعارات والتنبيهات الدقيقة.';
   }
 
   /// يعيد false إن رفض المستخدم إذن الإشعارات.

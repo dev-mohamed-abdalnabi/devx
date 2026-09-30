@@ -5,6 +5,7 @@ import pathlib
 import sys
 
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
+PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
 
 PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -31,6 +32,25 @@ RECEIVERS = """        <receiver android:exported="false"
         </receiver>
 """
 
+PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notifications with Gson.
+# Keep generic type signatures so R8 full mode does not throw Missing type parameter.
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn sun.misc.**
+-keep class * extends com.google.gson.TypeAdapter
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+-keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
+-keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+-keep class com.google.gson.** { *; }
+# Required by Android notification dependencies when AGP 8/R8 full mode is enabled.
+-keep class org.xmlpull.** { *; }
+"""
+
 
 def patch_gradle() -> None:
     """يضغط المكتبات الأصلية داخل الـ APK (أكبر توفير في الحجم). لا يُفشل البناء إن تعذّر."""
@@ -52,6 +72,17 @@ def patch_gradle() -> None:
     c = c[:nl + 1] + block + c[nl + 1:]
     path.write_text(c, encoding='utf-8')
     print(f'تم تفعيل ضغط المكتبات الأصلية في {path}')
+
+
+def patch_proguard() -> None:
+    """يحافظ على معلومات Gson العامة التي تحتاجها الإشعارات المجدولة."""
+    PROGUARD.parent.mkdir(parents=True, exist_ok=True)
+    current = PROGUARD.read_text(encoding='utf-8') if PROGUARD.exists() else ''
+    missing = [line for line in PROGUARD_RULES.splitlines() if line and line not in current]
+    if missing:
+        separator = '' if not current or current.endswith('\n') else '\n'
+        PROGUARD.write_text(current + separator + PROGUARD_RULES, encoding='utf-8')
+        print(f'تمت إضافة قواعد R8 إلى {PROGUARD}')
 
 
 def main() -> int:
@@ -77,6 +108,7 @@ def main() -> int:
     s = s.replace('android:label="azkar_app"', 'android:label="أذكاري"')
     MANIFEST.write_text(s, encoding='utf-8')
     patch_gradle()
+    patch_proguard()
 
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
