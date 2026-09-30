@@ -14,12 +14,16 @@ import 'screens/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.azkarapp.quran_audio',
-    androidNotificationChannelName: 'تلاوة القرآن',
-    androidNotificationOngoing: false,
-    androidShowNotificationBadge: true,
-  );
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.azkarapp.quran_audio',
+      androidNotificationChannelName: 'تلاوة القرآن',
+      androidNotificationOngoing: false,
+      androidShowNotificationBadge: true,
+    );
+  } catch (_) {
+    // تعذر تهيئة مشغل الخلفية لا يمنع فتح التطبيق؛ سيعمل القارئ داخل التطبيق.
+  }
   try {
     await NotificationService.init();
   } catch (_) {

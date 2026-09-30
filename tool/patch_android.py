@@ -36,7 +36,11 @@ RECEIVERS = """        <receiver android:exported="false"
         <service android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true"
-            android:stopWithTask="false" />
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
         <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>
