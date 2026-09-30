@@ -69,7 +69,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('سورة ${data.surahOf(a.surah).name} · الآية ${toArabicDigits(a.number)}',
+                Text('${displaySurahName(data.surahOf(a.surah).name)} · الآية ${toArabicDigits(a.number)}',
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ListTile(
@@ -183,7 +183,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      '$surahName · الجزء ${toArabicDigits(juz)}',
+                      '${displaySurahName(surahName)} · الجزء ${toArabicDigits(juz)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: palette.muted, fontSize: 15),
                     ),
@@ -344,7 +344,7 @@ class _SurahBanner extends StatelessWidget {
         ),
       ),
       child: Text(
-        'سورة $name',
+        displaySurahName(name),
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: AppTheme.quranFont,

@@ -1,24 +1,26 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../../models/reminder.dart';
 import '../../providers/notification_service.dart';
 import '../../providers/reminders_provider.dart';
+import '../../widgets/app_ui.dart';
 
 IconData _iconFor(String kind) {
   switch (kind) {
     case 'morning':
-      return Icons.wb_sunny_outlined;
+      return CupertinoIcons.sun_max_fill;
     case 'evening':
-      return Icons.wb_twilight;
+      return CupertinoIcons.sunset_fill;
     case 'sleep':
-      return Icons.bedtime_outlined;
+      return CupertinoIcons.moon_stars_fill;
     case 'quran':
-      return Icons.menu_book_outlined;
+      return CupertinoIcons.book_fill;
     case 'challenges':
-      return Icons.task_alt_outlined;
+      return CupertinoIcons.checkmark_seal_fill;
     default:
-      return Icons.alarm;
+      return CupertinoIcons.alarm;
   }
 }
 
@@ -46,7 +48,7 @@ class RemindersScreen extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: 'إشعار تجريبي',
-            icon: const Icon(Icons.notifications_active_outlined),
+            icon: const Icon(CupertinoIcons.bell_fill),
             onPressed: () async {
               final ok = await NotificationService.requestPermission();
               if (!context.mounted) return;
@@ -69,6 +71,45 @@ class RemindersScreen extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
               children: [
+                AppCard(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Row(
+                    children: [
+                      const AppIconBadge(icon: CupertinoIcons.bell_fill),
+                      const SizedBox(width: 14),
+                      Expanded(child: Text(
+                        'فعّل المفتاح، اختر الأيام والوقت، وسيعمل التذكير تلقائيًا حتى لو أغلقت التطبيق.',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onPrimaryContainer, height: 1.45),
+                      )),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                AppCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    children: [
+                      const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.green),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text('المجدول الآن: ${p.scheduledCount}', style: const TextStyle(fontWeight: FontWeight.w700))),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final ok = await NotificationService.requestPermission();
+                          if (!context.mounted) return;
+                          if (!ok) {
+                            _snack(context, 'اسمح بالإشعارات من إعدادات النظام أولًا.');
+                            return;
+                          }
+                          await NotificationService.showTest();
+                          _snack(context, 'أرسلنا إشعار اختبار الآن.');
+                        },
+                        icon: const Icon(CupertinoIcons.paperplane_fill),
+                        label: const Text('اختبار الآن'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 if (!p.exactAllowed)
                   Card(
                     color: Theme.of(context).colorScheme.secondaryContainer,
@@ -120,18 +161,19 @@ class _ReminderCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         children: [
-          SwitchListTile(
-            secondary: Icon(_iconFor(r.kind)),
+          ListTile(
+            leading: AppIconBadge(icon: _iconFor(r.kind)),
             title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('$time · ${r.daysLabel}'),
-            value: r.enabled,
-            onChanged: (v) async {
-              final ok = await p.setEnabled(r, v);
-              if (!ok && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('لم يُمنح إذن الإشعارات. فعّله من إعدادات النظام.')));
-              }
-            },
+            trailing: CupertinoSwitch(
+              value: r.enabled,
+              onChanged: (v) async {
+                final ok = await p.setEnabled(r, v);
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اسمح بالإشعارات من إعدادات النظام أولًا.')));
+                }
+              },
+            ),
           ),
           if (r.enabled)
             Padding(

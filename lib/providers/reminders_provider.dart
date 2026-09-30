@@ -8,6 +8,7 @@ class RemindersProvider extends ChangeNotifier {
   final List<Reminder> items = [];
   bool loading = true;
   bool exactAllowed = true;
+  int scheduledCount = 0;
   String? lastError;
 
   SharedPreferences? _prefs;
@@ -29,6 +30,7 @@ class RemindersProvider extends ChangeNotifier {
     if (items.isEmpty) items.addAll(defaultReminders());
     // نعيد الجدولة عند كل تشغيل: يصلح تغيّر المنطقة الزمنية أو فقدان الجداول.
     await rescheduleAll();
+    scheduledCount = await NotificationService.pendingCount();
     exactAllowed = await NotificationService.canScheduleExact();
     loading = false;
     notifyListeners();
@@ -42,6 +44,7 @@ class RemindersProvider extends ChangeNotifier {
         lastError = _friendlyError(r.title, e);
       }
     }
+    scheduledCount = await NotificationService.pendingCount();
   }
 
   Future<void> refreshExact() async {
@@ -61,6 +64,7 @@ class RemindersProvider extends ChangeNotifier {
     } catch (e) {
       lastError = _friendlyError(r.title, e);
     }
+    scheduledCount = await NotificationService.pendingCount();
     notifyListeners();
   }
 

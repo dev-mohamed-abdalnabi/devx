@@ -72,6 +72,14 @@ class NotificationService {
     await _plugin.show(999999, 'إشعار تجريبي', 'التذكيرات تعمل على هذا الجهاز', _details('التذكيرات تعمل على هذا الجهاز'));
   }
 
+  static Future<int> pendingCount() async {
+    try {
+      return (await _plugin.pendingNotificationRequests()).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   /// كل تذكير يستخدم المعرفات id*10 … id*10+7 (0 لكل الأيام، و1..7 لأيام محددة).
   static Future<void> cancel(int reminderId) async {
     for (var i = 0; i <= 7; i++) {
@@ -80,7 +88,11 @@ class NotificationService {
   }
 
   static Future<void> schedule(Reminder r) async {
-    await cancel(r.id);
+    try {
+      await cancel(r.id);
+    } catch (_) {
+      // بيانات جدولة قديمة تالفة لا تمنع إنشاء الجدولة الجديدة.
+    }
     if (!r.enabled || r.days.isEmpty) return;
 
     final exact = await canScheduleExact();
@@ -89,28 +101,62 @@ class NotificationService {
     final details = _details(r.body);
 
     if (r.days.length == 7) {
-      await _plugin.zonedSchedule(
+      await _scheduleOne(
         r.id * 10,
         r.title,
         r.body,
         _next(r.hour, r.minute, null),
         details,
-        androidScheduleMode: mode,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
+        mode: mode,
+        match: DateTimeComponents.time,
       );
       return;
     }
     for (final d in r.days) {
-      await _plugin.zonedSchedule(
+      await _scheduleOne(
         r.id * 10 + d,
         r.title,
         r.body,
         _next(r.hour, r.minute, d),
         details,
+        mode: mode,
+        match: DateTimeComponents.dayOfWeekAndTime,
+      );
+    }
+  }
+
+  static Future<void> _scheduleOne(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime date,
+    NotificationDetails details, {
+    required AndroidScheduleMode mode,
+    required DateTimeComponents match,
+  }) async {
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        date,
+        details,
         androidScheduleMode: mode,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        matchDateTimeComponents: match,
+      );
+    } catch (e) {
+      if (mode != AndroidScheduleMode.exactAllowWhileIdle) rethrow;
+      // بعض الأجهزة تعلن السماح بالتنبيه الدقيق ثم ترفضه فعليًا؛ لا نفقد التذكير.
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        date,
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: match,
       );
     }
   }

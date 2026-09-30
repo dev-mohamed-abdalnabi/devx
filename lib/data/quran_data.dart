@@ -1,6 +1,11 @@
 import 'dart:convert';
 import '../core/text_utils.dart';
 
+String displaySurahName(String name) {
+  final clean = name.trim();
+  return clean.startsWith('سورة') ? clean : 'سورة $clean';
+}
+
 class Surah {
   final int number;
   final String name;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
@@ -68,37 +69,32 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
+            child: CupertinoSearchTextField(
               controller: _controller,
               onChanged: _onChanged,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'ابحث باسم السورة أو رقمها أو بجزء من آية',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _controller.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'مسح',
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _controller.clear();
-                          setState(() => _query = '');
-                        },
-                      ),
-              ),
+              placeholder: 'ابحث باسم السورة أو رقمها أو جزء من آية',
+              prefixIcon: const Icon(CupertinoIcons.search),
+              suffixIcon: const Icon(CupertinoIcons.xmark_circle_fill),
+              suffixMode: OverlayVisibilityMode.editing,
+              onSuffixTap: () {
+                _controller.clear();
+                setState(() => _query = '');
+              },
             ),
           ),
           const SizedBox(height: 8),
           if (_query.isEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('السور')),
-                  ButtonSegment(value: true, label: Text('الأجزاء')),
-                ],
-                selected: {_byJuz},
-                onSelectionChanged: (s) => setState(() => _byJuz = s.first),
+              child: CupertinoSlidingSegmentedControl<bool>(
+                groupValue: _byJuz,
+                children: const {
+                  false: Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('السور')),
+                  true: Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('الأجزاء')),
+                },
+                onValueChanged: (value) {
+                  if (value != null) setState(() => _byJuz = value);
+                },
               ),
             ),
             const SizedBox(height: 8),
@@ -138,7 +134,7 @@ class _SurahList extends StatelessWidget {
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('سورة ${s.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(displaySurahName(s.name), style: const TextStyle(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text('${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية · صفحة ${toArabicDigits(s.firstPage)}'),
                 ],
@@ -211,7 +207,7 @@ class _Results extends StatelessWidget {
         for (final s in surahHits)
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
-            title: Text('سورة ${s.name}'),
+            title: Text(displaySurahName(s.name)),
             subtitle: Text('${toArabicDigits(s.ayahCount)} آية'),
             onTap: () => openReader(context, s.firstPage),
           ),
@@ -227,7 +223,7 @@ class _Results extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
-            subtitle: Text('سورة ${data.surahOf(a.surah).name} · آية ${toArabicDigits(a.number)}'),
+            subtitle: Text('${displaySurahName(data.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
             onTap: () => openReader(context, a.page, highlight: a.key),
           ),
       ],
