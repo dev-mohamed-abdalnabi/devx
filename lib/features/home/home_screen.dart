@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../challenges/challenges_screen.dart';
 import '../../models/zikr.dart';
+import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
 import '../../providers/prayer_provider.dart';
@@ -11,6 +12,7 @@ import '../../screens/zikr_list_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../quran/quran_home_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
+import '../../widgets/app_ui.dart';
 
 class HomeDashboard extends StatelessWidget {
   final void Function(int tab) onSwitchTab;
@@ -32,12 +34,17 @@ class HomeDashboard extends StatelessWidget {
         children: [
           _WelcomeHeader(now: now, hijri: prayer.hijriFor(now).format()),
           const SizedBox(height: 16),
-          const PrayerHomeCard(),
-          const SizedBox(height: 12),
+          const AppSectionHeader(
+            title: 'ابدأ الآن',
+            subtitle: 'أهم ما تحتاجه اليوم مرتب حسب الأولوية',
+          ),
+          const SizedBox(height: 10),
           if (timeCategory != null) ...[
             _AzkarNowCard(category: timeCategory, provider: azkar),
             const SizedBox(height: 12),
           ],
+          const PrayerHomeCard(),
+          const SizedBox(height: 12),
           _QuranCard(quran: quran, onStart: () => onSwitchTab(1)),
           const SizedBox(height: 12),
           if (daily.isNotEmpty) ...[
@@ -51,6 +58,8 @@ class HomeDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
+          const AppSectionHeader(title: 'اختصارات'),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -221,7 +230,7 @@ class _QuranCard extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text(started
-                  ? 'سورة $surahName · صفحة ${toArabicDigits(page)}'
+                  ? '${displaySurahName(surahName)} · صفحة ${toArabicDigits(page)}'
                   : 'افتح المصحف من الفاتحة أو اختر السورة التي تريد'),
               if (read > 0) ...[
                 const SizedBox(height: 14),
