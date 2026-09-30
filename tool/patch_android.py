@@ -12,6 +12,9 @@ PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
@@ -28,6 +31,16 @@ RECEIVERS = """        <receiver android:exported="false"
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <service android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true"
+            android:stopWithTask="false" />
+        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
 """
@@ -123,7 +136,8 @@ def main() -> int:
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
-            'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver']
+            'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
+            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver']
     missing = [n for n in need if n not in s]
     if missing:
         print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)

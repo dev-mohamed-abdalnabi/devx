@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'core/theme.dart';
 import 'providers/quran_provider.dart';
+import 'providers/quran_audio_provider.dart';
 import 'providers/activity_provider.dart';
 import 'providers/azkar_provider.dart';
 import 'providers/notification_service.dart';
@@ -12,6 +14,12 @@ import 'screens/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.azkarapp.quran_audio',
+    androidNotificationChannelName: 'تلاوة القرآن',
+    androidNotificationOngoing: false,
+    androidShowNotificationBadge: true,
+  );
   try {
     await NotificationService.init();
   } catch (_) {
@@ -29,6 +37,7 @@ class AzkarApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AzkarProvider()..init()),
         ChangeNotifierProvider(create: (_) => QuranProvider()..init()),
+        ChangeNotifierProvider(create: (_) => QuranAudioProvider()..init()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()..init()),
         ChangeNotifierProvider(create: (_) => PrayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => RemindersProvider()..init()),

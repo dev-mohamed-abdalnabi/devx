@@ -7,9 +7,11 @@ import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
 import '../../providers/quran_provider.dart';
+import '../../providers/quran_audio_provider.dart';
 import '../../screens/zikr_list_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../quran/quran_home_screen.dart';
+import '../quran/quran_audio_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
 import '../../widgets/app_ui.dart';
 
@@ -42,6 +44,8 @@ class HomeDashboard extends StatelessWidget {
           const PrayerHomeCard(),
           const SizedBox(height: 12),
           _QuranCard(quran: quran, onStart: () => onSwitchTab(1)),
+          const SizedBox(height: 12),
+          const _QuranAudioCard(),
           const SizedBox(height: 12),
           if (daily.isNotEmpty) ...[
             _ChallengesCard(
@@ -107,6 +111,35 @@ class HomeDashboard extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _QuranAudioCard extends StatelessWidget {
+  const _QuranAudioCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final audio = context.watch<QuranAudioProvider>();
+    return Card(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranAudioScreen())),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(children: [
+            Icon(Icons.headphones_rounded, size: 34, color: Theme.of(context).colorScheme.secondary),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('القرآن صوتيًا', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(audio.isReady ? 'التلاوة جاهزة · اضغط للاستماع' : 'اختر شيخًا ونزّل التلاوة على جهازك'),
+            ])),
+            const Icon(Icons.chevron_left_rounded),
+          ]),
+        ),
+      ),
+    );
   }
 }
 
