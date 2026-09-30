@@ -164,7 +164,7 @@ class _ReminderCard extends StatelessWidget {
             leading: AppIconBadge(icon: _iconFor(r.kind)),
             title: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('$time · ${r.daysLabel}'),
-            trailing: CupertinoSwitch(
+            trailing: Switch(
               value: r.enabled,
               onChanged: (v) async {
                 final ok = await p.setEnabled(r, v);
