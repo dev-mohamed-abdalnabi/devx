@@ -34,14 +34,14 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: _go,
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'الرئيسية'),
           NavigationDestination(
               icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book),
+              selectedIcon: Icon(Icons.menu_book_rounded),
               label: 'القرآن'),
           NavigationDestination(
               icon: Icon(Icons.auto_awesome_outlined),
-              selectedIcon: Icon(Icons.auto_awesome),
+              selectedIcon: Icon(Icons.auto_awesome_rounded),
               label: 'الأذكار'),
           NavigationDestination(
               icon: Icon(Icons.access_time_outlined),
@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'الصلاة'),
           NavigationDestination(
               icon: Icon(Icons.grid_view_outlined),
-              selectedIcon: Icon(Icons.grid_view),
+              selectedIcon: Icon(Icons.grid_view_rounded),
               label: 'المزيد'),
         ],
       ),

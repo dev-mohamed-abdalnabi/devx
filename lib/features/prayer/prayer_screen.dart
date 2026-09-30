@@ -11,17 +11,17 @@ import 'tick_builder.dart';
 IconData _iconFor(String id) {
   switch (id) {
     case 'fajr':
-      return Icons.nights_stay_outlined;
+      return Icons.nights_stay_rounded;
     case 'sunrise':
-      return Icons.wb_twilight;
+      return Icons.wb_twilight_rounded;
     case 'dhuhr':
-      return Icons.wb_sunny_outlined;
+      return Icons.wb_sunny_rounded;
     case 'asr':
-      return Icons.wb_cloudy_outlined;
+      return Icons.wb_cloudy_rounded;
     case 'maghrib':
-      return Icons.wb_twilight_outlined;
+      return Icons.wb_twilight_rounded;
     default:
-      return Icons.bedtime_outlined;
+      return Icons.bedtime_rounded;
   }
 }
 
@@ -47,7 +47,7 @@ class PrayerHomeCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Icon(Icons.location_on_outlined),
+                const Icon(Icons.location_on_rounded),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -59,7 +59,7 @@ class PrayerHomeCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_left),
+                const Icon(Icons.chevron_left_rounded),
               ],
             ),
           ),
@@ -168,7 +168,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
         actions: [
           IconButton(
             tooltip: 'القبلة',
-            icon: const Icon(Icons.explore_outlined),
+            icon: const Icon(Icons.explore_rounded),
             onPressed: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => const QiblaScreen())),
           ),
