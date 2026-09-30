@@ -7,12 +7,15 @@ import '../models/zikr.dart';
 
 class AzkarProvider extends ChangeNotifier {
   List<AzkarCategory> categories = [];
+  bool loading = true;
+  Object? error;
   final Set<String> favorites = {};
   bool isDarkMode = false;
   double fontScale = 1.0;
   bool showSources = true;
   DateTime? lastMorningDone;
   DateTime? lastEveningDone;
+  Future<void> _progressWrite = Future<void>.value();
 
   static const _favKey = 'azkar_favorites';
   static const _darkKey = 'azkar_dark_mode';
@@ -24,11 +27,19 @@ class AzkarProvider extends ChangeNotifier {
   static const _sourcesKey = 'azkar_show_sources';
 
   Future<void> init() async {
-    final raw = await rootBundle.loadString('lib/data/azkar.json');
-    final data = json.decode(raw);
-    categories = (data['categories'] as List)
-        .map((c) => AzkarCategory.fromJson(c))
-        .toList();
+    try {
+      final raw = await rootBundle.loadString('lib/data/azkar.json');
+      final data = json.decode(raw) as Map<String, dynamic>;
+      categories = (data['categories'] as List)
+          .map((c) => AzkarCategory.fromJson(c as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      categories = [];
+      error = 'تعذّر تحميل بيانات الأذكار';
+      loading = false;
+      notifyListeners();
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final today = _dayKey(DateTime.now());
@@ -63,6 +74,7 @@ class AzkarProvider extends ChangeNotifier {
     if (m != null) lastMorningDone = DateTime.tryParse(m);
     if (e != null) lastEveningDone = DateTime.tryParse(e);
 
+    loading = false;
     notifyListeners();
   }
 
@@ -173,13 +185,16 @@ class AzkarProvider extends ChangeNotifier {
   }
 
   Future<void> _saveProgress() async {
-    final prefs = await SharedPreferences.getInstance();
     final values = [
       for (final category in categories)
         for (final zikr in category.azkar) '${zikr.uniqueKey}=${zikr.remaining}',
     ];
-    await prefs.setString(_progressDateKey, _dayKey(DateTime.now()));
-    await prefs.setStringList(_progressKey, values);
+    _progressWrite = _progressWrite.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_progressDateKey, _dayKey(DateTime.now()));
+      await prefs.setStringList(_progressKey, values);
+    });
+    await _progressWrite;
   }
 
   String _dayKey(DateTime date) =>

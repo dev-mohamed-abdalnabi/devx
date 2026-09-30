@@ -21,6 +21,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
   double? _heading;
   bool _noSensor = false;
   bool _aligned = false;
+  String? _locationError;
 
   @override
   void initState() {
@@ -96,10 +97,19 @@ class _QiblaScreenState extends State<QiblaScreen> {
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => context.read<PrayerProvider>().useGps(),
+                  onPressed: p.locating
+                      ? null
+                      : () async {
+                          final error = await context.read<PrayerProvider>().useGps();
+                          if (mounted && error != null) setState(() => _locationError = error);
+                        },
                   icon: const Icon(Icons.my_location),
                   label: const Text('تحديد تلقائي'),
                 ),
+                if (_locationError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_locationError!, textAlign: TextAlign.center),
+                ],
               ],
             ),
           ),

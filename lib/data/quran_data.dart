@@ -41,12 +41,16 @@ class QuranData {
     final juzStart = List<int>.filled(30, 0);
     for (final a in ayahs) {
       (pages[a.page] ??= <Ayah>[]).add(a);
-      if (juzStart[a.juz - 1] == 0) juzStart[a.juz - 1] = a.page;
-      if (a.number == 1) surahs[a.surah - 1].firstPage = a.page;
+      if (a.juz >= 1 && a.juz <= 30 && juzStart[a.juz - 1] == 0) {
+        juzStart[a.juz - 1] = a.page;
+      }
+      if (a.number == 1 && a.surah >= 1 && a.surah <= surahs.length) {
+        surahs[a.surah - 1].firstPage = a.page;
+      }
     }
     byPage = pages;
     juzStartPages = juzStart;
-    pageCount = pages.keys.reduce((a, b) => a > b ? a : b);
+    pageCount = pages.isEmpty ? 0 : pages.keys.reduce((a, b) => a > b ? a : b);
   }
 
   Surah surahOf(int number) => surahs[number - 1];
@@ -90,5 +94,8 @@ QuranData parseQuran(String raw) {
       .map((a) => Ayah(a[0] as int, a[1] as int, a[2] as String, a[3] as int, a[4] as int,
           a[5] as int, (a[6] as int) == 1))
       .toList();
+  if (surahs.isEmpty || ayahs.isEmpty || surahs.length != 114 || ayahs.length != 6236) {
+    throw const FormatException('بيانات القرآن ناقصة أو غير مكتملة');
+  }
   return QuranData(j['basmala'] as String, surahs, ayahs);
 }

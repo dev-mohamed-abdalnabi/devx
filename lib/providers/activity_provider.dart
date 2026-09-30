@@ -43,10 +43,12 @@ class DayLog {
 
   static DayLog fromJson(Map<String, dynamic> j) {
     final d = DayLog();
-    d.zikr = (j['z'] as int?) ?? 0;
-    d.pages.addAll(((j['p'] as List?) ?? const []).cast<int>());
-    ((j['t'] as Map?) ?? const {}).forEach((k, v) => d.tasbeeh[k as String] = v as int);
-    d.azkarDone.addAll(((j['a'] as List?) ?? const []).cast<String>());
+    d.zikr = (j['z'] as num?)?.toInt() ?? 0;
+    d.pages.addAll(((j['p'] as List?) ?? const []).whereType<num>().map((v) => v.toInt()));
+    ((j['t'] as Map?) ?? const {}).forEach((k, v) {
+      if (k is String && v is num) d.tasbeeh[k] = v.toInt();
+    });
+    d.azkarDone.addAll(((j['a'] as List?) ?? const []).whereType<String>());
     return d;
   }
 }

@@ -33,12 +33,15 @@ class QuranProvider extends ChangeNotifier {
     }
     _prefs = await SharedPreferences.getInstance();
     final p = _prefs!;
-    lastPage = p.getInt(_kLastPage) ?? 1;
+    final savedPage = p.getInt(_kLastPage) ?? 1;
     lastAyahKey = p.getString(_kLastAyah);
     readerTheme = p.getString(_kTheme) ?? 'auto';
     fontSize = p.getDouble(_kFont) ?? 28;
     bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
-    readPages.addAll((p.getStringList(_kRead) ?? const []).map(int.parse));
+    final savedRead = p.getStringList(_kRead) ?? const <String>[];
+    readPages.addAll(savedRead.map(int.tryParse).whereType<int>().where((v) => v > 0));
+    final maxPage = data?.pageCount ?? 604;
+    lastPage = savedPage.clamp(1, maxPage == 0 ? 1 : maxPage).toInt();
     loading = false;
     notifyListeners();
   }
@@ -52,14 +55,17 @@ class QuranProvider extends ChangeNotifier {
   }
 
   Future<void> setLastPage(int page, {String? ayahKey}) async {
-    lastPage = page;
+    final maxPage = data?.pageCount ?? 604;
+    lastPage = page.clamp(1, maxPage == 0 ? 1 : maxPage).toInt();
     if (ayahKey != null) lastAyahKey = ayahKey;
-    await _prefs?.setInt(_kLastPage, page);
+    await _prefs?.setInt(_kLastPage, lastPage);
     if (ayahKey != null) await _prefs?.setString(_kLastAyah, ayahKey);
     notifyListeners();
   }
 
   Future<void> markRead(int page) async {
+    final maxPage = data?.pageCount ?? 604;
+    if (page < 1 || page > maxPage) return;
     if (readPages.add(page)) {
       await _prefs?.setStringList(_kRead, readPages.map((e) => e.toString()).toList());
       notifyListeners();

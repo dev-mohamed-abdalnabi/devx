@@ -38,8 +38,16 @@ class CategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<AzkarProvider>();
 
-    if (provider.categories.isEmpty) {
+    if (provider.loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (provider.categories.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(provider.error?.toString() ?? 'لا توجد أذكار متاحة حاليًا', textAlign: TextAlign.center),
+        ),
+      );
     }
 
     return CustomScrollView(

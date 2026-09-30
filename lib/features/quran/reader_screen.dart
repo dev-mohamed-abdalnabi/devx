@@ -27,7 +27,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _page = widget.page;
+    _page = widget.page.clamp(1, 604);
     _selected = widget.highlight;
     _controller = PageController(initialPage: _page - 1);
     _onPage(_page);
@@ -160,7 +160,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final q = context.watch<QuranProvider>();
-    final data = q.data!;
+    final data = q.data;
+    if (q.loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (data == null || data.pageCount == 0) {
+      return const Scaffold(
+        body: Center(child: Text('تعذّر تحميل صفحات القرآن. أعد فتح التطبيق.')),
+      );
+    }
+    if (_page > data.pageCount) _page = data.pageCount;
     final palette = ReaderPalette.byName(q.readerTheme, Theme.of(context).brightness);
     final pageAyahs = data.byPage[_page] ?? const <Ayah>[];
     final first = pageAyahs.isNotEmpty ? pageAyahs.first : null;
