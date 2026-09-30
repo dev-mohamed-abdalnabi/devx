@@ -7,6 +7,7 @@ import '../../providers/prayer_provider.dart';
 import 'city_picker_screen.dart';
 import 'qibla_screen.dart';
 import 'tick_builder.dart';
+import '../../widgets/app_ui.dart';
 
 IconData _iconFor(String id) {
   switch (id) {
@@ -343,20 +344,19 @@ class _PrayerScreenState extends State<PrayerScreen> {
   List<Widget> _rows(BuildContext context, PrayerDay day, String? nextId, ColorScheme scheme) {
     return [
       for (final e in day.entries)
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: e.id == nextId
-                ? scheme.primaryContainer
-                : scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: AppCard(
+            color: e.id == nextId ? scheme.primaryContainer : scheme.surface,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
             leading: Icon(_iconFor(e.id), color: e.isPrayer ? scheme.primary : scheme.secondary),
             title: Text(e.name,
                 style: TextStyle(fontWeight: e.isPrayer ? FontWeight.bold : FontWeight.normal)),
             trailing: Text(formatClock(e.time),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            ),
           ),
         ),
     ];

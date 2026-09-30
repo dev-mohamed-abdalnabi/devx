@@ -73,7 +73,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ListTile(
-                  leading: const Icon(Icons.copy_outlined),
+                  leading: const Icon(Icons.copy_rounded),
                   title: const Text('نسخ الآية'),
                   onTap: () async {
                     await Clipboard.setData(ClipboardData(
@@ -86,7 +86,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   },
                 ),
                 ListTile(
-                  leading: Icon(q.isBookmarked(a.key) ? Icons.bookmark : Icons.bookmark_border),
+                  leading: Icon(q.isBookmarked(a.key) ? Icons.bookmark_rounded : Icons.bookmark_border_rounded),
                   title: Text(q.isBookmarked(a.key) ? 'إزالة العلامة' : 'حفظ علامة'),
                   onTap: () {
                     q.toggleBookmark(a.key);
@@ -94,7 +94,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.push_pin_outlined),
+                  leading: const Icon(Icons.push_pin_rounded),
                   title: const Text('اجعلها آخر موضع قراءة'),
                   onTap: () {
                     q.setLastPage(a.page, ayahKey: a.key);

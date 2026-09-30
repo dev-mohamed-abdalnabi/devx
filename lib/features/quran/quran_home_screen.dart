@@ -119,9 +119,10 @@ class _SurahList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return ListView.builder(
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       itemCount: data.surahs.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (ctx, i) {
         final s = data.surahs[i];
         return AppCard(
@@ -158,9 +159,10 @@ class _JuzList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return ListView.builder(
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       itemCount: 30,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (ctx, i) {
         final page = data.juzStartPages[i];
         return AppCard(
