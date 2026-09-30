@@ -352,13 +352,16 @@ class _SurahBanner extends StatelessWidget {
           horizontal: BorderSide(color: palette.accent.withValues(alpha: 0.7), width: 1.2),
         ),
       ),
-      child: Text(
-        displaySurahName(name),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: AppTheme.quranFont,
-          fontSize: 24,
-          color: palette.accent,
+      child: Center(
+        child: Text(
+          displaySurahName(name),
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.rtl,
+          style: TextStyle(
+            fontFamily: AppTheme.quranFont,
+            fontSize: 24,
+            color: palette.accent,
+          ),
         ),
       ),
     );
