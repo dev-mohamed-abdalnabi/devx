@@ -15,22 +15,21 @@ class QuranReciter {
   final String name;
   final String subtitle;
   final String packagePath;
-  const QuranReciter(this.id, this.name, this.subtitle, this.packagePath);
+  final String? downloadUrl;
+  const QuranReciter(this.id, this.name, this.subtitle, this.packagePath, this.downloadUrl);
 }
 
 class QuranAudioProvider extends ChangeNotifier {
   static const int surahCount = 114;
   static const int maxDownloadBytes = 100 * 1024 * 1024;
-  static const String packageRoot =
-      'https://raw.githubusercontent.com/dev-mohamed-abdalnabi/devx/main/audio_packages';
   static const String _reciterKey = 'quran_audio_reciter';
   static const String _downloadedKey = 'quran_audio_downloaded';
 
   static const reciters = <QuranReciter>[
-    QuranReciter('mishary', 'مشاري راشد العفاسي', 'الملف المضغوط: audio_packages/mishary/quran.zip', 'mishary'),
-    QuranReciter('husary', 'محمود خليل الحصري', 'جاهز لإضافة ZIP القارئ', 'husary'),
-    QuranReciter('minshawi', 'محمد صديق المنشاوي', 'جاهز لإضافة ZIP القارئ', 'minshawi'),
-    QuranReciter('sudais', 'عبدالرحمن السديس', 'جاهز لإضافة ZIP القارئ', 'sudais'),
+    QuranReciter('mishary', 'مشاري راشد العفاسي', 'نسخة مضغوطة · تنزيل عام', 'mishary', 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663893787524/mspMPkiGmUMfHbYE.zip'),
+    QuranReciter('husary', 'محمود خليل الحصري', 'أضف ZIP ثم رابطًا عامًا', 'husary', null),
+    QuranReciter('minshawi', 'محمد صديق المنشاوي', 'أضف ZIP ثم رابطًا عامًا', 'minshawi', null),
+    QuranReciter('sudais', 'عبدالرحمن السديس', 'أضف ZIP ثم رابطًا عامًا', 'sudais', null),
   ];
 
   final AudioPlayer player = AudioPlayer();
@@ -52,7 +51,7 @@ class QuranAudioProvider extends ChangeNotifier {
   bool get isPlaying => player.playing;
   bool get hasAnyAudio => downloadedSurahs.isNotEmpty;
   double get downloadProgress => totalBytes == 0 ? 0 : downloadedBytes / totalBytes;
-  String get packageUrl => '$packageRoot/${selectedReciter.packagePath}/quran.zip';
+  String? get packageUrl => selectedReciter.downloadUrl;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -122,7 +121,9 @@ class QuranAudioProvider extends ChangeNotifier {
     totalBytes = 0;
     notifyListeners();
     try {
-      final request = http.Request('GET', Uri.parse(packageUrl));
+      final url = packageUrl;
+      if (url == null) throw Exception('هذا القارئ يحتاج رابط ZIP عام بعد رفع ملفه');
+      final request = http.Request('GET', Uri.parse(url));
       final response = await http.Client().send(request);
       if (response.statusCode >= 400) throw Exception('لم يتم العثور على quran.zip لهذا القارئ');
       totalBytes = response.contentLength ?? 0;

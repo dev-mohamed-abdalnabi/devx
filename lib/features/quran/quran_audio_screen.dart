@@ -26,7 +26,7 @@ class QuranAudioScreen extends StatelessWidget {
                   Expanded(child: Text('استمع للقرآن كاملًا', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
                 ]),
                 const SizedBox(height: 10),
-                const Text('اختر القارئ ثم نزّل ملف ZIP من مجلد audio_packages في GitHub. الملفات لا تدخل داخل التطبيق وتُفك خارجيًا بعد التثبيت.'),
+                const Text('اختر القارئ ثم نزّل ملف ZIP من استضافة عامة. الملفات لا تدخل داخل التطبيق وتُفك داخل مساحته الخاصة بعد التثبيت.'),
                 const SizedBox(height: 8),
                 Text('جودة اقتصادية مضغوطة · سقف التنزيل ١٠٠ ميجابايت', style: Theme.of(context).textTheme.bodySmall),
               ]),
@@ -61,9 +61,13 @@ class QuranAudioScreen extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           FilledButton.icon(
-            onPressed: audio.downloading || audio.isReady ? null : audio.downloadPackage,
+            onPressed: audio.downloading || audio.isReady || audio.selectedReciter.downloadUrl == null ? null : audio.downloadPackage,
             icon: Icon(audio.isReady ? Icons.check_circle : Icons.download_rounded),
-            label: Text(audio.isReady ? 'التلاوة جاهزة للاستماع' : 'تنزيل القرآن كاملًا'),
+            label: Text(audio.isReady
+                ? 'التلاوة جاهزة للاستماع'
+                : audio.selectedReciter.downloadUrl == null
+                    ? 'الرابط العام لم يُضف بعد'
+                    : 'تنزيل القرآن كاملًا'),
           ),
           if (audio.hasAnyAudio) ...[
             const SizedBox(height: 8),
