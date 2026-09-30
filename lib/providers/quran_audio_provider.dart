@@ -165,7 +165,10 @@ class QuranAudioProvider extends ChangeNotifier {
       if (!entry.isFile) continue;
       final name = entry.name.replaceAll('\\', '/').split('/').last;
       if (!RegExp(r'^0*\d{1,3}\.(mp3|m4a|ogg|opus)$', caseSensitive: false).hasMatch(name)) continue;
-      await File('${dir.path}/$name').writeAsBytes(entry.readBytes(), flush: true);
+      final content = entry.content;
+      if (content is List<int>) {
+        await File('${dir.path}/$name').writeAsBytes(content, flush: true);
+      }
     }
   }
 
