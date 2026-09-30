@@ -25,7 +25,7 @@ class QuranAudioProvider extends ChangeNotifier {
   static const String _downloadedKey = 'quran_audio_downloaded';
 
   static const reciters = <QuranReciter>[
-    QuranReciter('mishary', 'مشاري راشد العفاسي', 'نسخة مضغوطة · تنزيل عام', 'mishary', 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663893787524/mspMPkiGmUMfHbYE.zip'),
+    QuranReciter('mishary', 'مشاري راشد العفاسي', 'نسخة مضغوطة · تنزيل عام', 'mishary', 'https://raw.githubusercontent.com/dev-mohamed-abdalnabi/devx-audio-packages/main/mishary/quran.zip'),
     QuranReciter('husary', 'محمود خليل الحصري', 'أضف ZIP ثم رابطًا عامًا', 'husary', null),
     QuranReciter('minshawi', 'محمد صديق المنشاوي', 'أضف ZIP ثم رابطًا عامًا', 'minshawi', null),
     QuranReciter('sudais', 'عبدالرحمن السديس', 'أضف ZIP ثم رابطًا عامًا', 'sudais', null),
