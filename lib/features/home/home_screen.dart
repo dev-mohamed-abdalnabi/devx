@@ -6,7 +6,6 @@ import '../../models/zikr.dart';
 import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
-import '../../providers/prayer_provider.dart';
 import '../../providers/quran_provider.dart';
 import '../../screens/zikr_list_screen.dart';
 import '../prayer/prayer_screen.dart';
@@ -24,7 +23,6 @@ class HomeDashboard extends StatelessWidget {
     final azkar = context.watch<AzkarProvider>();
     final quran = context.watch<QuranProvider>();
     final activity = context.watch<ActivityProvider>();
-    final prayer = context.watch<PrayerProvider>();
     final daily = activity.dailyFor(now);
     final timeCategory = _categoryForTime(azkar, now);
 
@@ -32,8 +30,6 @@ class HomeDashboard extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _WelcomeHeader(now: now, hijri: prayer.hijriFor(now).format()),
-          const SizedBox(height: 16),
           const AppSectionHeader(
             title: 'ابدأ الآن',
             subtitle: 'أهم ما تحتاجه اليوم مرتب حسب الأولوية',
@@ -114,43 +110,6 @@ class HomeDashboard extends StatelessWidget {
   }
 }
 
-class _WelcomeHeader extends StatelessWidget {
-  final DateTime now;
-  final String hijri;
-  const _WelcomeHeader({required this.now, required this.hijri});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(greetingFor(now), style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.78), fontSize: 15)),
-                const SizedBox(height: 4),
-                Text('طِب قلبًا بذكر الله', style: TextStyle(color: scheme.onPrimaryContainer, fontSize: 23, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
-                Text(arabicDate(now), style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.82))),
-                const SizedBox(height: 3),
-                Text(hijri, style: TextStyle(color: scheme.onPrimaryContainer.withOpacity(0.82))),
-              ],
-            ),
-          ),
-          Icon(Icons.auto_awesome_rounded, size: 54, color: scheme.primary.withOpacity(0.85)),
-        ],
-      ),
-    );
-  }
-}
-
 class _AzkarNowCard extends StatelessWidget {
   final AzkarCategory category;
   final AzkarProvider provider;
@@ -163,39 +122,44 @@ class _AzkarNowCard extends StatelessWidget {
     final done = progress >= 1;
     return Card(
       color: scheme.primaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(16, 13, 16, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('حان وقت', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(category.title,
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 14),
+                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 9),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(value: progress, minHeight: 8),
+                child: LinearProgressIndicator(value: progress, minHeight: 6),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(done
                   ? 'أتممتها، تقبّل الله منك'
                   : 'أنجزت ${toArabicDigits((progress * 100).round())}٪ · اضغط للمتابعة'),
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: FilledButton.tonal(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: Text(done ? 'مراجعة الأذكار' : 'ابدأ الآن'),
                 ),
