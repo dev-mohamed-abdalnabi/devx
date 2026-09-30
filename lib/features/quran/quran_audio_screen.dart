@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/quran_audio_provider.dart';
@@ -55,9 +56,7 @@ class QuranAudioScreen extends StatelessWidget {
           if (audio.downloading) ...[
             LinearProgressIndicator(value: audio.downloadProgress == 0 ? null : audio.downloadProgress),
             const SizedBox(height: 8),
-            Text(audio.downloadingSurah == null
-                ? 'جاري فحص حجم الملفات...'
-                : 'جاري تنزيل السورة ${audio.downloadingSurah} من ١١٤'),
+            const Text('جاري تنزيل وفك حزمة التلاوة...'),
             const SizedBox(height: 12),
           ],
           FilledButton.icon(
