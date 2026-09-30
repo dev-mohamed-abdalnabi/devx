@@ -9,6 +9,7 @@ PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
 
 PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
@@ -138,7 +139,7 @@ def main() -> int:
     patch_proguard()
 
     # تحقق نهائي
-    need = ['POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
+    need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
             'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver']
