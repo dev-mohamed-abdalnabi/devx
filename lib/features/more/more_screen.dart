@@ -4,7 +4,6 @@ import '../challenges/challenges_screen.dart';
 import '../../screens/favorites_screen.dart';
 import '../../screens/search_screen.dart';
 import '../../screens/settings_screen.dart';
-import '../stats/stats_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
