@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../../data/challenges.dart';
 import '../../providers/activity_provider.dart';
+import '../../widgets/app_ui.dart';
 import '../stats/stats_screen.dart';
 
 class ChallengesScreen extends StatelessWidget {
@@ -12,7 +13,7 @@ class ChallengesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = context.watch<ActivityProvider>();
     final now = DateTime.now();
-    if (a.loading) return const Center(child: CircularProgressIndicator());
+    if (a.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final daily = a.dailyFor(now);
     final weekly = a.weeklyFor(now);
@@ -21,76 +22,55 @@ class ChallengesScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     if (daily.isEmpty) {
-      return const Center(child: Text('تعذّر تحميل التحديات'));
+      return const Scaffold(body: AppEmptyState(icon: Icons.task_alt_rounded, title: 'لا توجد تحديات اليوم'));
     }
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('التحديات',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('هذه تحديات سلوكية للتذكير والمتابعة، وليست أحكامًا شرعية.',
-              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.65))),
-          const SizedBox(height: 16),
-          Card(
-            color: scheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(title: const Text('التحديات')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            const AppSectionHeader(title: 'تحدياتك اليومية', subtitle: 'للتذكير والمتابعة، وليست أحكامًا شرعية'),
+            const SizedBox(height: 16),
+            AppCard(
+              color: scheme.primaryContainer,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: Text('تقدم اليوم',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                      ),
-                      Text('${toArabicDigits(doneCount)} / ${toArabicDigits(daily.length)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const AppIconBadge(icon: Icons.emoji_events_rounded),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('تقدم اليوم', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                      Text('${toArabicDigits(doneCount)} / ${toArabicDigits(daily.length)}', style: const TextStyle(fontWeight: FontWeight.w800)),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  AppProgressBar(value: doneCount / daily.length, color: scheme.primary),
                   const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                        value: doneCount / daily.length, minHeight: 8),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(a.streak > 0
-                      ? 'أيام متواصلة: ${toArabicDigits(a.streak)}'
-                      : 'ابدأ اليوم لتبدأ سلسلة الأيام المتواصلة'),
+                  Text(a.streak > 0 ? 'أيام متواصلة: ${toArabicDigits(a.streak)}' : 'ابدأ اليوم لتبدأ سلسلة الأيام المتواصلة'),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          _Section('تحديات اليوم'),
-          for (final c in daily) _Tile(c: c, a: a, now: now),
-          const SizedBox(height: 16),
-          _Section('تحديات الأسبوع'),
-          for (final c in weekly) _Tile(c: c, a: a, now: now),
-          const SizedBox(height: 16),
-          _Section('هدف الشهر'),
-          for (final c in monthly) _Tile(c: c, a: a, now: now),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const StatsScreen())),
-            icon: const Icon(Icons.bar_chart),
-            label: const Text('الإحصائيات والإنجازات'),
-          ),
-        ],
+            const SizedBox(height: 22),
+            _Section('تحديات اليوم'),
+            for (final c in daily) _Tile(c: c, a: a, now: now),
+            const SizedBox(height: 14),
+            _Section('تحديات الأسبوع'),
+            for (final c in weekly) _Tile(c: c, a: a, now: now),
+            const SizedBox(height: 14),
+            _Section('هدف الشهر'),
+            for (final c in monthly) _Tile(c: c, a: a, now: now),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StatsScreen())),
+              icon: const Icon(Icons.bar_chart_rounded),
+              label: const Text('الإحصائيات والإنجازات'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -103,8 +83,7 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: Text(title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
       );
 }
 
@@ -120,31 +99,35 @@ class _Tile extends StatelessWidget {
     final auto = c.auto != null;
     final prog = a.progressOf(c, now);
     final showBar = auto && c.goal > 1;
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Card(
-        child: ListTile(
-          onTap: auto ? null : () => a.toggleManual(c, now),
-          leading: Icon(
-            done ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: done ? Theme.of(context).colorScheme.primary : null,
-          ),
-          title: Text(c.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(auto ? '${c.catName} · يُحتسب تلقائيًا' : c.catName),
-              if (showBar) ...[
-                const SizedBox(height: 6),
-                LinearProgressIndicator(value: (prog / c.goal).clamp(0.0, 1.0).toDouble()),
-                const SizedBox(height: 2),
-                Text('${toArabicDigits(prog > c.goal ? c.goal : prog)} / ${toArabicDigits(c.goal)}',
-                    style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ],
-          ),
-          trailing: done ? const Text('تم') : null,
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        onTap: auto ? null : () => a.toggleManual(c, now),
+        child: Row(
+          children: [
+            Icon(done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: done ? scheme.primary : scheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(c.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text(auto ? '${c.catName} · يُحتسب تلقائيًا' : c.catName),
+                  if (showBar) ...[
+                    const SizedBox(height: 7),
+                    AppProgressBar(value: prog / c.goal),
+                    const SizedBox(height: 3),
+                    Text('${toArabicDigits(prog > c.goal ? c.goal : prog)} / ${toArabicDigits(c.goal)}', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ],
+              ),
+            ),
+            if (done) const Icon(Icons.check_rounded, color: Colors.green),
+          ],
         ),
       ),
     );
