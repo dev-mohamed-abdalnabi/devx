@@ -75,7 +75,8 @@ class QuranAudioProvider extends ChangeNotifier {
         .whereType<int>()
         .where((n) => n >= 1 && n <= surahCount)
         .toSet();
-    await _removeMissingFiles();
+    await _migrateLegacyAudioDirectory();
+    await _refreshDownloadedFiles();
     notifyListeners();
   }
 
@@ -103,6 +104,16 @@ class QuranAudioProvider extends ChangeNotifier {
     return File('${dir.path}/$selectedReciterId.zip');
   }
 
+  Future<void> _migrateLegacyAudioDirectory() async {
+    final oldRoot = await getApplicationDocumentsDirectory();
+    final newRoot = await getApplicationSupportDirectory();
+    final oldDir = Directory('${oldRoot.path}/quran_audio/$selectedReciterId');
+    final newDir = Directory('${newRoot.path}/quran_audio/$selectedReciterId');
+    if (!await oldDir.exists() || await newDir.exists()) return;
+    await newDir.parent.create(recursive: true);
+    await oldDir.rename(newDir.path);
+  }
+
   Future<File?> _fileFor(int surah) async {
     final dir = await _audioDirectory();
     await for (final entity in dir.list(recursive: false)) {
@@ -116,15 +127,13 @@ class QuranAudioProvider extends ChangeNotifier {
     return match == null ? null : int.tryParse(match.group(1)!);
   }
 
-  Future<void> _removeMissingFiles() async {
+  Future<void> _refreshDownloadedFiles() async {
     final existing = <int>{};
-    for (final surah in downloadedSurahs) {
+    for (var surah = 1; surah <= surahCount; surah++) {
       if (await _fileFor(surah) != null) existing.add(surah);
     }
-    if (existing.length != downloadedSurahs.length) {
-      downloadedSurahs = existing;
-      await _prefs?.setStringList(_downloadedKey, existing.map((e) => e.toString()).toList());
-    }
+    downloadedSurahs = existing;
+    await _prefs?.setStringList(_downloadedKey, existing.map((e) => e.toString()).toList());
   }
 
   Future<void> downloadPackage() async {
@@ -155,10 +164,7 @@ class QuranAudioProvider extends ChangeNotifier {
       await zip.writeAsBytes(chunks, flush: true);
       await _extractPackage(Uint8List.fromList(chunks));
       await zip.delete();
-      downloadedSurahs = <int>{};
-      for (var i = 1; i <= surahCount; i++) {
-        if (await _fileFor(i) != null) downloadedSurahs.add(i);
-      }
+      await _refreshDownloadedFiles();
       await _prefs?.setStringList(_downloadedKey, downloadedSurahs.map((e) => e.toString()).toList());
       if (!isReady) throw Exception('الملف لا يحتوي على السور الـ١١٤ كاملة');
     } catch (e) {
@@ -206,19 +212,25 @@ class QuranAudioProvider extends ChangeNotifier {
   }
 
   Future<void> playSurah(int surah) async {
-    final file = await _fileFor(surah);
-    if (file == null) return;
-    await player.setAudioSource(AudioSource.file(
-      file.path,
-      tag: MediaItem(
-        id: '$selectedReciterId-$surah',
-        title: 'سورة ${surahNames[surah - 1]}',
-        album: 'القرآن الكريم',
-        artist: selectedReciter.name,
-      ),
-    ));
-    await player.play();
-    notifyListeners();
+    try {
+      final file = await _fileFor(surah);
+      if (file == null) throw Exception('ملف السورة غير موجود داخل التطبيق');
+      await player.setAudioSource(AudioSource.file(
+        file.path,
+        tag: MediaItem(
+          id: '$selectedReciterId-$surah',
+          title: 'سورة ${surahNames[surah - 1]}',
+          album: 'القرآن الكريم',
+          artist: selectedReciter.name,
+        ),
+      ));
+      await player.play();
+      error = null;
+      notifyListeners();
+    } catch (e) {
+      error = e;
+      notifyListeners();
+    }
   }
 
   Future<void> pause() => player.pause();
