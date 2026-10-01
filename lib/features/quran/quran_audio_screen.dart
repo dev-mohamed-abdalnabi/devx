@@ -12,33 +12,27 @@ class QuranAudioScreen extends StatelessWidget {
     final audio = context.watch<QuranAudioProvider>();
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('القرآن صوتيًا')),
+      appBar: AppBar(
+        title: const Text('القرآن صوتيًا'),
+        actions: [
+          IconButton(
+            tooltip: 'اختيار الشيخ',
+            onPressed: audio.downloading ? null : () => _showReciterSettings(context, audio),
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
         children: [
           Card(
             color: scheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Icon(Icons.headphones_rounded, color: scheme.primary, size: 30),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text('استمع للقرآن كاملًا', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                ]),
-              ]),
+            child: ListTile(
+              leading: Icon(Icons.headphones_rounded, color: scheme.primary, size: 30),
+              title: const Text('استمع للقرآن كاملًا'),
+              subtitle: Text(audio.selectedReciter.name),
             ),
           ),
-          const SizedBox(height: 16),
-          Text('اختر الشيخ', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...QuranAudioProvider.reciters.map((reciter) => RadioListTile<String>(
-                value: reciter.id,
-                groupValue: audio.selectedReciterId,
-                onChanged: audio.downloading ? null : (id) => audio.selectReciter(id!),
-                title: Text(reciter.name),
-                contentPadding: EdgeInsets.zero,
-              )),
           const SizedBox(height: 8),
           if (audio.error != null)
             Card(
@@ -50,32 +44,92 @@ class QuranAudioScreen extends StatelessWidget {
             ),
           if (audio.downloading) ...[
             LinearProgressIndicator(value: audio.downloadProgress == 0 ? null : audio.downloadProgress),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
           ],
           FilledButton.icon(
-            onPressed: audio.downloading || audio.isReady || audio.selectedReciter.downloadUrl == null ? null : audio.downloadPackage,
+            onPressed: audio.downloading || audio.isReady || audio.selectedReciter.downloadUrl == null
+                ? null
+                : audio.downloadPackage,
             icon: Icon(audio.isReady ? Icons.check_circle : Icons.download_rounded),
             label: Text(audio.isReady
-                ? 'التلاوة جاهزة للاستماع'
+                ? 'التلاوة جاهزة'
                 : audio.selectedReciter.downloadUrl == null
-                    ? 'الرابط العام لم يُضف بعد'
-                    : 'تنزيل القرآن كاملًا'),
+                    ? 'الرابط غير متاح'
+                    : 'تنزيل التلاوة'),
           ),
-          if (audio.hasAnyAudio) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: audio.downloading ? null : () => audio.playFrom(audio.downloadedSurahs.reduce((a, b) => a < b ? a : b)),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('تشغيل من البداية'),
-            ),
-          ],
-          if (audio.hasAnyAudio && !audio.isReady) ...[
-            const SizedBox(height: 8),
-            Text('تم تنزيل ${audio.downloadedSurahs.length} سورة', textAlign: TextAlign.center),
-          ],
-          const SizedBox(height: 22),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('السور', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              if (audio.hasAnyAudio) Text('${audio.downloadedSurahs.length}/114'),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ...List.generate(
+            QuranAudioProvider.surahCount,
+            (index) => _SurahTile(audio: audio, surah: index + 1),
+          ),
+          const SizedBox(height: 12),
           _PlayerCard(audio: audio),
         ],
+      ),
+    );
+  }
+}
+
+Future<void> _showReciterSettings(BuildContext context, QuranAudioProvider audio) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('اختيار الشيخ'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: QuranAudioProvider.reciters
+              .map(
+                (reciter) => RadioListTile<String>(
+                  value: reciter.id,
+                  groupValue: audio.selectedReciterId,
+                  title: Text(reciter.name),
+                  onChanged: (id) async {
+                    if (id == null) return;
+                    await audio.selectReciter(id);
+                    if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                  },
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    ),
+  );
+}
+
+class _SurahTile extends StatelessWidget {
+  final QuranAudioProvider audio;
+  final int surah;
+
+  const _SurahTile({required this.audio, required this.surah});
+
+  @override
+  Widget build(BuildContext context) {
+    final available = audio.hasSurah(surah);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 17,
+          child: Text('$surah', style: const TextStyle(fontSize: 12)),
+        ),
+        title: Text(QuranAudioProvider.surahNames[surah - 1]),
+        trailing: IconButton(
+          tooltip: available ? 'تشغيل' : 'غير متاحة',
+          icon: Icon(available ? Icons.play_circle_fill_rounded : Icons.lock_outline_rounded),
+          onPressed: available && !audio.downloading ? () => audio.playSurah(surah) : null,
+        ),
+        onTap: available && !audio.downloading ? () => audio.playSurah(surah) : null,
       ),
     );
   }
@@ -97,14 +151,15 @@ class _PlayerCard extends StatelessWidget {
             stream: audio.player.sequenceStateStream,
             builder: (_, snapshot) {
               final index = snapshot.data?.currentIndex;
-              return Text(index == null ? 'اختر سورة للاستماع' : 'سورة ${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold));
+              return Text(index == null ? 'اختر سورة للاستماع' : 'السورة الحالية', style: const TextStyle(fontWeight: FontWeight.bold));
             },
           ),
           const SizedBox(height: 8),
           StreamBuilder<Duration>(
             stream: audio.player.positionStream,
             builder: (_, snap) {
-              final value = max <= 0 ? 0.0 : snap.data!.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
+              final position = snap.data ?? Duration.zero;
+              final value = max <= 0 ? 0.0 : position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
               return Slider(
                 value: value.clamp(0, max == 0 ? 1 : max),
                 max: max == 0 ? 1 : max,

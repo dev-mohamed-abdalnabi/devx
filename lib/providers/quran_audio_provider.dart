@@ -23,6 +23,20 @@ class QuranAudioProvider extends ChangeNotifier {
   static const int maxDownloadBytes = 100 * 1024 * 1024;
   static const String _reciterKey = 'quran_audio_reciter';
   static const String _downloadedKey = 'quran_audio_downloaded';
+  static const List<String> surahNames = [
+    'الفاتحة', 'البقرة', 'آل عمران', 'النساء', 'المائدة', 'الأنعام', 'الأعراف', 'الأنفال', 'التوبة', 'يونس',
+    'هود', 'يوسف', 'الرعد', 'إبراهيم', 'الحجر', 'النحل', 'الإسراء', 'الكهف', 'مريم', 'طه',
+    'الأنبياء', 'الحج', 'المؤمنون', 'النور', 'الفرقان', 'الشعراء', 'النمل', 'القصص', 'العنكبوت', 'الروم',
+    'لقمان', 'السجدة', 'الأحزاب', 'سبأ', 'فاطر', 'يس', 'الصافات', 'ص', 'الزمر', 'غافر',
+    'فصلت', 'الشورى', 'الزخرف', 'الدخان', 'الجاثية', 'الأحقاف', 'محمد', 'الفتح', 'الحجرات', 'ق',
+    'الذاريات', 'الطور', 'النجم', 'القمر', 'الرحمن', 'الواقعة', 'الحديد', 'المجادلة', 'الحشر', 'الممتحنة',
+    'الصف', 'الجمعة', 'المنافقون', 'التغابن', 'الطلاق', 'التحريم', 'الملك', 'القلم', 'الحاقة', 'المعارج',
+    'نوح', 'الجن', 'المزمل', 'المدثر', 'القيامة', 'الإنسان', 'المرسلات', 'النبأ', 'النازعات', 'عبس',
+    'التكوير', 'الانفطار', 'المطففين', 'الانشقاق', 'البروج', 'الطارق', 'الأعلى', 'الغاشية', 'الفجر', 'البلد',
+    'الشمس', 'الليل', 'الضحى', 'الشرح', 'التين', 'العلق', 'القدر', 'البينة', 'الزلزلة', 'العاديات',
+    'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون', 'الكوثر', 'الكافرون', 'النصر',
+    'المسد', 'الإخلاص', 'الفلق', 'الناس',
+  ];
 
   static const reciters = <QuranReciter>[
     QuranReciter('mishary', 'مشاري راشد العفاسي', 'نسخة مضغوطة · تنزيل عام', 'mishary', 'https://raw.githubusercontent.com/dev-mohamed-abdalnabi/devx-audio-packages/main/mishary/quran.zip'),
@@ -51,6 +65,7 @@ class QuranAudioProvider extends ChangeNotifier {
   bool get hasAnyAudio => downloadedSurahs.isNotEmpty;
   double get downloadProgress => totalBytes == 0 ? 0 : downloadedBytes / totalBytes;
   String? get packageUrl => selectedReciter.downloadUrl;
+  bool hasSurah(int surah) => downloadedSurahs.contains(surah);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -164,6 +179,7 @@ class QuranAudioProvider extends ChangeNotifier {
       if (!entry.isFile) continue;
       final name = entry.name.replaceAll('\\', '/').split('/').last;
       if (!RegExp(r'^0*\d{1,3}\.(mp3|m4a|ogg|opus)$', caseSensitive: false).hasMatch(name)) continue;
+      entry.decompress();
       final content = entry.content;
       if (content is List<int>) {
         await File('${dir.path}/$name').writeAsBytes(content, flush: true);
@@ -185,6 +201,22 @@ class QuranAudioProvider extends ChangeNotifier {
     }
     if (sources.isEmpty) return;
     await player.setAudioSource(ConcatenatingAudioSource(children: sources));
+    await player.play();
+    notifyListeners();
+  }
+
+  Future<void> playSurah(int surah) async {
+    final file = await _fileFor(surah);
+    if (file == null) return;
+    await player.setAudioSource(AudioSource.file(
+      file.path,
+      tag: MediaItem(
+        id: '$selectedReciterId-$surah',
+        title: 'سورة ${surahNames[surah - 1]}',
+        album: 'القرآن الكريم',
+        artist: selectedReciter.name,
+      ),
+    ));
     await player.play();
     notifyListeners();
   }
