@@ -2,6 +2,7 @@
 """يضيف أذونات أندرويد ومستقبلات الإشعارات إلى AndroidManifest.xml الناتج عن flutter create.
 آمن للتشغيل أكثر من مرة (idempotent). يفشل بخطأ واضح إن تغيّر شكل الملف."""
 import pathlib
+import re
 import sys
 
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
@@ -125,7 +126,8 @@ def patch_main_activity() -> None:
         if 'AudioServiceActivity' not in c:
             c = c.replace('import io.flutter.embedding.android.FlutterActivity',
                           'import com.ryanheise.audioservice.AudioServiceActivity')
-            c = c.replace('MainActivity: FlutterActivity()', 'MainActivity: AudioServiceActivity()')
+            c = re.sub(r'class\s+MainActivity\s*:\s*FlutterActivity\s*\(\)',
+                       'class MainActivity : AudioServiceActivity()', c)
     else:
         if 'AudioServiceActivity' not in c:
             c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
