@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:just_audio_platform_interface/just_audio_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'core/theme.dart';
 import 'providers/quran_provider.dart';
@@ -14,6 +15,7 @@ import 'screens/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final normalAudioPlatform = JustAudioPlatform.instance;
   try {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
@@ -22,7 +24,8 @@ Future<void> main() async {
       androidShowNotificationBadge: true,
     );
   } catch (_) {
-    // تعذر تهيئة مشغل الخلفية لا يمنع فتح التطبيق؛ سيعمل القارئ داخل التطبيق.
+    // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل.
+    JustAudioPlatform.instance = normalAudioPlatform;
   }
   try {
     await NotificationService.init();

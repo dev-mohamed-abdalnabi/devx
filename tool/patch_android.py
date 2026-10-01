@@ -6,6 +6,7 @@ import sys
 
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
+ACTIVITY_ROOT = pathlib.Path('android/app/src/main')
 
 PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -112,6 +113,28 @@ def patch_proguard() -> None:
         print(f'تمت إضافة قواعد R8 إلى {PROGUARD}')
 
 
+def patch_main_activity() -> None:
+    """يجعل Activity الرئيسية متوافقة مع audio_service للإشعارات وشاشة القفل."""
+    candidates = list(ACTIVITY_ROOT.rglob('MainActivity.kt')) + list(ACTIVITY_ROOT.rglob('MainActivity.java'))
+    if not candidates:
+        print('WARNING: لم أجد MainActivity؛ تخطّيت ربط AudioServiceActivity')
+        return
+    path = candidates[0]
+    c = path.read_text(encoding='utf-8')
+    if path.suffix == '.kt':
+        if 'AudioServiceActivity' not in c:
+            c = c.replace('import io.flutter.embedding.android.FlutterActivity',
+                          'import com.ryanheise.audioservice.AudioServiceActivity')
+            c = c.replace('MainActivity: FlutterActivity()', 'MainActivity: AudioServiceActivity()')
+    else:
+        if 'AudioServiceActivity' not in c:
+            c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
+                          'import com.ryanheise.audioservice.AudioServiceActivity;')
+            c = c.replace('extends FlutterActivity', 'extends AudioServiceActivity')
+    path.write_text(c, encoding='utf-8')
+    print(f'تم ربط {path} بـ AudioServiceActivity')
+
+
 def main() -> int:
     if not MANIFEST.exists():
         print(f'ERROR: {MANIFEST} غير موجود. شغّل flutter create --platforms=android . أولًا', file=sys.stderr)
@@ -137,6 +160,7 @@ def main() -> int:
     MANIFEST.write_text(s, encoding='utf-8')
     patch_gradle()
     patch_proguard()
+    patch_main_activity()
 
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
