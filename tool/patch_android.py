@@ -185,9 +185,7 @@ def patch_main_activity() -> None:
         print('WARNING: لم أجد package في MainActivity؛ تخطّيت مصنع الإعلان')
         return
     package_name = package_match.group(1)
-    # يجب أن يكون المصنع داخل نفس source root الخاص بـ MainActivity؛
-    # Flutter يضع Kotlin عادةً تحت src/main/kotlin/<package>/.
-    factory = path.parent / 'ForumNativeAdFactory.kt'
+    factory = ACTIVITY_ROOT / 'ForumNativeAdFactory.kt'
     factory.write_text(
         NATIVE_AD_FACTORY.format(package_name=f'package {package_name}'),
         encoding='utf-8',
