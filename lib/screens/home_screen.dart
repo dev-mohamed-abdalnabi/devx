@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/home/home_screen.dart';
 import '../features/more/more_screen.dart';
-import '../features/prayer/prayer_screen.dart';
+import '../features/community/forum_screen.dart';
 import '../features/quran/quran_home_screen.dart';
 import 'categories_screen.dart';
 
@@ -24,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
       HomeDashboard(onSwitchTab: _go),
       const QuranHomeScreen(),
       const SafeArea(child: CategoriesScreen()),
-      const PrayerScreen(),
+      const ForumScreen(),
       const MoreScreen(),
     ];
     return Scaffold(
@@ -44,9 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedIcon: Icon(Icons.auto_awesome),
               label: 'الأذكار'),
           NavigationDestination(
-              icon: Icon(Icons.access_time_outlined),
-              selectedIcon: Icon(Icons.access_time_filled),
-              label: 'الصلاة'),
+              icon: Icon(Icons.forum_outlined),
+              selectedIcon: Icon(Icons.forum_rounded),
+              label: 'المنتدى'),
           NavigationDestination(
               icon: Icon(Icons.grid_view_outlined),
               selectedIcon: Icon(Icons.grid_view_rounded),

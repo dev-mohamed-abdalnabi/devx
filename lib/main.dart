@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:just_audio_platform_interface/just_audio_platform_interface.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
 import 'providers/quran_provider.dart';
 import 'providers/quran_audio_provider.dart';
@@ -12,9 +13,14 @@ import 'providers/notification_service.dart';
 import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/supabase_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+  );
   final normalAudioPlatform = JustAudioPlatform.instance;
   try {
     await JustAudioBackground.init(
