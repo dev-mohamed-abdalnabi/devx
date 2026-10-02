@@ -177,8 +177,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build one universal release APK
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm,android-arm64 --no-shrink
+      - name: Build two release APKs (ARM and ARM64)
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --no-shrink
 
       - name: APK size report (warns above 20 MB, never fails)
         run: |
