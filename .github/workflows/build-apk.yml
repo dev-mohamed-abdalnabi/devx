@@ -177,6 +177,29 @@ jobs:
       - name: Test
         run: flutter test
 
+      # فحص الكراش: نبني نسخة x86_64 ونشغّلها على محاكي. لو كراشت يفشل البناء ويظهر السبب
+      # في اللوج، ولا تُبنى نسخ ARM النهائية ولا تُنشر.
+      - name: Build x86_64 APK for crash smoke test
+        run: |
+          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-x64 --no-shrink
+          mv build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/smoke.apk"
+
+      - name: Enable KVM (fast emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Smoke test - app must open without crashing
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          script: bash tool/smoke_test.sh ${{ runner.temp }}/smoke.apk
+
       - name: Build two release APKs (ARM and ARM64)
         run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --no-shrink
 
