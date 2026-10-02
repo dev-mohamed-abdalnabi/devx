@@ -7,6 +7,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 /// يفتح المستخدم شاشة «ادعم التطبيق» بنفسه.
 class AdsService {
   AdsService._();
+<<<<<<< HEAD
   static final AdsService instance = AdsService._();
 
   // معرّفات AdMob (App ID موجود في AndroidManifest عبر tool/patch_android.py)
@@ -38,6 +39,14 @@ class AdsService {
     _loadingRewarded = true;
     await init();
     final completer = Completer<bool>();
+=======
+  static const appId = 'ca-app-pub-6238197963590573~3817588900';
+  static const rewardedAdUnitId = 'ca-app-pub-6238197963590573/8854293168';
+  static Future<String> showSupportRewardedAd() async {
+    final done = Completer<bool>();
+    var earned = false;
+    var reason = 'لا يتوفر إعلان الآن.';
+>>>>>>> 35ff277 (fix: protect AdMob release startup and explain no-fill)
     try {
       await RewardedAd.load(
         adUnitId: _rewardedId,
@@ -51,6 +60,7 @@ class AdsService {
             _rewarded = null;
             if (!completer.isCompleted) completer.complete(false);
           },
+<<<<<<< HEAD
         ),
       );
     } catch (_) {
@@ -85,6 +95,19 @@ class AdsService {
       return false;
     }
     return done.future;
+=======
+          onAdFailedToLoad: (error) {
+            reason = error.code == 3
+                ? 'لا يوجد إعلان متاح حاليًا. جرّب لاحقًا.'
+                : 'تعذر تحميل الإعلان الآن.';
+            if (!done.isCompleted) done.complete(false);
+          },
+        ),
+      );
+    } catch (_) { if (!done.isCompleted) done.complete(false); }
+    final ok = await done.future;
+    return ok ? 'شكرًا لك، ساعدت في دعم التطبيق.' : reason;
+>>>>>>> 35ff277 (fix: protect AdMob release startup and explain no-fill)
   }
 
   BannerAd createBanner({required VoidCallback onLoaded, required VoidCallback onFailed}) {
