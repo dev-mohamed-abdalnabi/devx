@@ -625,14 +625,31 @@ class _PlayerAudioHandler extends BaseAudioHandler
   Future<void> skipToNext() async {
     if (hasNext) {
       await skipToQueueItem(nextIndex!);
+    } else if (effectiveIndices.length > 1) {
+      // آخر عنصر: ارجع لأول عنصر بدل أن يتجمّد الزر.
+      await skipToQueueItem(effectiveIndices.first);
     }
   }
 
   @override
   Future<void> skipToPrevious() async {
-    if (hasPrevious) {
+    // مثل مشغلات الموسيقى: إذا مضت أكثر من 3 ثوانٍ أعد المقطع من أوله.
+    if (hasPrevious && currentPosition <= const Duration(seconds: 3)) {
       await skipToQueueItem(previousIndex!);
+    } else {
+      await seek(Duration.zero);
     }
+  }
+
+  @override
+  Future<dynamic> customAction(String name, [Map<String, dynamic>? extras]) async {
+    switch (name) {
+      case 'rewind10':
+        return rewind();
+      case 'forward10':
+        return fastForward();
+    }
+    return super.customAction(name, extras);
   }
 
   @override
@@ -765,12 +782,23 @@ class _PlayerAudioHandler extends BaseAudioHandler
 
   /// Broadcasts the current state to all clients.
   void _broadcastState() {
+    // أندرويد 13+ يبني أزرار الإشعار من الإجراءات القياسية (السابق/تشغيل/التالي)
+    // + إجراءات مخصصة، لذلك التقديم والتأخير تُعرَّف كإجراءات مخصصة حتى تظهر.
+    // الإشعار المصغّر يقبل 3 أزرار كحد أقصى (أكثر من ذلك يُسقط الأزرار).
     final controls = [
-      if (hasPrevious) MediaControl.skipToPrevious,
-      MediaControl.rewind,
+      MediaControl.skipToPrevious,
       if (_playing) MediaControl.pause else MediaControl.play,
-      MediaControl.fastForward,
-      if (hasNext) MediaControl.skipToNext,
+      MediaControl.skipToNext,
+      MediaControl.custom(
+        androidIcon: MediaControl.rewind.androidIcon,
+        label: 'تأخير 10 ثوانٍ',
+        name: 'rewind10',
+      ),
+      MediaControl.custom(
+        androidIcon: MediaControl.fastForward.androidIcon,
+        label: 'تقديم 10 ثوانٍ',
+        name: 'forward10',
+      ),
       MediaControl.stop,
     ];
     playbackState.add(playbackState.nvalue!.copyWith(
@@ -779,10 +807,11 @@ class _PlayerAudioHandler extends BaseAudioHandler
         MediaAction.seek,
         MediaAction.seekForward,
         MediaAction.seekBackward,
+        MediaAction.rewind,
+        MediaAction.fastForward,
       },
-      androidCompactActionIndices: List.generate(controls.length, (i) => i)
-          .where((i) => controls[i].action != MediaAction.stop)
-          .toList(),
+      // الإشعار المصغّر: السابق، تشغيل/إيقاف، التالي.
+      androidCompactActionIndices: const [0, 1, 2],
       processingState: _justAudioEvent.errorCode != null
           ? AudioProcessingState.error
           : const {
