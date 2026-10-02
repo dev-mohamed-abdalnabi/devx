@@ -8,7 +8,7 @@ import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../providers/quran_audio_provider.dart';
 
-/// شكل نجمة ثمانية (رمز علامة الحزب) يحمل رقم السورة.
+/// نجمة خماسية تحمل رقم السورة.
 class StarBadge extends StatelessWidget {
   final int number;
   final double size;
@@ -55,17 +55,19 @@ class _StarPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final r = size.width / 2;
     final path = Path();
-    // مربعان متداخلان بزاوية 45° = نجمة ثمانية.
-    for (var k = 0; k < 2; k++) {
-      final offset = k * math.pi / 4;
-      for (var i = 0; i < 4; i++) {
-        final a = offset + i * math.pi / 2 + math.pi / 4;
-        final p = Offset(c.dx + r * math.cos(a), c.dy + r * math.sin(a));
-        i == 0 && k == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-      }
-      path.close();
+    for (var i = 0; i < 10; i++) {
+      final radius = i.isEven ? r : r * 0.46;
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final p =
+          Offset(c.dx + radius * math.cos(a), c.dy + radius * math.sin(a));
+      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
     }
-    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
+    path.close();
+    canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill);
   }
 
   @override
@@ -82,9 +84,10 @@ class EqualizerBars extends StatefulWidget {
   State<EqualizerBars> createState() => _EqualizerBarsState();
 }
 
-class _EqualizerBarsState extends State<EqualizerBars> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+class _EqualizerBarsState extends State<EqualizerBars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 900));
 
   @override
   void initState() {
@@ -123,9 +126,17 @@ class _EqualizerBarsState extends State<EqualizerBars> with SingleTickerProvider
               Container(
                 width: 4,
                 height: widget.animate
-                    ? 5 + 13 * (0.5 + 0.5 * math.sin(_c.value * 2 * math.pi + i * 1.9)).abs()
+                    ? 5 +
+                        13 *
+                            (0.5 +
+                                    0.5 *
+                                        math.sin(
+                                            _c.value * 2 * math.pi + i * 1.9))
+                                .abs()
                     : 7,
-                decoration: BoxDecoration(color: widget.color, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                    color: widget.color,
+                    borderRadius: BorderRadius.circular(2)),
               ),
           ],
         ),
@@ -165,12 +176,17 @@ class _PlayButton extends StatelessWidget {
                 child: loading
                     ? Padding(
                         padding: EdgeInsets.all(size * 0.3),
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: scheme.onPrimary),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: scheme.onPrimary),
                       )
                     : Icon(
-                        playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        playing
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
                         size: size * 0.6,
-                        color: enabled ? scheme.onPrimary : scheme.onSurfaceVariant,
+                        color: enabled
+                            ? scheme.onPrimary
+                            : scheme.onSurfaceVariant,
                       ),
               ),
             ),
@@ -216,7 +232,8 @@ class AudioMiniPlayer extends StatelessWidget {
                             fill: scheme.primaryContainer,
                             textColor: scheme.primary,
                           )
-                        : Icon(Icons.headphones_rounded, size: 32, color: scheme.onSurfaceVariant),
+                        : Icon(Icons.headphones_rounded,
+                            size: 32, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -224,7 +241,9 @@ class AudioMiniPlayer extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            surah != null ? 'سورة ${QuranAudioProvider.surahName(surah)}' : 'اختر سورة للاستماع',
+                            surah != null
+                                ? 'سورة ${QuranAudioProvider.surahName(surah)}'
+                                : 'اختر سورة للاستماع',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context)
@@ -254,13 +273,19 @@ class AudioMiniPlayer extends StatelessWidget {
                         children: [
                           IconButton(
                             tooltip: 'تأخير ١٠ ثوانٍ',
-                            onPressed: canSeek ? () => audio.seekBy(-QuranAudioProvider.seekStep) : null,
+                            onPressed: canSeek
+                                ? () =>
+                                    audio.seekBy(-QuranAudioProvider.seekStep)
+                                : null,
                             icon: const Icon(Icons.replay_10_rounded),
                           ),
                           _PlayButton(audio: audio, size: 48),
                           IconButton(
                             tooltip: 'تقديم ١٠ ثوانٍ',
-                            onPressed: canSeek ? () => audio.seekBy(QuranAudioProvider.seekStep) : null,
+                            onPressed: canSeek
+                                ? () =>
+                                    audio.seekBy(QuranAudioProvider.seekStep)
+                                : null,
                             icon: const Icon(Icons.forward_10_rounded),
                           ),
                         ],
@@ -301,7 +326,7 @@ class _ThinProgress extends StatelessWidget {
             minHeight: 3,
             value: total <= 0 ? 0 : (pos / total).clamp(0.0, 1.0),
             backgroundColor: scheme.surfaceContainerHighest,
-            color: scheme.secondary,
+            color: scheme.primary,
           ),
         );
       },
@@ -331,7 +356,8 @@ class _FullPlayer extends StatelessWidget {
     final canSeek = audio.currentSurah != null;
 
     if (surah == null) {
-      return const SizedBox(height: 200, child: Center(child: Text('اختر سورة للاستماع')));
+      return const SizedBox(
+          height: 200, child: Center(child: Text('اختر سورة للاستماع')));
     }
 
     return SingleChildScrollView(
@@ -339,7 +365,11 @@ class _FullPlayer extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StarBadge(number: surah, size: 132, fill: scheme.primaryContainer, textColor: scheme.primary),
+          StarBadge(
+              number: surah,
+              size: 132,
+              fill: scheme.primaryContainer,
+              textColor: scheme.primary),
           const SizedBox(height: 16),
           Text(
             'سورة ${QuranAudioProvider.surahName(surah)}',
@@ -372,14 +402,18 @@ class _FullPlayer extends StatelessWidget {
                     IconButton(
                       iconSize: 36,
                       tooltip: 'تأخير ١٠ ثوانٍ',
-                      onPressed: canSeek ? () => audio.seekBy(-QuranAudioProvider.seekStep) : null,
+                      onPressed: canSeek
+                          ? () => audio.seekBy(-QuranAudioProvider.seekStep)
+                          : null,
                       icon: const Icon(Icons.replay_10_rounded),
                     ),
                     _PlayButton(audio: audio, size: 68),
                     IconButton(
                       iconSize: 36,
                       tooltip: 'تقديم ١٠ ثوانٍ',
-                      onPressed: canSeek ? () => audio.seekBy(QuranAudioProvider.seekStep) : null,
+                      onPressed: canSeek
+                          ? () => audio.seekBy(QuranAudioProvider.seekStep)
+                          : null,
                       icon: const Icon(Icons.forward_10_rounded),
                     ),
                     IconButton(
@@ -418,7 +452,9 @@ class _FullPlayer extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _showSleepSheet(context),
-                  icon: Icon(audio.sleepActive ? Icons.bedtime_rounded : Icons.bedtime_outlined),
+                  icon: Icon(audio.sleepActive
+                      ? Icons.bedtime_rounded
+                      : Icons.bedtime_outlined),
                   label: Text(
                     audio.sleepActive ? _sleepLabel(audio) : 'مؤقت النوم',
                     overflow: TextOverflow.ellipsis,
@@ -427,9 +463,13 @@ class _FullPlayer extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               IconButton.filledTonal(
-                tooltip: audio.isFavorite(surah) ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
+                tooltip: audio.isFavorite(surah)
+                    ? 'إزالة من المفضلة'
+                    : 'إضافة إلى المفضلة',
                 onPressed: () => audio.toggleFavorite(surah),
-                icon: Icon(audio.isFavorite(surah) ? Icons.favorite_rounded : Icons.favorite_border_rounded),
+                icon: Icon(audio.isFavorite(surah)
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded),
               ),
             ],
           ),
@@ -439,7 +479,8 @@ class _FullPlayer extends StatelessWidget {
   }
 }
 
-String _speedLabel(double s) => s == s.truncateToDouble() ? '${s.toInt()}×' : '$s×';
+String _speedLabel(double s) =>
+    s == s.truncateToDouble() ? '${s.toInt()}×' : '$s×';
 
 class _ShuffleButton extends StatelessWidget {
   final QuranAudioProvider audio;
@@ -451,7 +492,8 @@ class _ShuffleButton extends StatelessWidget {
     return IconButton(
       tooltip: audio.shuffle ? 'إيقاف العشوائي' : 'تشغيل عشوائي',
       onPressed: audio.toggleShuffle,
-      icon: Icon(Icons.shuffle_rounded, color: audio.shuffle ? scheme.primary : scheme.onSurfaceVariant),
+      icon: Icon(Icons.shuffle_rounded,
+          color: audio.shuffle ? scheme.primary : scheme.onSurfaceVariant),
     );
   }
 }
@@ -472,7 +514,9 @@ class _RepeatButton extends StatelessWidget {
       },
       onPressed: audio.cycleRepeat,
       icon: Icon(
-        audio.repeat == AudioRepeat.one ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+        audio.repeat == AudioRepeat.one
+            ? Icons.repeat_one_rounded
+            : Icons.repeat_rounded,
         color: on ? scheme.primary : scheme.onSurfaceVariant,
       ),
     );
@@ -494,9 +538,9 @@ class _SeekBarState extends State<_SeekBar> {
   Widget build(BuildContext context) {
     final player = widget.audio.player;
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        );
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
     return StreamBuilder<Duration?>(
       stream: player.durationStream,
       builder: (_, durSnap) {
@@ -505,7 +549,8 @@ class _SeekBarState extends State<_SeekBar> {
         return StreamBuilder<Duration>(
           stream: player.positionStream,
           builder: (_, posSnap) {
-            final pos = (posSnap.data ?? Duration.zero).inMilliseconds.toDouble();
+            final pos =
+                (posSnap.data ?? Duration.zero).inMilliseconds.toDouble();
             final value = (_drag ?? pos).clamp(0.0, max <= 0 ? 1.0 : max);
             return Column(
               children: [
@@ -523,7 +568,10 @@ class _SeekBarState extends State<_SeekBar> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(formatAudioTime(Duration(milliseconds: value.round())), style: style),
+                      Text(
+                          formatAudioTime(
+                              Duration(milliseconds: value.round())),
+                          style: style),
                       Text(formatAudioTime(duration), style: style),
                     ],
                   ),
@@ -556,14 +604,17 @@ Future<void> _showSleepSheet(BuildContext context) {
               padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: Text('إيقاف التشغيل تلقائيًا', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                child: Text('إيقاف التشغيل تلقائيًا',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               ),
             ),
             for (final m in const [10, 15, 30, 45, 60])
               ListTile(
                 leading: const Icon(Icons.timer_outlined),
                 title: Text('بعد ${toArabicDigits(m)} دقيقة'),
-                onTap: () => pick(() => audio.setSleepTimer(Duration(minutes: m))),
+                onTap: () =>
+                    pick(() => audio.setSleepTimer(Duration(minutes: m))),
               ),
             ListTile(
               leading: const Icon(Icons.menu_book_outlined),

@@ -41,7 +41,8 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<QuranAudioProvider>();
-    final surahs = context.select<QuranProvider, List<Surah>?>((q) => q.data?.surahs);
+    final surahs =
+        context.select<QuranProvider, List<Surah>?>((q) => q.data?.surahs);
     final visible = _visibleSurahs(audio);
 
     return Scaffold(
@@ -84,7 +85,8 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                       ChoiceChip(
                         label: const Text('كل السور'),
                         selected: !_favoritesOnly,
-                        onSelected: (_) => setState(() => _favoritesOnly = false),
+                        onSelected: (_) =>
+                            setState(() => _favoritesOnly = false),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
@@ -93,7 +95,8 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                             ? 'المفضلة'
                             : 'المفضلة (${toArabicDigits(audio.favorites.length)})'),
                         selected: _favoritesOnly,
-                        onSelected: (_) => setState(() => _favoritesOnly = true),
+                        onSelected: (_) =>
+                            setState(() => _favoritesOnly = true),
                       ),
                     ],
                   ),
@@ -112,7 +115,8 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                         ? 'لم تضف سورًا إلى المفضلة بعد. اضغط على القلب بجانب أي سورة.'
                         : 'لا توجد سورة بهذا الاسم.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ),
               ),
@@ -125,7 +129,7 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
-                  mainAxisExtent: 76,
+                  mainAxisExtent: 88,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, i) {
@@ -133,7 +137,9 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                     return _SurahTile(
                       audio: audio,
                       surah: n,
-                      info: surahs != null && n <= surahs.length ? surahs[n - 1] : null,
+                      info: surahs != null && n <= surahs.length
+                          ? surahs[n - 1]
+                          : null,
                     );
                   },
                   childCount: visible.length,
@@ -166,7 +172,8 @@ class _ReciterPanel extends StatelessWidget {
     } else if (audio.isReady) {
       status = 'جاهزة · ${toArabicDigits(QuranAudioProvider.surahCount)} سورة';
     } else if (audio.hasAnyAudio) {
-      status = '${toArabicDigits(audio.availableCount)} من ${toArabicDigits(QuranAudioProvider.surahCount)} سورة';
+      status =
+          '${toArabicDigits(audio.availableCount)} من ${toArabicDigits(QuranAudioProvider.surahCount)} سورة';
     } else if (!reciter.available) {
       status = 'سيتوفر قريبًا';
     } else {
@@ -192,17 +199,21 @@ class _ReciterPanel extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(reciter.name, style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                      Text(reciter.name,
+                          style: text.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           if (audio.isReady) ...[
-                            Icon(Icons.check_circle_rounded, size: 15, color: scheme.primary),
+                            Icon(Icons.check_circle_rounded,
+                                size: 15, color: scheme.primary),
                             const SizedBox(width: 4),
                           ],
                           Flexible(
                             child: Text(status,
-                                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+                                style: text.bodySmall
+                                    ?.copyWith(color: scheme.onSurfaceVariant)),
                           ),
                         ],
                       ),
@@ -210,7 +221,8 @@ class _ReciterPanel extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: audio.isBusy ? null : () => _showReciterSheet(context),
+                  onPressed:
+                      audio.isBusy ? null : () => _showReciterSheet(context),
                   child: const Text('تغيير'),
                 ),
               ],
@@ -221,7 +233,9 @@ class _ReciterPanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(99),
                 child: LinearProgressIndicator(
                   minHeight: 7,
-                  value: audio.downloadProgress == 0 ? null : audio.downloadProgress,
+                  value: audio.downloadProgress == 0
+                      ? null
+                      : audio.downloadProgress,
                   backgroundColor: scheme.surface,
                 ),
               ),
@@ -238,14 +252,17 @@ class _ReciterPanel extends StatelessWidget {
                       style: text.bodySmall,
                     ),
                   ),
-                  TextButton(onPressed: audio.cancelDownload, child: const Text('إلغاء')),
+                  TextButton(
+                      onPressed: audio.cancelDownload,
+                      child: const Text('إلغاء')),
                 ],
               ),
             ] else if (audio.extracting) ...[
               const SizedBox(height: 14),
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(minHeight: 7, backgroundColor: scheme.surface),
+                child: LinearProgressIndicator(
+                    minHeight: 7, backgroundColor: scheme.surface),
               ),
             ] else if (!audio.isReady && reciter.available) ...[
               const SizedBox(height: 14),
@@ -254,7 +271,9 @@ class _ReciterPanel extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: audio.downloadPackage,
                   icon: const Icon(Icons.download_rounded),
-                  label: Text(audio.hasAnyAudio ? 'إعادة تنزيل التلاوة' : 'تنزيل التلاوة'),
+                  label: Text(audio.hasAnyAudio
+                      ? 'إعادة تنزيل التلاوة'
+                      : 'تنزيل التلاوة'),
                 ),
               ),
               const SizedBox(height: 6),
@@ -273,10 +292,12 @@ class _ReciterPanel extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline_rounded, color: scheme.onErrorContainer),
+                    Icon(Icons.error_outline_rounded,
+                        color: scheme.onErrorContainer),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(audio.error!, style: TextStyle(color: scheme.onErrorContainer)),
+                      child: Text(audio.error!,
+                          style: TextStyle(color: scheme.onErrorContainer)),
                     ),
                   ],
                 ),
@@ -302,14 +323,19 @@ Future<void> _showReciterSheet(BuildContext context) {
             padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Text('اختر القارئ', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              child: Text('اختر القارئ',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             ),
           ),
           for (final r in QuranAudioProvider.reciters)
             ListTile(
               leading: Icon(
-                r.id == audio.selectedReciterId ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: r.id == audio.selectedReciterId ? Theme.of(sheetContext).colorScheme.primary : null,
+                r.id == audio.selectedReciterId
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+                color: r.id == audio.selectedReciterId
+                    ? Theme.of(sheetContext).colorScheme.primary
+                    : null,
               ),
               title: Text(r.name),
               subtitle: Text(r.available ? 'متاح للتنزيل' : 'سيتوفر قريبًا'),
@@ -345,7 +371,8 @@ class _SurahTile extends StatelessWidget {
 
     String? meta;
     if (info != null) {
-      meta = '${info!.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(info!.ayahCount)} آية';
+      meta =
+          '${info!.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(info!.ayahCount)} آية';
     }
 
     return Opacity(
@@ -380,7 +407,8 @@ class _SurahTile extends StatelessWidget {
                         QuranAudioProvider.surahName(surah),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                        style: text.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       if (meta != null)
                         Text(
@@ -398,7 +426,8 @@ class _SurahTile extends StatelessWidget {
                 if (current)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: EqualizerBars(animate: playing, color: scheme.primary),
+                    child:
+                        EqualizerBars(animate: playing, color: scheme.primary),
                   ),
                 SizedBox(
                   width: 34,
@@ -406,11 +435,15 @@ class _SurahTile extends StatelessWidget {
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     iconSize: 20,
-                    tooltip: favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
+                    tooltip:
+                        favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
                     onPressed: () => audio.toggleFavorite(surah),
                     icon: Icon(
-                      favorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      color: favorite ? scheme.secondary : scheme.onSurfaceVariant,
+                      favorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color:
+                          favorite ? scheme.primary : scheme.onSurfaceVariant,
                     ),
                   ),
                 ),

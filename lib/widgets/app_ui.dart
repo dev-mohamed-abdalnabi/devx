@@ -25,10 +25,14 @@ class AppSectionHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              Text(title,
+                  style:
+                      text.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
-                Text(subtitle!, style: text.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text(subtitle!,
+                    style: text.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ],
           ),
@@ -79,7 +83,8 @@ class AppIconBadge extends StatelessWidget {
   final Color? color;
   final double size;
 
-  const AppIconBadge({super.key, required this.icon, this.color, this.size = 44});
+  const AppIconBadge(
+      {super.key, required this.icon, this.color, this.size = 44});
 
   @override
   Widget build(BuildContext context) {
@@ -141,10 +146,17 @@ class AppEmptyState extends StatelessWidget {
           children: [
             AppIconBadge(icon: icon, size: 64),
             const SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700)),
             if (message != null) ...[
               const SizedBox(height: 6),
-              Text(message!, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
+              Text(message!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: scheme.onSurfaceVariant)),
             ],
           ],
         ),
@@ -153,14 +165,14 @@ class AppEmptyState extends StatelessWidget {
   }
 }
 
-
 /// نقش إسلامي بسيط: نجمة ثمانية (مربعان متراكبان) تتكرر بشبكة خفيفة.
 class IslamicPatternPainter extends CustomPainter {
   final Color color;
   final double cell;
   final double strokeWidth;
 
-  const IslamicPatternPainter({required this.color, this.cell = 44, this.strokeWidth = 1});
+  const IslamicPatternPainter(
+      {required this.color, this.cell = 44, this.strokeWidth = 1});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -181,7 +193,8 @@ class IslamicPatternPainter extends CustomPainter {
       final path = Path();
       for (var i = 0; i < 4; i++) {
         final a = rot + math.pi / 4 + i * math.pi / 2;
-        final pt = Offset(c.dx + r * math.cos(a) * 1.414, c.dy + r * math.sin(a) * 1.414);
+        final pt = Offset(
+            c.dx + r * math.cos(a) * 1.414, c.dy + r * math.sin(a) * 1.414);
         i == 0 ? path.moveTo(pt.dx, pt.dy) : path.lineTo(pt.dx, pt.dy);
       }
       path.close();
@@ -201,16 +214,23 @@ class PatternBackground extends StatelessWidget {
   final double cell;
   final Color? color;
 
-  const PatternBackground({super.key, required this.child, this.opacity = 0.07, this.cell = 44, this.color});
+  const PatternBackground(
+      {super.key,
+      required this.child,
+      this.opacity = 0.07,
+      this.cell = 44,
+      this.color});
 
   @override
   Widget build(BuildContext context) {
-    final tint = (color ?? Theme.of(context).colorScheme.primary).withValues(alpha: opacity);
+    final tint = (color ?? Theme.of(context).colorScheme.primary)
+        .withValues(alpha: opacity);
     return Stack(
       children: [
         Positioned.fill(
           child: IgnorePointer(
-            child: CustomPaint(painter: IslamicPatternPainter(color: tint, cell: cell)),
+            child: CustomPaint(
+                painter: IslamicPatternPainter(color: tint, cell: cell)),
           ),
         ),
         child,
@@ -225,12 +245,17 @@ class OrnamentDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme.secondary.withValues(alpha: 0.55);
+    final c = Theme.of(context).colorScheme.primary.withValues(alpha: 0.42);
     return Row(
       children: [
         Expanded(child: Container(height: 1, color: c.withValues(alpha: 0.25))),
         const SizedBox(width: 8),
-        SizedBox(width: 18, height: 18, child: CustomPaint(painter: IslamicPatternPainter(color: c, cell: 18, strokeWidth: 1))),
+        SizedBox(
+            width: 18,
+            height: 18,
+            child: CustomPaint(
+                painter:
+                    IslamicPatternPainter(color: c, cell: 18, strokeWidth: 1))),
         const SizedBox(width: 8),
         Expanded(child: Container(height: 1, color: c.withValues(alpha: 0.25))),
       ],
@@ -238,7 +263,7 @@ class OrnamentDivider extends StatelessWidget {
   }
 }
 
-/// مربع شبكة بنفس روح شاشة القرآن صوتيًا: حدود رفيعة + نقش خفيف في الخلفية.
+/// بطاقة شبكة بنفس أبعاد بطاقات السور في شاشة القرآن صوتيًا.
 class AppGridTile extends StatelessWidget {
   final Widget leading;
   final String title;
@@ -272,29 +297,36 @@ class AppGridTile extends StatelessWidget {
           opacity: 0.06,
           cell: 36,
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
               children: [
                 leading,
-                const SizedBox(height: 10),
-                Text(title,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.titleSmall?.copyWith(fontWeight: FontWeight.w800, height: 1.25)),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!,
-                      maxLines: 1,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant, fontSize: 11)),
-                ],
-                if (footer != null) ...[
-                  const SizedBox(height: 8),
-                  footer!,
-                ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800)),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: text.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant, fontSize: 11)),
+                      ],
+                      if (footer != null) ...[
+                        const SizedBox(height: 6),
+                        footer!,
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

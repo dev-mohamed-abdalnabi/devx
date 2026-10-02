@@ -51,7 +51,8 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text('تعذّر تحميل بيانات القرآن. أعد تشغيل التطبيق.',
-              textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium),
         ),
       );
     }
@@ -103,11 +104,15 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
                   ButtonSegment(value: true, label: Text('الأجزاء')),
                 ],
                 selected: {_byJuz},
-                onSelectionChanged: (value) => setState(() => _byJuz = value.first),
+                onSelectionChanged: (value) =>
+                    setState(() => _byJuz = value.first),
               ),
             ),
             const SizedBox(height: 8),
-            Expanded(child: _byJuz ? _JuzList(data: data) : _SurahList(data: data, q: q)),
+            Expanded(
+                child: _byJuz
+                    ? _JuzList(data: data)
+                    : _SurahList(data: data, q: q)),
           ] else
             Expanded(child: _Results(data: data, query: _query)),
         ],
@@ -130,15 +135,20 @@ class _SurahList extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 1.05,
+        mainAxisExtent: 88,
       ),
       itemCount: data.surahs.length,
       itemBuilder: (ctx, i) {
         final s = data.surahs[i];
         return AppGridTile(
-          leading: StarBadge(number: s.number, size: 46, fill: scheme.primaryContainer, textColor: scheme.primary),
+          leading: StarBadge(
+              number: s.number,
+              size: 46,
+              fill: scheme.primaryContainer,
+              textColor: scheme.primary),
           title: displaySurahName(s.name),
-          subtitle: '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
+          subtitle:
+              '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
           onTap: () => openReader(ctx, s.firstPage),
         );
       },
@@ -159,13 +169,17 @@ class _JuzList extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 1.05,
+        mainAxisExtent: 88,
       ),
       itemCount: 30,
       itemBuilder: (ctx, i) {
         final page = data.juzStartPages[i];
         return AppGridTile(
-          leading: StarBadge(number: i + 1, size: 46, fill: scheme.primaryContainer, textColor: scheme.primary),
+          leading: StarBadge(
+              number: i + 1,
+              size: 46,
+              fill: scheme.primaryContainer,
+              textColor: scheme.primary),
           title: 'الجزء ${toArabicDigits(i + 1)}',
           subtitle: 'صفحة ${toArabicDigits(page)}',
           onTap: () => openReader(ctx, page),
@@ -188,7 +202,8 @@ class _Results extends StatelessWidget {
       if (asNumber != null) return s.number == asNumber;
       return normalizeArabic(s.name).contains(nq);
     }).toList();
-    final ayahHits = asNumber == null ? data.searchAyahs(query) : const <Ayah>[];
+    final ayahHits =
+        asNumber == null ? data.searchAyahs(query) : const <Ayah>[];
 
     if (surahHits.isEmpty && ayahHits.isEmpty) {
       return const Center(child: Text('لا توجد نتائج مطابقة'));
@@ -215,8 +230,10 @@ class _Results extends StatelessWidget {
             title: Text(a.text,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
-            subtitle: Text('${displaySurahName(data.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
+                style: const TextStyle(
+                    fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
+            subtitle: Text(
+                '${displaySurahName(data.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
             onTap: () => openReader(context, a.page, highlight: a.key),
           ),
       ],

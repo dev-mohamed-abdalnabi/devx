@@ -20,11 +20,11 @@ Future<void> main() async {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
       androidNotificationChannelName: 'تلاوة القرآن',
-      androidNotificationOngoing: false,
+      androidNotificationOngoing: true,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
-      androidStopForegroundOnPause: true,
+      androidStopForegroundOnPause: false,
       notificationColor: const Color(0xFF2F6B55),
       fastForwardInterval: const Duration(seconds: 10),
       rewindInterval: const Duration(seconds: 10),

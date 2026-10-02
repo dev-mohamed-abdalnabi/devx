@@ -5,6 +5,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch: {}
 
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -25,6 +29,18 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter and Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-apk-${{ hashFiles('pubspec.yaml', 'tool/*.py', '.github/workflows/build-apk.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apk-
 
       # يضيف مجلد android الناقص فقط دون المساس بملفاتك الحالية (lib, pubspec.yaml)
       - name: Ensure Android platform files exist

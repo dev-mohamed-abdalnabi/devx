@@ -45,7 +45,9 @@ class CategoriesScreen extends StatelessWidget {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(provider.error?.toString() ?? 'لا توجد أذكار متاحة حاليًا', textAlign: TextAlign.center),
+          child: Text(
+              provider.error?.toString() ?? 'لا توجد أذكار متاحة حاليًا',
+              textAlign: TextAlign.center),
         ),
       );
     }
@@ -72,22 +74,25 @@ class CategoriesScreen extends StatelessWidget {
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.95,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              mainAxisExtent: 88,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, i) {
                 final cat = provider.categories[i];
                 final progress = provider.categoryProgress(cat.id);
                 return AppGridTile(
-                  leading: AppIconBadge(icon: _icons[cat.icon] ?? Icons.menu_book_rounded, size: 52),
+                  leading: AppIconBadge(
+                      icon: _icons[cat.icon] ?? Icons.menu_book_rounded,
+                      size: 44),
                   title: cat.title,
                   subtitle: '${cat.azkar.length} أذكار',
                   footer: AppProgressBar(value: progress),
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: cat.id)),
+                    MaterialPageRoute(
+                        builder: (_) => ZikrListScreen(categoryId: cat.id)),
                   ),
                 );
               },
@@ -141,7 +146,11 @@ class _CategoryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -152,7 +161,11 @@ class _CategoryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text('$count أذكار', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    Text('$count أذكار',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey)),
                   ],
                 ),
               ),
