@@ -73,7 +73,6 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 -keep class com.google.gson.** { *; }
 # Required by Android notification dependencies when AGP 8/R8 full mode is enabled.
 -keep class org.xmlpull.** { *; }
-<<<<<<< HEAD
 # google_mobile_ads pulls in WorkManager (Room database created via reflection at app start).
 # Without these rules R8 breaks it: "Failed to create an instance of androidx.work.impl.WorkDatabase".
 -keep class androidx.work.** { *; }
@@ -98,13 +97,6 @@ ADMOB_META = f"""        <meta-data
 ADMOB_PROVIDER_REMOVE = """        <!-- يمنع تشغيل SDK الإعلانات تلقائيًا عند فتح التطبيق؛ يعمل فقط عند اختيار المستخدم -->
         <provider android:name="com.google.android.gms.ads.MobileAdsInitProvider"
             tools:node="remove"/>
-=======
-# Google Mobile Ads يستخدم AndroidX Startup وWorkManager عند تهيئة SDK.
-# إبقاء هذه الأصناف يمنع كراش Release: Unable to get provider InitializationProvider.
--keep class androidx.startup.** { *; }
--keep class androidx.work.** { *; }
--keep class androidx.work.impl.** { *; }
->>>>>>> 35ff277 (fix: protect AdMob release startup and explain no-fill)
 """
 
 
