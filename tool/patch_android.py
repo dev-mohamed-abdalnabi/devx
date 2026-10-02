@@ -73,6 +73,17 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 -keep class com.google.gson.** { *; }
 # Required by Android notification dependencies when AGP 8/R8 full mode is enabled.
 -keep class org.xmlpull.** { *; }
+# google_mobile_ads pulls in WorkManager (Room database created via reflection at app start).
+# Without these rules R8 breaks it: "Failed to create an instance of androidx.work.impl.WorkDatabase".
+-keep class androidx.work.** { *; }
+-keep class androidx.room.** { *; }
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep class androidx.work.impl.WorkDatabase_Impl { *; }
+-keep class * extends androidx.work.Worker { *; }
+-keep class * extends androidx.work.ListenableWorker { *; }
+-keep class * extends androidx.startup.Initializer { *; }
+-keep class androidx.startup.** { *; }
+-dontwarn androidx.work.**
 """
 
 
