@@ -1,0 +1,341 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/text_utils.dart';
+import '../challenges/challenges_screen.dart';
+import '../../models/zikr.dart';
+import '../../data/quran_data.dart';
+import '../../providers/activity_provider.dart';
+import '../../providers/azkar_provider.dart';
+import '../../providers/quran_provider.dart';
+import '../../providers/quran_audio_provider.dart';
+import '../../screens/zikr_list_screen.dart';
+import '../prayer/prayer_screen.dart';
+import '../quran/quran_home_screen.dart';
+import '../quran/quran_audio_screen.dart';
+import '../tasbeeh/tasbeeh_screen.dart';
+import '../../widgets/app_ui.dart';
+
+class HomeDashboard extends StatelessWidget {
+  final void Function(int tab) onSwitchTab;
+  const HomeDashboard({super.key, required this.onSwitchTab});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final azkar = context.watch<AzkarProvider>();
+    final quran = context.watch<QuranProvider>();
+    final activity = context.watch<ActivityProvider>();
+    final daily = activity.dailyFor(now);
+    final timeCategory = _categoryForTime(azkar, now);
+
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const AppSectionHeader(
+            title: 'ابدأ الآن',
+            subtitle: 'أهم ما تحتاجه اليوم مرتب حسب الأولوية',
+          ),
+          const SizedBox(height: 8),
+          const OrnamentDivider(),
+          const SizedBox(height: 10),
+          if (timeCategory != null) ...[
+            _AzkarNowCard(category: timeCategory, provider: azkar),
+            const SizedBox(height: 12),
+          ],
+          const PrayerHomeCard(),
+          const SizedBox(height: 12),
+          _QuranCard(quran: quran, onStart: () => onSwitchTab(1)),
+          const SizedBox(height: 12),
+          const _QuranAudioCard(),
+          const SizedBox(height: 12),
+          if (daily.isNotEmpty) ...[
+            _ChallengesCard(
+              done: activity.dailyDone(now),
+              total: daily.length,
+              streak: activity.streak,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChallengesScreen()),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          const AppSectionHeader(title: 'اختصارات'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _Shortcut(
+                  icon: Icons.menu_book_outlined,
+                  label: 'القرآن',
+                  onTap: () => onSwitchTab(1),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _Shortcut(
+                  icon: Icons.auto_awesome_outlined,
+                  label: 'الأذكار',
+                  onTap: () => onSwitchTab(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _Shortcut(
+                  icon: Icons.touch_app_outlined,
+                  label: 'التسبيح',
+                  onTap: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const TasbeehScreen())),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  AzkarCategory? _categoryForTime(AzkarProvider p, DateTime now) {
+    if (now.hour >= 3 && now.hour < 12) {
+      return _findCategory(p, const ['الصباح']);
+    } else if (now.hour >= 15 && now.hour < 20) {
+      return _findCategory(p, const ['الصباح والمساء', 'المساء']);
+    } else if (now.hour >= 21 || now.hour < 3) {
+      return _findCategory(p, const ['النوم']);
+    }
+    return null;
+  }
+
+  AzkarCategory? _findCategory(AzkarProvider p, List<String> titles) {
+    for (final title in titles) {
+      for (final category in p.categories) {
+        if (category.title.contains(title)) return category;
+      }
+    }
+    return null;
+  }
+}
+
+class _QuranAudioCard extends StatelessWidget {
+  const _QuranAudioCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final audio = context.watch<QuranAudioProvider>();
+    return Card(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranAudioScreen())),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(children: [
+            Icon(Icons.headphones_rounded, size: 34, color: Theme.of(context).colorScheme.secondary),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('القرآن صوتيًا', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(audio.displaySurah != null
+                  ? (audio.isPlaying ? 'يعمل الآن: ' : 'آخر استماع: ') + 'سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}'
+                  : audio.hasAnyAudio
+                      ? 'التلاوة جاهزة · اضغط للاستماع'
+                      : 'اختر شيخًا ونزّل التلاوة على جهازك'),
+            ])),
+            const Icon(Icons.chevron_left_rounded),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _AzkarNowCard extends StatelessWidget {
+  final AzkarCategory category;
+  final AzkarProvider provider;
+  const _AzkarNowCard({required this.category, required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final progress = provider.categoryProgress(category.id);
+    final done = progress >= 1;
+    return Card(
+      color: scheme.primaryContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 13, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('حان وقت', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
+              const SizedBox(height: 1),
+              Text(category.title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 9),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(value: progress, minHeight: 6),
+              ),
+              const SizedBox(height: 6),
+              Text(done
+                  ? 'أتممتها، تقبّل الله منك'
+                  : 'أنجزت ${toArabicDigits((progress * 100).round())}٪ · اضغط للمتابعة'),
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: FilledButton.tonal(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(done ? 'مراجعة الأذكار' : 'ابدأ الآن'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuranCard extends StatelessWidget {
+  final QuranProvider quran;
+  final VoidCallback onStart;
+  const _QuranCard({required this.quran, required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    final data = quran.data;
+    if (quran.loading || data == null) return const SizedBox.shrink();
+
+    final page = quran.lastPage.clamp(1, data.pageCount);
+    final first = data.byPage[page]?.first;
+    final surahName = first == null ? '' : data.surahOf(first.surah).name;
+    final started = quran.hasStartedReading;
+    final read = quran.readPages.length;
+
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => started ? openReader(context, page) : onStart(),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(started ? 'تابع القراءة' : 'ابدأ القراءة',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text(started
+                  ? '${displaySurahName(surahName)} · صفحة ${toArabicDigits(page)}'
+                  : 'افتح المصحف من الفاتحة أو اختر السورة التي تريد'),
+              if (read > 0) ...[
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(value: quran.khatmaProgress, minHeight: 6),
+                ),
+                const SizedBox(height: 6),
+                Text('قرأت ${toArabicDigits(read)} من ${toArabicDigits(data.pageCount)} صفحة',
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Shortcut extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _Shortcut({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 22),
+          child: Column(
+            children: [
+              Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(height: 8),
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChallengesCard extends StatelessWidget {
+  final int done;
+  final int total;
+  final int streak;
+  final VoidCallback onTap;
+  const _ChallengesCard(
+      {required this.done, required this.total, required this.streak, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('تحديات اليوم',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  Text('${toArabicDigits(done)} / ${toArabicDigits(total)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(value: done / total, minHeight: 6),
+              ),
+              if (streak > 0) ...[
+                const SizedBox(height: 8),
+                Text('أيام متواصلة: ${toArabicDigits(streak)}',
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

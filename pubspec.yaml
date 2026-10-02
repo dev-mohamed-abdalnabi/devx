@@ -1,0 +1,59 @@
+name: azkar_app
+description: ذكر - تطبيق إسلامي يعمل بالكامل بدون إنترنت
+publish_to: 'none'
+version: 1.2.0+3
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+  geolocator: ^13.0.1
+  flutter_compass: ^0.8.0
+  url_launcher: ^6.3.1
+  just_audio: ^0.9.46
+  just_audio_background: ^0.0.1-beta.15
+  just_audio_platform_interface: ^4.6.0
+  path_provider: ^2.1.5
+  http: ^1.2.2
+  archive: ^3.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - lib/data/azkar.json
+    - assets/data/quran.json
+    - assets/data/challenges.json
+    - assets/brand/app_icon.png
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700
+    - family: AmiriQuran
+      fonts:
+        - asset: assets/fonts/AmiriQuran-Regular.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/brand/app_icon.png
+  adaptive_icon_background: '#003B34'
+  adaptive_icon_foreground: assets/brand/app_icon.png

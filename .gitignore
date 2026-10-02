@@ -1,0 +1,15 @@
+.dart_tool/
+.packages
+build/
+android/.gradle/
+android/app/build/
+android/local.properties
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+
+# مفاتيح التوقيع: لا تُرفع أبدًا
+*.jks
+*.keystore
+key.properties
