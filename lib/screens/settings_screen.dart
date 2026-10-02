@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/azkar_provider.dart';
 import '../features/reminders/reminders_screen.dart';
 import '../widgets/app_ui.dart';
-import '../widgets/support_app_button.dart';
 import 'about_screen.dart';
 import 'privacy_screen.dart';
 
@@ -77,11 +76,6 @@ class SettingsScreen extends StatelessWidget {
         const SizedBox(height: 22),
         const AppSectionHeader(title: 'حول التطبيق'),
         const SizedBox(height: 10),
-        const Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: SupportAppButton(),
-        ),
-        const SizedBox(height: 12),
         AppCard(
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
           child: Row(

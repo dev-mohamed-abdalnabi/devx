@@ -11,8 +11,6 @@ import 'auth_screen.dart';
 import 'community_utils.dart';
 import 'groups_screen.dart';
 import 'notifications_screen.dart';
-import '../../widgets/forum_native_ad.dart';
-import '../../widgets/support_app_button.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -489,15 +487,6 @@ class _ForumScreenState extends State<ForumScreen> {
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: SupportAppButton(compact: true),
-                  ),
-                ),
-              ),
               if (_loading)
                 const SliverFillRemaining(
                     hasScrollBody: false,
@@ -508,11 +497,9 @@ class _ForumScreenState extends State<ForumScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                   sliver: SliverList.builder(
-                    itemCount: _posts.length + (_posts.length ~/ 8) +
-                        (_hasMore ? 1 : 0),
+                    itemCount: _posts.length + (_hasMore ? 1 : 0),
                     itemBuilder: (_, i) {
-                      final contentCount = _posts.length + (_posts.length ~/ 8);
-                      if (i == contentCount) {
+                      if (i == _posts.length) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 14),
                           child: Center(
@@ -525,11 +512,7 @@ class _ForumScreenState extends State<ForumScreen> {
                           ),
                         );
                       }
-                      // إعلان Native موسوم بوضوح بعد كل 8 منشورات.
-                      if (i % 9 == 8) {
-                        return ForumNativeAd(key: ValueKey('forum-ad-$i'));
-                      }
-                      final post = _posts[i - (i ~/ 9)];
+                      final post = _posts[i];
                       return _PostCard(
                         key: ValueKey(post['id']),
                         post: post,

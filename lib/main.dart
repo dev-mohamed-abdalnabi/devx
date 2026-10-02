@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:just_audio_platform_interface/just_audio_platform_interface.dart';
 import 'package:provider/provider.dart';
@@ -51,11 +50,6 @@ Future<void> main() async {
     await NotificationService.requestPermission();
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
-  }
-  try {
-    await MobileAds.instance.initialize();
-  } catch (_) {
-    // عدم توفر الإعلانات لا يجب أن يمنع فتح التطبيق الديني.
   }
   runApp(const AzkarApp());
 }
