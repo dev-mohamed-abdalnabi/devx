@@ -83,6 +83,12 @@ ADMOB_META = f"""        <meta-data
 """
 
 
+ADMOB_PROVIDER_REMOVE = """        <!-- يمنع تشغيل SDK الإعلانات تلقائيًا عند فتح التطبيق؛ يعمل فقط عند اختيار المستخدم -->
+        <provider android:name="com.google.android.gms.ads.MobileAdsInitProvider"
+            tools:node="remove"/>
+"""
+
+
 def patch_gradle() -> None:
     """يضغط المكتبات الأصلية داخل الـ APK (أكبر توفير في الحجم). لا يُفشل البناء إن تعذّر."""
     kts = pathlib.Path('android/app/build.gradle.kts')
@@ -171,6 +177,15 @@ def main() -> int:
             return 1
         s = s[:idx] + ADMOB_META + '    ' + s[idx:]
 
+    if 'xmlns:tools=' not in s:
+        s = s.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ', 1)
+    if 'MobileAdsInitProvider' not in s:
+        idx = s.rfind('</application>')
+        if idx < 0:
+            print('ERROR: لم أجد </application> في المانيفست', file=sys.stderr)
+            return 1
+        s = s[:idx] + ADMOB_PROVIDER_REMOVE + '    ' + s[idx:]
+
     s = s.replace('android:label="azkar_app"', 'android:label="ذكر"')
     s = s.replace('android:label="أذكاري"', 'android:label="ذكر"')
     MANIFEST.write_text(s, encoding='utf-8')
@@ -183,7 +198,8 @@ def main() -> int:
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
             'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver',
-            'com.google.android.gms.ads.APPLICATION_ID', ADMOB_APP_ID]
+            'com.google.android.gms.ads.APPLICATION_ID', ADMOB_APP_ID,
+            'MobileAdsInitProvider', 'xmlns:tools=']
     missing = [n for n in need if n not in s]
     if missing:
         print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)
