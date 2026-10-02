@@ -8,6 +8,7 @@ import sys
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
 ACTIVITY_ROOT = pathlib.Path('android/app/src/main')
+ADS_APP_ID = 'ca-app-pub-6238197963590573~3817588900'
 
 PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -50,6 +51,49 @@ RECEIVERS = """        <receiver android:exported="false"
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+"""
+
+NATIVE_AD_FACTORY = """{package_name}
+
+import android.content.Context
+import android.graphics.Color
+import android.view.Gravity
+import android.widget.LinearLayout
+import android.widget.TextView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdView
+import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin
+
+class ForumNativeAdFactory(private val context: Context) : GoogleMobileAdsPlugin.NativeAdFactory {{
+    override fun createNativeAd(nativeAd: NativeAd, customOptions: Map<String, Any>?): NativeAdView {{
+        val adView = NativeAdView(context)
+        val container = LinearLayout(context).apply {{
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 8, 20, 8)
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(Color.TRANSPARENT)
+        }}
+        val headline = TextView(context).apply {{
+            textSize = 16f
+            setTextColor(Color.DKGRAY)
+            maxLines = 1
+        }}
+        val body = TextView(context).apply {{
+            textSize = 13f
+            setTextColor(Color.GRAY)
+            maxLines = 2
+        }}
+        headline.text = nativeAd.headline ?: "إعلان لدعم التطبيق"
+        body.text = nativeAd.body ?: "قد يساعدك هذا الإعلان في دعم استمرار التطبيق."
+        container.addView(headline)
+        container.addView(body)
+        adView.addView(container)
+        adView.headlineView = headline
+        adView.bodyView = body
+        adView.setNativeAd(nativeAd)
+        return adView
+    }}
+}}
 """
 
 PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notifications with Gson.
@@ -114,20 +158,62 @@ def patch_proguard() -> None:
         print(f'تمت إضافة قواعد R8 إلى {PROGUARD}')
 
 
+def patch_ads_manifest(s: str) -> str:
+    """يضيف App ID الإنتاجي لـ AdMob إلى application مرة واحدة."""
+    if 'com.google.android.gms.ads.APPLICATION_ID' in s:
+        return s
+    idx = s.rfind('</application>')
+    if idx < 0:
+        raise RuntimeError('لم أجد </application> لإضافة App ID الخاص بـ AdMob')
+    meta = (
+        f'        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" '
+        f'android:value="{ADS_APP_ID}" />\n'
+    )
+    return s[:idx] + meta + s[idx:]
+
+
 def patch_main_activity() -> None:
-    """يجعل Activity الرئيسية متوافقة مع audio_service للإشعارات وشاشة القفل."""
+    """يربط AudioService ويسجل مصنع الإعلان الأصلي للمنتدى."""
     candidates = list(ACTIVITY_ROOT.rglob('MainActivity.kt')) + list(ACTIVITY_ROOT.rglob('MainActivity.java'))
     if not candidates:
         print('WARNING: لم أجد MainActivity؛ تخطّيت ربط AudioServiceActivity')
         return
     path = candidates[0]
     c = path.read_text(encoding='utf-8')
+    package_match = re.search(r'^package\s+([^\s]+)', c, re.MULTILINE)
+    if package_match is None:
+        print('WARNING: لم أجد package في MainActivity؛ تخطّيت مصنع الإعلان')
+        return
+    package_name = package_match.group(1)
+    factory = ACTIVITY_ROOT / 'ForumNativeAdFactory.kt'
+    factory.write_text(
+        NATIVE_AD_FACTORY.format(package_name=f'package {package_name}'),
+        encoding='utf-8',
+    )
     if path.suffix == '.kt':
         if 'AudioServiceActivity' not in c:
             c = c.replace('import io.flutter.embedding.android.FlutterActivity',
                           'import com.ryanheise.audioservice.AudioServiceActivity')
             c = re.sub(r'class\s+MainActivity\s*:\s*FlutterActivity\s*\(\)',
                        'class MainActivity : AudioServiceActivity()', c)
+        if 'GoogleMobileAdsPlugin' not in c:
+            c = c.replace(
+                'import com.ryanheise.audioservice.AudioServiceActivity',
+                'import com.ryanheise.audioservice.AudioServiceActivity\n'
+                'import io.flutter.embedding.engine.FlutterEngine\n'
+                'import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin',
+            )
+            c = c.replace(
+                'class MainActivity : AudioServiceActivity()',
+                '''class MainActivity : AudioServiceActivity() {
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+    super.configureFlutterEngine(flutterEngine)
+    GoogleMobileAdsPlugin.registerNativeAdFactory(
+        flutterEngine, "forum", ForumNativeAdFactory(this)
+    )
+}
+}''',
+            )
     else:
         if 'AudioServiceActivity' not in c:
             c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
@@ -150,6 +236,8 @@ def main() -> int:
             return 1
         s = s[:idx] + PERMISSIONS.lstrip('\n') + '\n    ' + s[idx:]
 
+    s = patch_ads_manifest(s)
+
     if 'ScheduledNotificationReceiver' not in s:
         idx = s.rfind('</application>')
         if idx < 0:
@@ -168,7 +256,8 @@ def main() -> int:
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
-            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver']
+            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver',
+            'com.google.android.gms.ads.APPLICATION_ID']
     missing = [n for n in need if n not in s]
     if missing:
         print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)
