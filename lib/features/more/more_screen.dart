@@ -9,6 +9,7 @@ import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
 import '../reminders/reminders_screen.dart';
 import 'bookmarks_screen.dart';
+import 'support_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -49,6 +50,7 @@ class MoreScreen extends StatelessWidget {
           _Tile(icon: Icons.bookmark_border_rounded, title: 'علامات القرآن', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookmarksScreen()))),
           _Tile(icon: Icons.favorite_border_rounded, title: 'المفضلة', onTap: () => _push(context, 'المفضلة', const FavoritesScreen())),
           _Tile(icon: Icons.search_rounded, title: 'البحث في الأذكار', onTap: () => _push(context, 'البحث', const SearchScreen())),
+          _Tile(icon: Icons.volunteer_activism_outlined, title: 'ادعم التطبيق', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
           _Tile(icon: Icons.settings_outlined, title: 'الإعدادات', onTap: () => _push(context, 'الإعدادات', const SettingsScreen())),
         ],
       ),
