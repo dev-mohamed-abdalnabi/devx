@@ -8,6 +8,7 @@ import sys
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
 ACTIVITY_ROOT = pathlib.Path('android/app/src/main')
+ADS_APP_ID = 'ca-app-pub-6238197963590573~3817588900'
 
 PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -114,6 +115,16 @@ def patch_proguard() -> None:
         print(f'تمت إضافة قواعد R8 إلى {PROGUARD}')
 
 
+def patch_ads_manifest(s: str) -> str:
+    if 'com.google.android.gms.ads.APPLICATION_ID' in s:
+        return s
+    idx = s.rfind('</application>')
+    if idx < 0:
+        raise RuntimeError('لم أجد application لإضافة App ID AdMob')
+    meta = f'        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="{ADS_APP_ID}" />\n'
+    return s[:idx] + meta + s[idx:]
+
+
 def patch_main_activity() -> None:
     """يجعل Activity الرئيسية متوافقة مع audio_service للإشعارات وشاشة القفل."""
     candidates = list(ACTIVITY_ROOT.rglob('MainActivity.kt')) + list(ACTIVITY_ROOT.rglob('MainActivity.java'))
@@ -142,6 +153,7 @@ def main() -> int:
         print(f'ERROR: {MANIFEST} غير موجود. شغّل flutter create --platforms=android . أولًا', file=sys.stderr)
         return 1
     s = MANIFEST.read_text(encoding='utf-8')
+    s = patch_ads_manifest(s)
 
     if 'POST_NOTIFICATIONS' not in s:
         idx = s.find('<application')
