@@ -37,20 +37,6 @@ RECEIVERS = """        <receiver android:exported="false"
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
-        <service android:name="com.ryanheise.audioservice.AudioService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="true"
-            android:stopWithTask="false">
-            <intent-filter>
-                <action android:name="android.media.browse.MediaBrowserService" />
-            </intent-filter>
-        </service>
-        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MEDIA_BUTTON" />
-            </intent-filter>
-        </receiver>
 """
 
 PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notifications with Gson.
@@ -144,6 +130,8 @@ def patch_main_activity() -> None:
             c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
                           'import com.ryanheise.audioservice.AudioServiceActivity;')
             c = c.replace('extends FlutterActivity', 'extends AudioServiceActivity')
+    if 'AudioServiceActivity' not in c:
+        raise RuntimeError(f'{path} لم يتحول إلى AudioServiceActivity؛ راجع قالب MainActivity')
     path.write_text(c, encoding='utf-8')
     print(f'تم ربط {path} بـ AudioServiceActivity')
 
@@ -179,8 +167,7 @@ def main() -> int:
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
-            'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
-            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver']
+            'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver']
     missing = [n for n in need if n not in s]
     if missing:
         print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)
