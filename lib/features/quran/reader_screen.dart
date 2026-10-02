@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/quran_provider.dart';
+import '../../providers/quran_audio_provider.dart';
 
 class ReaderScreen extends StatefulWidget {
   final int page;
@@ -69,25 +70,33 @@ class _ReaderScreenState extends State<ReaderScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${displaySurahName(data.surahOf(a.surah).name)} · الآية ${toArabicDigits(a.number)}',
-                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                    '${QuranAudioProvider.surahName(a.surah)} · الآية ${toArabicDigits(a.number)}',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ListTile(
                   leading: const Icon(Icons.copy_rounded),
                   title: const Text('نسخ الآية'),
                   onTap: () async {
                     await Clipboard.setData(ClipboardData(
-                        text: '${a.text} ﴿${toArabicDigits(a.number)}﴾ [${data.surahOf(a.surah).name}]'));
+                        text:
+                            '${a.text} ﴿${toArabicDigits(a.number)}﴾ [${data.surahOf(a.surah).name}]'));
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(content: Text('تم نسخ الآية')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم نسخ الآية')));
                     }
                   },
                 ),
                 ListTile(
-                  leading: Icon(q.isBookmarked(a.key) ? Icons.bookmark_rounded : Icons.bookmark_border_rounded),
-                  title: Text(q.isBookmarked(a.key) ? 'إزالة العلامة' : 'حفظ علامة'),
+                  leading: Icon(q.isBookmarked(a.key)
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded),
+                  title: Text(
+                      q.isBookmarked(a.key) ? 'إزالة العلامة' : 'حفظ علامة'),
                   onTap: () {
                     q.toggleBookmark(a.key);
                     Navigator.pop(ctx);
@@ -121,7 +130,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('حجم الخط', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('حجم الخط',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 Slider(
                   value: q.fontSize,
                   min: 20,
@@ -131,7 +141,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   onChanged: q.setFontSize,
                 ),
                 const SizedBox(height: 8),
-                const Text('لون الصفحة', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('لون الصفحة',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -170,10 +181,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
       );
     }
     if (_page > data.pageCount) _page = data.pageCount;
-    final palette = ReaderPalette.byName(q.readerTheme, Theme.of(context).brightness);
+    final palette =
+        ReaderPalette.byName(q.readerTheme, Theme.of(context).brightness);
     final pageAyahs = data.byPage[_page] ?? const <Ayah>[];
     final first = pageAyahs.isNotEmpty ? pageAyahs.first : null;
-    final surahName = first == null ? '' : data.surahOf(first.surah).name;
+    final surahName =
+        first == null ? '' : QuranAudioProvider.surahName(first.surah);
     final juz = first?.juz ?? 1;
 
     return Scaffold(
@@ -192,7 +205,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      '${displaySurahName(surahName)} · الجزء ${toArabicDigits(juz)}',
+                      '$surahName · الجزء ${toArabicDigits(juz)}',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: palette.muted, fontSize: 15),
                     ),
@@ -227,7 +240,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8, top: 4),
               child: Text(toArabicDigits(_page),
-                  style: TextStyle(color: palette.muted, fontSize: 16, fontWeight: FontWeight.w500)),
+                  style: TextStyle(
+                      color: palette.muted,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500)),
             ),
           ],
         ),
@@ -303,7 +319,7 @@ class _MushafPageState extends State<_MushafPage> {
     for (final a in ayahs) {
       if (a.number == 1) {
         flush();
-        children.add(_SurahBanner(name: widget.data.surahOf(a.surah).name, palette: p));
+        children.add(_SurahBanner(number: a.surah, palette: p));
         if (a.surah != 1 && a.surah != 9) {
           children.add(Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -332,15 +348,16 @@ class _MushafPageState extends State<_MushafPage> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
     );
   }
 }
 
 class _SurahBanner extends StatelessWidget {
-  final String name;
+  final int number;
   final ReaderPalette palette;
-  const _SurahBanner({required this.name, required this.palette});
+  const _SurahBanner({required this.number, required this.palette});
 
   @override
   Widget build(BuildContext context) {
@@ -349,12 +366,13 @@ class _SurahBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border.symmetric(
-          horizontal: BorderSide(color: palette.accent.withValues(alpha: 0.7), width: 1.2),
+          horizontal: BorderSide(
+              color: palette.accent.withValues(alpha: 0.7), width: 1.2),
         ),
       ),
       child: Center(
         child: Text(
-          displaySurahName(name),
+          QuranAudioProvider.surahName(number),
           textAlign: TextAlign.center,
           textDirection: TextDirection.rtl,
           style: TextStyle(

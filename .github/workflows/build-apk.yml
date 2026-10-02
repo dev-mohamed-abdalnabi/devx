@@ -38,6 +38,7 @@ jobs:
             ~/.pub-cache
             ~/.gradle/caches
             ~/.gradle/wrapper
+            /usr/local/lib/android/sdk/cmake/3.22.1
           key: ${{ runner.os }}-apk-${{ hashFiles('pubspec.yaml', 'tool/*.py', '.github/workflows/build-apk.yml') }}
           restore-keys: |
             ${{ runner.os }}-apk-
@@ -176,8 +177,8 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build release APKs (split per ABI)
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols
+      - name: Build one universal release APK
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm,android-arm64 --no-shrink
 
       - name: APK size report (warns above 20 MB, never fails)
         run: |

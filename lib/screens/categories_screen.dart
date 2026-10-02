@@ -63,12 +63,6 @@ class CategoriesScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: OrnamentDivider(),
-          ),
-        ),
         SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverGrid(

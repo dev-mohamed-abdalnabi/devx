@@ -5,6 +5,7 @@ import '../../core/text_utils.dart';
 import '../../data/quran_data.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
+import '../../widgets/app_ui.dart';
 import 'audio_player_ui.dart';
 
 class QuranAudioScreen extends StatefulWidget {
@@ -47,106 +48,111 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('القرآن صوتيًا')),
-      body: CustomScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            sliver: SliverToBoxAdapter(child: _ReciterPanel(audio: audio)),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _search,
-                    onChanged: (v) => setState(() => _query = v.trim()),
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: 'ابحث باسم السورة أو رقمها',
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: 'مسح',
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () => setState(() {
-                                _search.clear();
-                                _query = '';
-                              }),
-                            ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      body: PatternBackground(
+        opacity: 0.045,
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              sliver: SliverToBoxAdapter(child: _ReciterPanel(audio: audio)),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _search,
+                      onChanged: (v) => setState(() => _query = v.trim()),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'ابحث باسم السورة أو رقمها',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'مسح',
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () => setState(() {
+                                  _search.clear();
+                                  _query = '';
+                                }),
+                              ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('كل السور'),
+                          selected: !_favoritesOnly,
+                          onSelected: (_) =>
+                              setState(() => _favoritesOnly = false),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          avatar: const Icon(Icons.favorite_rounded, size: 16),
+                          label: Text(audio.favorites.isEmpty
+                              ? 'المفضلة'
+                              : 'المفضلة (${toArabicDigits(audio.favorites.length)})'),
+                          selected: _favoritesOnly,
+                          onSelected: (_) =>
+                              setState(() => _favoritesOnly = true),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (visible.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      _favoritesOnly && _query.isEmpty
+                          ? 'لم تضف سورًا إلى المفضلة بعد. اضغط على القلب بجانب أي سورة.'
+                          : 'لا توجد سورة بهذا الاسم.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ChoiceChip(
-                        label: const Text('كل السور'),
-                        selected: !_favoritesOnly,
-                        onSelected: (_) =>
-                            setState(() => _favoritesOnly = false),
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        avatar: const Icon(Icons.favorite_rounded, size: 16),
-                        label: Text(audio.favorites.isEmpty
-                            ? 'المفضلة'
-                            : 'المفضلة (${toArabicDigits(audio.favorites.length)})'),
-                        selected: _favoritesOnly,
-                        onSelected: (_) =>
-                            setState(() => _favoritesOnly = true),
-                      ),
-                    ],
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    mainAxisExtent: 88,
                   ),
-                ],
-              ),
-            ),
-          ),
-          if (visible.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    _favoritesOnly && _query.isEmpty
-                        ? 'لم تضف سورًا إلى المفضلة بعد. اضغط على القلب بجانب أي سورة.'
-                        : 'لا توجد سورة بهذا الاسم.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final n = visible[i];
+                      return _SurahTile(
+                        audio: audio,
+                        surah: n,
+                        info: surahs != null && n <= surahs.length
+                            ? surahs[n - 1]
+                            : null,
+                      );
+                    },
+                    childCount: visible.length,
                   ),
                 ),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  mainAxisExtent: 88,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, i) {
-                    final n = visible[i];
-                    return _SurahTile(
-                      audio: audio,
-                      surah: n,
-                      info: surahs != null && n <= surahs.length
-                          ? surahs[n - 1]
-                          : null,
-                    );
-                  },
-                  childCount: visible.length,
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
       // المشغل ثابت أسفل الشاشة ولا يتحرك مع القائمة.
       bottomNavigationBar: const AudioMiniPlayer(),

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../challenges/challenges_screen.dart';
 import '../../models/zikr.dart';
-import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
 import '../../providers/quran_provider.dart';
@@ -37,7 +36,6 @@ class HomeDashboard extends StatelessWidget {
             subtitle: 'أهم ما تحتاجه اليوم مرتب حسب الأولوية',
           ),
           const SizedBox(height: 8),
-          const OrnamentDivider(),
           const SizedBox(height: 10),
           if (timeCategory != null) ...[
             _AzkarNowCard(category: timeCategory, provider: azkar),
@@ -84,8 +82,8 @@ class HomeDashboard extends StatelessWidget {
                 child: _Shortcut(
                   icon: Icons.touch_app_outlined,
                   label: 'التسبيح',
-                  onTap: () => Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (_) => const TasbeehScreen())),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TasbeehScreen())),
                 ),
               ),
             ],
@@ -126,21 +124,31 @@ class _QuranAudioCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.secondaryContainer,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranAudioScreen())),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const QuranAudioScreen())),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(children: [
-            Icon(Icons.headphones_rounded, size: 34, color: Theme.of(context).colorScheme.secondary),
+            Icon(Icons.headphones_rounded,
+                size: 34, color: Theme.of(context).colorScheme.secondary),
             const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('القرآن صوتيًا', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(audio.displaySurah != null
-                  ? (audio.isPlaying ? 'يعمل الآن: ' : 'آخر استماع: ') + 'سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}'
-                  : audio.hasAnyAudio
-                      ? 'التلاوة جاهزة · اضغط للاستماع'
-                      : 'اختر شيخًا ونزّل التلاوة على جهازك'),
-            ])),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text('القرآن صوتيًا',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(audio.displaySurah != null
+                      ? (audio.isPlaying ? 'يعمل الآن: ' : 'آخر استماع: ') +
+                          'سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}'
+                      : audio.hasAnyAudio
+                          ? 'التلاوة جاهزة · اضغط للاستماع'
+                          : 'اختر شيخًا ونزّل التلاوة على جهازك'),
+                ])),
             const Icon(Icons.chevron_left_rounded),
           ]),
         ),
@@ -165,14 +173,17 @@ class _AzkarNowCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+          MaterialPageRoute(
+              builder: (_) => ZikrListScreen(categoryId: category.id)),
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 13, 16, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('حان وقت', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
+              Text('حان وقت',
+                  style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.7))),
               const SizedBox(height: 1),
               Text(category.title,
                   style: Theme.of(context)
@@ -193,7 +204,9 @@ class _AzkarNowCard extends StatelessWidget {
                 alignment: AlignmentDirectional.centerStart,
                 child: FilledButton.tonal(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: category.id)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            ZikrListScreen(categoryId: category.id)),
                   ),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 34),
@@ -223,7 +236,8 @@ class _QuranCard extends StatelessWidget {
 
     final page = quran.lastPage.clamp(1, data.pageCount);
     final first = data.byPage[page]?.first;
-    final surahName = first == null ? '' : data.surahOf(first.surah).name;
+    final surahName =
+        first == null ? '' : QuranAudioProvider.surahName(first.surah);
     final started = quran.hasStartedReading;
     final read = quran.readPages.length;
 
@@ -243,16 +257,18 @@ class _QuranCard extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text(started
-                  ? '${displaySurahName(surahName)} · صفحة ${toArabicDigits(page)}'
+                  ? '$surahName · صفحة ${toArabicDigits(page)}'
                   : 'افتح المصحف من الفاتحة أو اختر السورة التي تريد'),
               if (read > 0) ...[
                 const SizedBox(height: 14),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(value: quran.khatmaProgress, minHeight: 6),
+                  child: LinearProgressIndicator(
+                      value: quran.khatmaProgress, minHeight: 6),
                 ),
                 const SizedBox(height: 6),
-                Text('قرأت ${toArabicDigits(read)} من ${toArabicDigits(data.pageCount)} صفحة',
+                Text(
+                    'قرأت ${toArabicDigits(read)} من ${toArabicDigits(data.pageCount)} صفحة',
                     style: Theme.of(context).textTheme.bodySmall),
               ],
             ],
@@ -267,7 +283,8 @@ class _Shortcut extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _Shortcut({required this.icon, required this.label, required this.onTap});
+  const _Shortcut(
+      {required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +296,8 @@ class _Shortcut extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 22),
           child: Column(
             children: [
-              Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+              Icon(icon,
+                  size: 28, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
             ],
@@ -296,7 +314,10 @@ class _ChallengesCard extends StatelessWidget {
   final int streak;
   final VoidCallback onTap;
   const _ChallengesCard(
-      {required this.done, required this.total, required this.streak, required this.onTap});
+      {required this.done,
+      required this.total,
+      required this.streak,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +346,8 @@ class _ChallengesCard extends StatelessWidget {
               const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(value: done / total, minHeight: 6),
+                child:
+                    LinearProgressIndicator(value: done / total, minHeight: 6),
               ),
               if (streak > 0) ...[
                 const SizedBox(height: 8),

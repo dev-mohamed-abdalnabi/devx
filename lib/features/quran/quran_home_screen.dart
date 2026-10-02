@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/text_utils.dart';
 import '../../data/quran_data.dart';
 import '../../providers/quran_provider.dart';
+import '../../providers/quran_audio_provider.dart';
 import '../../widgets/app_ui.dart';
 import 'audio_player_ui.dart' show StarBadge;
 import 'reader_screen.dart';
@@ -90,10 +91,6 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
-            child: OrnamentDivider(),
-          ),
           const SizedBox(height: 8),
           if (_query.isEmpty) ...[
             Padding(
@@ -146,7 +143,7 @@ class _SurahList extends StatelessWidget {
               size: 46,
               fill: scheme.primaryContainer,
               textColor: scheme.primary),
-          title: displaySurahName(s.name),
+          title: QuranAudioProvider.surahName(s.number),
           subtitle:
               '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
           onTap: () => openReader(ctx, s.firstPage),
@@ -215,7 +212,7 @@ class _Results extends StatelessWidget {
         for (final s in surahHits)
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
-            title: Text(displaySurahName(s.name)),
+            title: Text(QuranAudioProvider.surahName(s.number)),
             subtitle: Text('${toArabicDigits(s.ayahCount)} آية'),
             onTap: () => openReader(context, s.firstPage),
           ),
@@ -233,7 +230,7 @@ class _Results extends StatelessWidget {
                 style: const TextStyle(
                     fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
             subtitle: Text(
-                '${displaySurahName(data.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
+                '${QuranAudioProvider.surahName(a.surah)} · آية ${toArabicDigits(a.number)}'),
             onTap: () => openReader(context, a.page, highlight: a.key),
           ),
       ],

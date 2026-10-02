@@ -2,8 +2,9 @@ import 'dart:convert';
 import '../core/text_utils.dart';
 
 String displaySurahName(String name) {
-  final clean = name.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E]'), '').trim();
-  return clean;
+  final clean =
+      name.replaceAll(RegExp(r'[\u200E\u200F\u202A-\u202E]'), '').trim();
+  return normalizeArabic(clean);
 }
 
 class Surah {
@@ -23,7 +24,8 @@ class Ayah {
   final int page;
   final int hizbQuarter;
   final bool sajda;
-  const Ayah(this.surah, this.number, this.text, this.juz, this.page, this.hizbQuarter, this.sajda);
+  const Ayah(this.surah, this.number, this.text, this.juz, this.page,
+      this.hizbQuarter, this.sajda);
   String get key => '$surah:$number';
 }
 
@@ -74,7 +76,8 @@ class QuranData {
   List<Ayah> searchAyahs(String query, {int limit = 50}) {
     final q = normalizeArabic(query);
     if (q.length < 2) return const [];
-    _normalized ??= ayahs.map((a) => normalizeArabic(a.text)).toList(growable: false);
+    _normalized ??=
+        ayahs.map((a) => normalizeArabic(a.text)).toList(growable: false);
     final out = <Ayah>[];
     final norm = _normalized!;
     for (var i = 0; i < norm.length && out.length < limit; i++) {
@@ -88,13 +91,17 @@ class QuranData {
 QuranData parseQuran(String raw) {
   final j = json.decode(raw) as Map<String, dynamic>;
   final surahs = (j['surahs'] as List)
-      .map((s) => Surah(s[0] as int, s[1] as String, (s[2] as int) == 1, s[3] as int))
+      .map((s) =>
+          Surah(s[0] as int, s[1] as String, (s[2] as int) == 1, s[3] as int))
       .toList();
   final ayahs = (j['ayahs'] as List)
-      .map((a) => Ayah(a[0] as int, a[1] as int, a[2] as String, a[3] as int, a[4] as int,
-          a[5] as int, (a[6] as int) == 1))
+      .map((a) => Ayah(a[0] as int, a[1] as int, a[2] as String, a[3] as int,
+          a[4] as int, a[5] as int, (a[6] as int) == 1))
       .toList();
-  if (surahs.isEmpty || ayahs.isEmpty || surahs.length != 114 || ayahs.length != 6236) {
+  if (surahs.isEmpty ||
+      ayahs.isEmpty ||
+      surahs.length != 114 ||
+      ayahs.length != 6236) {
     throw const FormatException('بيانات القرآن ناقصة أو غير مكتملة');
   }
   return QuranData(j['basmala'] as String, surahs, ayahs);

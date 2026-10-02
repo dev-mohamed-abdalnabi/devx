@@ -8,7 +8,7 @@ import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../providers/quran_audio_provider.dart';
 
-/// نجمة خماسية تحمل رقم السورة.
+/// نجمة ثمانية تحمل رقم السورة.
 class StarBadge extends StatelessWidget {
   final int number;
   final double size;
@@ -55,9 +55,9 @@ class _StarPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final r = size.width / 2;
     final path = Path();
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 16; i++) {
       final radius = i.isEven ? r : r * 0.46;
-      final a = -math.pi / 2 + i * math.pi / 5;
+      final a = -math.pi / 2 + i * math.pi / 8;
       final p =
           Offset(c.dx + radius * math.cos(a), c.dy + radius * math.sin(a));
       i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);

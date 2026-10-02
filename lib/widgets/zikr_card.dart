@@ -19,7 +19,8 @@ class ZikrCard extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       decoration: BoxDecoration(
-        color: done ? scheme.primaryContainer.withOpacity(0.35) : scheme.surface,
+        color:
+            done ? scheme.primaryContainer.withOpacity(0.35) : scheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: scheme.outlineVariant.withOpacity(0.4)),
       ),
@@ -44,19 +45,33 @@ class ZikrCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                zikr.text,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: 19 * provider.fontScale,
-                  height: 1.9,
-                  fontWeight: FontWeight.w500,
-                  color: done ? scheme.onSurface.withOpacity(0.6) : scheme.onSurface,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    child: Text(
+                      zikr.text,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontSize: 19 * provider.fontScale,
+                        height: 1.9,
+                        fontWeight: FontWeight.w500,
+                        color: done
+                            ? scheme.onSurface.withOpacity(0.6)
+                            : scheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               if (provider.showSources) ...[
                 const SizedBox(height: 14),
-                Text(zikr.source, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                Text(zikr.source,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.grey)),
               ],
               Row(
                 children: [
@@ -71,8 +86,12 @@ class ZikrCard extends StatelessWidget {
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     icon: Icon(
-                      provider.isFavorite(zikr) ? Icons.favorite : Icons.favorite_border,
-                      color: provider.isFavorite(zikr) ? Colors.redAccent : Colors.grey,
+                      provider.isFavorite(zikr)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: provider.isFavorite(zikr)
+                          ? Colors.redAccent
+                          : Colors.grey,
                     ),
                     onPressed: () => provider.toggleFavorite(zikr),
                   ),
@@ -84,7 +103,9 @@ class ZikrCard extends StatelessWidget {
                         ? const Icon(Icons.check, color: Colors.white, size: 20)
                         : Text(
                             '${zikr.remaining}',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
                           ),
                   ),
                 ],
