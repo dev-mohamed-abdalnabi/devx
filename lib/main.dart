@@ -27,9 +27,7 @@ Future<void> main() async {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
       androidNotificationChannelName: 'تلاوة القرآن',
-      androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
-      // يبقى الإشعار ظاهرًا بعد الإيقاف المؤقت حتى تظل أزرار التحكم متاحة.
-      androidNotificationOngoing: true,
+      androidNotificationOngoing: false,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
@@ -45,9 +43,6 @@ Future<void> main() async {
   }
   try {
     await NotificationService.init();
-    // إشعار مشغّل الوسائط يحتاج إذن POST_NOTIFICATIONS في Android 13+.
-    // الطلب آمن: يظهر مرة واحدة فقط، ولا يمنع تشغيل التطبيق إن رُفض.
-    await NotificationService.requestPermission();
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }
