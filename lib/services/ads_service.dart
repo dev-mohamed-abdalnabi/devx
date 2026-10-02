@@ -11,32 +11,28 @@ class AdsService {
   static Future<bool> showSupportRewardedAd() async {
     final completer = Completer<bool>();
     var earned = false;
-    try {
-      await RewardedAd.load(
-        adUnitId: rewardedAdUnitId,
-        request: const AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (ad) {
-            ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
-              onAdDismissedFullScreenContent: (ad) {
-                ad.dispose();
-                if (!completer.isCompleted) completer.complete(earned);
-              },
-              onAdFailedToShowFullScreenContent: (ad, _) {
-                ad.dispose();
-                if (!completer.isCompleted) completer.complete(false);
-              },
-            );
-            ad.show(onUserEarnedReward: (_, __) => earned = true);
-          },
-          onAdFailedToLoad: (_) {
-            if (!completer.isCompleted) completer.complete(false);
-          },
-        ),
-      );
-    } catch (_) {
-      if (!completer.isCompleted) completer.complete(false);
-    }
+    await RewardedAd.load(
+      adUnitId: rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete(earned);
+            },
+            onAdFailedToShowFullScreenContent: (ad, _) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete(false);
+            },
+          );
+          ad.show(onUserEarnedReward: (_, __) => earned = true);
+        },
+        onAdFailedToLoad: (_) {
+          if (!completer.isCompleted) completer.complete(false);
+        },
+      ),
+    );
     return completer.future;
   }
 }
