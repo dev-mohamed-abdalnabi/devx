@@ -39,9 +39,19 @@ class _ForumScreenState extends State<ForumScreen> {
         ? <String>{}
         : ((await supabase.from('post_likes').select('post_id').eq('user_id', userId)) as List)
             .map((e) => e['post_id'].toString()).toSet();
+    final authorIds = (rows as List)
+        .map((row) => (row as Map)['author_id']?.toString())
+        .whereType<String>()
+        .toSet()
+        .toList();
+    final following = userId == null || authorIds.isEmpty
+        ? <String>{}
+        : ((await supabase.from('follows').select('following_id').eq('follower_id', userId).inFilter('following_id', authorIds)) as List)
+            .map((e) => e['following_id'].toString()).toSet();
     return (rows as List).map((row) {
       final item = Map<String, dynamic>.from(row as Map);
       item['liked'] = liked.contains(item['id'].toString());
+      item['following'] = following.contains(item['author_id'].toString());
       return item;
     }).toList();
   }
@@ -100,6 +110,21 @@ class _ForumScreenState extends State<ForumScreen> {
     } catch (_) { if (mounted) _toast('تعذرت المشاركة الآن.', error: true); }
   }
 
+  Future<void> _toggleFollow(Map<String, dynamic> post) async {
+    if (!await _requireAuth()) return;
+    final userId = supabase.auth.currentUser!.id;
+    final authorId = post['author_id'].toString();
+    if (authorId == userId) return;
+    try {
+      if (post['following'] == true) {
+        await supabase.from('follows').delete().match({'follower_id': userId, 'following_id': authorId});
+      } else {
+        await supabase.from('follows').insert({'follower_id': userId, 'following_id': authorId});
+      }
+      await _loadFeed();
+    } catch (_) { if (mounted) _toast('تعذر تحديث المتابعة.', error: true); }
+  }
+
   Future<void> _report(Map<String, dynamic> post) async {
     if (!await _requireAuth()) return;
     final reason = await showModalBottomSheet<String>(context: context, showDragHandle: true, builder: (context) => _ReportSheet());
@@ -147,7 +172,7 @@ class _ForumScreenState extends State<ForumScreen> {
             SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 10), child: _Composer(controller: _composer, onPost: _createPost, loading: _posting, signedIn: user != null, onSignIn: () => _requireAuth(signUp: true)))),
             if (_loading) const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
             else if (_posts.isEmpty) const SliverFillRemaining(child: AppEmptyState(icon: Icons.forum_outlined, title: 'المنتدى ينتظر كلمتك', message: 'كن أول من يشارك فكرة طيبة أو فائدة نافعة.'))
-            else SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 28), sliver: SliverList.builder(itemCount: _posts.length, itemBuilder: (_, i) => _PostCard(post: _posts[i], onLike: () => _toggleLike(_posts[i]), onComment: () => _openComments(_posts[i]), onShare: () => _share(_posts[i]), onReport: () => _report(_posts[i])))),
+            else SliverPadding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 28), sliver: SliverList.builder(itemCount: _posts.length, itemBuilder: (_, i) => _PostCard(post: _posts[i], onLike: () => _toggleLike(_posts[i]), onComment: () => _openComments(_posts[i]), onShare: () => _share(_posts[i]), onReport: () => _report(_posts[i]), onFollow: () => _toggleFollow(_posts[i])))),
           ],
         ]),
       ),
@@ -201,7 +226,8 @@ class _PostCard extends StatelessWidget {
   final VoidCallback onComment;
   final VoidCallback onShare;
   final VoidCallback onReport;
-  const _PostCard({required this.post, required this.onLike, required this.onComment, required this.onShare, required this.onReport});
+  final VoidCallback onFollow;
+  const _PostCard({required this.post, required this.onLike, required this.onComment, required this.onShare, required this.onReport, required this.onFollow});
   String _time() { final date = DateTime.tryParse(post['created_at']?.toString() ?? '')?.toLocal(); if (date == null) return ''; final diff = DateTime.now().difference(date); if (diff.inMinutes < 1) return 'الآن'; if (diff.inHours < 1) return 'منذ ${diff.inMinutes} د'; if (diff.inDays < 1) return 'منذ ${diff.inHours} س'; return 'منذ ${diff.inDays} يوم'; }
   @override
   Widget build(BuildContext context) {
@@ -209,7 +235,7 @@ class _PostCard extends StatelessWidget {
     final name = (profile['full_name']?.toString().trim().isNotEmpty == true) ? profile['full_name'].toString() : '@${profile['username'] ?? 'عضو'}';
     final scheme = Theme.of(context).colorScheme;
     return Padding(padding: const EdgeInsets.only(top: 12), child: AppCard(padding: const EdgeInsets.fromLTRB(16, 14, 16, 10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [CircleAvatar(radius: 21, backgroundColor: scheme.primaryContainer, child: Text(name.isEmpty ? 'ذ' : name.substring(0, 1), style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(fontWeight: FontWeight.w800)), Text('@${profile['username'] ?? 'member'} · ${_time()}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant))])), PopupMenuButton<String>(onSelected: (v) { if (v == 'report') onReport(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'report', child: ListTile(leading: Icon(Icons.flag_outlined), title: Text('إبلاغ عن المنشور')))])]),
+      Row(children: [CircleAvatar(radius: 21, backgroundColor: scheme.primaryContainer, child: Text(name.isEmpty ? 'ذ' : name.substring(0, 1), style: TextStyle(color: scheme.primary, fontWeight: FontWeight.bold))), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(fontWeight: FontWeight.w800)), Text('@${profile['username'] ?? 'member'} · ${_time()}', style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant))])), if (post['author_id'] != supabase.auth.currentUser?.id) TextButton(onPressed: onFollow, child: Text(post['following'] == true ? 'متابَع' : 'متابعة')), PopupMenuButton<String>(onSelected: (v) { if (v == 'report') onReport(); }, itemBuilder: (_) => const [PopupMenuItem(value: 'report', child: ListTile(leading: Icon(Icons.flag_outlined), title: Text('إبلاغ عن المنشور')))])]),
       const SizedBox(height: 14),
       Text(post['body']?.toString() ?? '', style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.65)),
       const SizedBox(height: 14),
