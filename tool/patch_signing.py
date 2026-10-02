@@ -38,8 +38,8 @@ def write_keystore() -> None:
 
 KTS_BLOCK = '''    signingConfigs {
         create("release") {
-            val props = java.util.Properties()
-            props.load(java.io.FileInputStream(rootProject.file("key.properties")))
+            val props = Properties()
+            props.load(FileInputStream(rootProject.file("key.properties")))
             keyAlias = props.getProperty("keyAlias")
             keyPassword = props.getProperty("keyPassword")
             storeFile = file(props.getProperty("storeFile"))
@@ -70,6 +70,8 @@ def patch_gradle() -> None:
         sys.exit(1)
     c = path.read_text(encoding='utf-8')
     kts = path == KTS
+    if kts and 'import java.io.FileInputStream' not in c:
+        c = 'import java.io.FileInputStream\nimport java.util.Properties\n\n' + c
     if 'key.properties' not in c:
         idx = c.find('buildTypes {')
         if idx < 0:
