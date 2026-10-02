@@ -8,3 +8,8 @@ android/local.properties
 .flutter-plugins-dependencies
 *.iml
 .idea/
+
+# مفاتيح التوقيع: لا تُرفع أبدًا
+*.jks
+*.keystore
+key.properties

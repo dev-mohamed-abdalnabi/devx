@@ -133,7 +133,11 @@ class _QuranAudioCard extends StatelessWidget {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('القرآن صوتيًا', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              Text(audio.isReady ? 'التلاوة جاهزة · اضغط للاستماع' : 'اختر شيخًا ونزّل التلاوة على جهازك'),
+              Text(audio.displaySurah != null
+                  ? (audio.isPlaying ? 'يعمل الآن: ' : 'آخر استماع: ') + 'سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}'
+                  : audio.hasAnyAudio
+                      ? 'التلاوة جاهزة · اضغط للاستماع'
+                      : 'اختر شيخًا ونزّل التلاوة على جهازك'),
             ])),
             const Icon(Icons.chevron_left_rounded),
           ]),

@@ -128,6 +128,14 @@ jobs:
       - name: Patch AndroidManifest (permissions + notification receivers)
         run: python3 tool/patch_android.py
 
+      - name: Sign release with the permanent key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python3 tool/patch_signing.py
+
       - name: Fetch and verify Quran data and fonts
         run: python3 tool/fetch_data.py
 
@@ -153,7 +161,7 @@ jobs:
         run: flutter test
 
       - name: Build release APKs (split per ABI)
-        run: flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --obfuscate --split-debug-info=build/symbols
 
       - name: APK size report (warns above 20 MB, never fails)
         run: |

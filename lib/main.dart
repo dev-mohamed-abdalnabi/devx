@@ -22,6 +22,13 @@ Future<void> main() async {
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationOngoing: false,
       androidShowNotificationBadge: true,
+      androidResumeOnClick: true,
+      androidNotificationClickStartsActivity: true,
+      androidStopForegroundOnPause: true,
+      notificationColor: const Color(0xFF2F6B55),
+      fastForwardInterval: const Duration(seconds: 10),
+      rewindInterval: const Duration(seconds: 10),
+      preloadArtwork: true,
     );
   } catch (_) {
     // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل.
