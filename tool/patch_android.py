@@ -62,9 +62,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
-import io.flutter.plugins.googlemobileads.NativeAdFactory
+import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin
 
-class ForumNativeAdFactory(private val context: Context) : NativeAdFactory {{
+class ForumNativeAdFactory(private val context: Context) : GoogleMobileAdsPlugin.NativeAdFactory {{
     override fun createNativeAd(nativeAd: NativeAd, customOptions: Map<String, Any>?): NativeAdView {{
         val adView = NativeAdView(context)
         val container = LinearLayout(context).apply {{
