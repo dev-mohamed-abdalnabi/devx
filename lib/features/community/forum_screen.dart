@@ -11,6 +11,7 @@ import 'auth_screen.dart';
 import 'community_utils.dart';
 import 'groups_screen.dart';
 import 'notifications_screen.dart';
+import '../../widgets/support_app_button.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -484,6 +485,15 @@ class _ForumScreenState extends State<ForumScreen> {
                     loading: _posting,
                     signedIn: user != null,
                     onSignIn: () => _requireAuth(signUp: true),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SupportAppButton(compact: true),
                   ),
                 ),
               ),
