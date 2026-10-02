@@ -76,6 +76,13 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 """
 
 
+ADMOB_APP_ID = 'ca-app-pub-6238197963590573~3817588900'
+ADMOB_META = f"""        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="{ADMOB_APP_ID}"/>
+"""
+
+
 def patch_gradle() -> None:
     """يضغط المكتبات الأصلية داخل الـ APK (أكبر توفير في الحجم). لا يُفشل البناء إن تعذّر."""
     kts = pathlib.Path('android/app/build.gradle.kts')
@@ -157,6 +164,13 @@ def main() -> int:
             return 1
         s = s[:idx] + RECEIVERS + '    ' + s[idx:]
 
+    if 'com.google.android.gms.ads.APPLICATION_ID' not in s:
+        idx = s.rfind('</application>')
+        if idx < 0:
+            print('ERROR: لم أجد </application> في المانيفست', file=sys.stderr)
+            return 1
+        s = s[:idx] + ADMOB_META + '    ' + s[idx:]
+
     s = s.replace('android:label="azkar_app"', 'android:label="ذكر"')
     s = s.replace('android:label="أذكاري"', 'android:label="ذكر"')
     MANIFEST.write_text(s, encoding='utf-8')
@@ -168,7 +182,8 @@ def main() -> int:
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
-            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver']
+            'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver',
+            'com.google.android.gms.ads.APPLICATION_ID', ADMOB_APP_ID]
     missing = [n for n in need if n not in s]
     if missing:
         print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)
