@@ -23,16 +23,23 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.publishableKey,
   );
+  // الإشعارات أولًا: تحدد هل أيقونة ic_stat_quran موجودة (غيابها يخفي إشعار الميديا بصمت).
+  try {
+    await NotificationService.init();
+    await NotificationService.requestPermission();
+  } catch (_) {
+    // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
+  }
   final normalAudioPlatform = JustAudioPlatform.instance;
   try {
     await JustAudioBackground.init(
       // قناة جديدة (v2) حتى لا يرث Android إعدادات القناة القديمة.
-      androidNotificationChannelId: 'com.azkarapp.quran_media_playback_v2',
+      androidNotificationChannelId: NotificationService.mediaChannelId,
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
       // الإعداد الموصى به في توثيق just_audio_background.
       androidNotificationOngoing: true,
-      androidNotificationIcon: 'drawable/ic_stat_quran',
+      androidNotificationIcon: NotificationService.mediaIcon,
       notificationColor: const Color(0xFF2F6B55),
       // مهم: بدون تصغير تُرسل صورة الغلاف بحجمها الكامل فيرفض أندرويد الإشعار.
       artDownscaleWidth: 256,
@@ -43,12 +50,6 @@ Future<void> main() async {
     // واحفظ السبب ليظهر في شاشة «القرآن صوتيًا» بدل أن يختفي الإشعار بصمت.
     QuranAudioProvider.backgroundInitError = e.toString();
     JustAudioPlatform.instance = normalAudioPlatform;
-  }
-  try {
-    await NotificationService.init();
-    await NotificationService.requestPermission();
-  } catch (_) {
-    // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }
   runApp(const AzkarApp());
 }

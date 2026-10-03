@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -13,9 +14,25 @@ class NotificationService {
   static const _channelId = 'azkar_reminders';
   static const _channelName = 'تذكيرات الأذكار';
   static const _channelDesc = 'تذكيرات الأذكار والقرآن والتحديات في مواعيدها';
-  // قنوات أندرويد لا تتغير إعداداتها بعد إنشائها؛ لذلك معرّف جديد (v2) يضمن صوت الأذان.
-  static const _adhanChannelId = 'adhan_times_v2';
-  static const _oldAdhanChannelId = 'adhan_times';
+  // قنوات أندرويد لا تتغير إعداداتها بعد إنشائها؛ لذلك معرّف جديد (v3) يضمن صوت الأذان
+  // حتى لو كانت v2 اتأنشأت قبل ما يكون ملف adhan موجود داخل التطبيق.
+  static const _adhanChannelId = 'adhan_times_v3';
+  static const _oldAdhanChannelIds = ['adhan_times', 'adhan_times_v2'];
+  static const _fallbackChannelId = 'adhan_fallback_v1';
+  static const _probeId = 69999;
+  static const _statIcon = 'ic_stat_quran';
+  static const _launcherIcon = '@mipmap/ic_launcher';
+
+  /// نفس معرّف قناة إشعار الميديا في main.dart (يستخدمه فحص الحالة).
+  static const mediaChannelId = 'com.azkarapp.quran_media_playback_v2';
+
+  /// أيقونة إشعار الميديا: الأيقونة الأحادية لو موجودة في الـ APK، وإلا أيقونة التطبيق.
+  /// (لو الأيقونة غير موجودة يرفض أندرويد إشعار الميديا بصمت.)
+  static String mediaIcon = 'mipmap/ic_launcher';
+  static bool statIconAvailable = false;
+
+  /// هل ملف الأذان (res/raw/adhan) موجود فعلًا داخل الـ APK؟
+  static bool adhanSoundAvailable = false;
 
   static AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<
@@ -29,11 +46,25 @@ class NotificationService {
     } catch (_) {
       // نبقى على tz.local الافتراضي (UTC)؛ سيظهر الخطأ كتأخر في المواعيد فقط.
     }
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    );
-    await _plugin.initialize(settings,
-        onDidReceiveNotificationResponse: _onNotificationResponse);
+    // الإضافة ترفض initialize لو الأيقونة غير موجودة، فنستخدمها كاختبار لوجود المورد.
+    try {
+      await _plugin.initialize(
+        const InitializationSettings(
+            android: AndroidInitializationSettings(_statIcon)),
+        onDidReceiveNotificationResponse: _onNotificationResponse,
+      );
+      statIconAvailable = true;
+    } catch (_) {
+      statIconAvailable = false;
+      await _plugin.initialize(
+        const InitializationSettings(
+            android: AndroidInitializationSettings(_launcherIcon)),
+        onDidReceiveNotificationResponse: _onNotificationResponse,
+      );
+    }
+    mediaIcon =
+        statIconAvailable ? 'drawable/ic_stat_quran' : 'mipmap/ic_launcher';
+
     try {
       await _android?.createNotificationChannel(const AndroidNotificationChannel(
         _channelId,
@@ -42,20 +73,62 @@ class NotificationService {
         importance: Importance.high,
       ));
     } catch (_) {}
+    for (final old in _oldAdhanChannelIds) {
+      try {
+        await _android?.deleteNotificationChannel(old);
+      } catch (_) {}
+    }
+
+    adhanSoundAvailable = await _probeAdhanSound();
     try {
-      await _android?.deleteNotificationChannel(_oldAdhanChannelId);
+      if (adhanSoundAvailable) {
+        await _android
+            ?.createNotificationChannel(const AndroidNotificationChannel(
+          _adhanChannelId,
+          'الأذان ومواقيت الصلاة',
+          description: 'تنبيه عند دخول وقت الصلاة',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('adhan'),
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ));
+      } else {
+        // لا نترك قناة بصوت معطوب؛ نحذفها وننشئ قناة بصوت النظام كبديل.
+        await _android?.deleteNotificationChannel(_adhanChannelId);
+        await _android
+            ?.createNotificationChannel(const AndroidNotificationChannel(
+          _fallbackChannelId,
+          'الأذان (صوت النظام)',
+          description: 'تنبيه عند دخول وقت الصلاة',
+          importance: Importance.max,
+          playSound: true,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
+        ));
+      }
     } catch (_) {}
+  }
+
+  /// يتأكد أن مورد الصوت adhan موجود: جدولة تجريبية بعيدة ثم إلغاؤها.
+  /// الإضافة ترمي PlatformException(invalid_sound) لو المورد ناقص.
+  static Future<bool> _probeAdhanSound() async {
     try {
-      await _android?.createNotificationChannel(const AndroidNotificationChannel(
-        _adhanChannelId,
-        'الأذان ومواقيت الصلاة',
-        description: 'تنبيه عند دخول وقت الصلاة',
-        importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('adhan'),
-        audioAttributesUsage: AudioAttributesUsage.alarm,
-      ));
-    } catch (_) {}
+      await _plugin.zonedSchedule(
+        _probeId,
+        'probe',
+        'probe',
+        tz.TZDateTime.now(tz.local).add(const Duration(days: 3650)),
+        _adhanDetails('probe', custom: true),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      await _plugin.cancel(_probeId);
+      return true;
+    } on PlatformException catch (e) {
+      return e.code != 'invalid_sound';
+    } catch (_) {
+      return true;
+    }
   }
 
   /// يطلب إذن الإشعارات (أندرويد 13+). يعيد true إن كان ممنوحًا.
@@ -93,20 +166,25 @@ class NotificationService {
         ),
       );
 
-  static NotificationDetails _adhanDetails(String body) => NotificationDetails(
-        android: AndroidNotificationDetails(
-          _adhanChannelId,
-          'الأذان ومواقيت الصلاة',
-          channelDescription: 'تنبيه عند دخول وقت الصلاة',
-          importance: Importance.max,
-          priority: Priority.max,
-          playSound: true,
-          sound: RawResourceAndroidNotificationSound('adhan'),
-          audioAttributesUsage: AudioAttributesUsage.alarm,
-          fullScreenIntent: true,
-          styleInformation: BigTextStyleInformation(body),
-        ),
-      );
+  /// [custom]: true = صوت الأذان من res/raw، false = صوت النظام، null = حسب نتيجة الفحص.
+  static NotificationDetails _adhanDetails(String body, {bool? custom}) {
+    final useCustom = custom ?? adhanSoundAvailable;
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        useCustom ? _adhanChannelId : _fallbackChannelId,
+        useCustom ? 'الأذان ومواقيت الصلاة' : 'الأذان (صوت النظام)',
+        channelDescription: 'تنبيه عند دخول وقت الصلاة',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        sound: useCustom ? const RawResourceAndroidNotificationSound('adhan') : null,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        category: AndroidNotificationCategory.alarm,
+        fullScreenIntent: true,
+        styleInformation: BigTextStyleInformation(body),
+      ),
+    );
+  }
 
   static void _onNotificationResponse(NotificationResponse response) {
     final payload = response.payload;
@@ -119,8 +197,9 @@ class NotificationService {
     });
   }
 
-  /// يعرض إشعار الأذان فورًا بنفس القناة والصوت المستخدمين في الجدولة.
-  static Future<void> testAdhanNow() async {
+  /// يعرض إشعار الأذان فورًا ويعيد رسالة توضح النتيجة.
+  static Future<String> testAdhanNow() async {
+    adhanSoundAvailable = await _probeAdhanSound();
     await _plugin.show(
       999998,
       'تجربة الأذان',
@@ -128,6 +207,10 @@ class NotificationService {
       _adhanDetails('إذا سمعت الأذان فالإشعار والصوت يعملان'),
       payload: 'adhan:الصلاة',
     );
+    return adhanSoundAvailable
+        ? 'تم إرسال إشعار الأذان بصوت الأذان'
+        : 'ملف الأذان غير موجود داخل التطبيق (res/raw/adhan) فتم استخدام صوت النظام. '
+            'شغّل tool/patch_android.py وأعد بناء التطبيق.';
   }
 
   /// حالة الإشعارات لعرضها في شاشة الفحص.
@@ -135,6 +218,8 @@ class NotificationService {
     bool? enabled;
     bool? exact;
     String? adhanChannel;
+    String? mediaChannel;
+    bool? mediaActive;
     try {
       enabled = await _android?.areNotificationsEnabled();
     } catch (_) {}
@@ -143,21 +228,32 @@ class NotificationService {
     } catch (_) {}
     try {
       final channels = await _android?.getNotificationChannels();
-      final ch = channels?.where((c) => c.id == _adhanChannelId);
-      if (ch != null && ch.isNotEmpty) {
-        final c = ch.first;
-        adhanChannel = c.importance.value == 0
-            ? 'مغلقة من إعدادات النظام'
-            : (c.importance.value >= Importance.high.value
-                ? 'مفعّلة'
-                : 'أهميتها منخفضة (قد لا يُسمع الصوت)');
+      String describe(AndroidNotificationChannel c) => c.importance.value == 0
+          ? 'مغلقة من إعدادات النظام'
+          : (c.importance.value >= Importance.high.value
+              ? 'مفعّلة'
+              : 'أهميتها منخفضة (قد لا يُسمع الصوت)');
+      final adhanId = adhanSoundAvailable ? _adhanChannelId : _fallbackChannelId;
+      for (final c in channels ?? const <AndroidNotificationChannel>[]) {
+        if (c.id == adhanId) adhanChannel = describe(c);
+        if (c.id == mediaChannelId) {
+          mediaChannel = c.importance.value == 0 ? 'مغلقة من إعدادات النظام' : 'مفعّلة';
+        }
       }
+    } catch (_) {}
+    try {
+      final active = await _android?.getActiveNotifications();
+      mediaActive = active?.any((n) => n.channelId == mediaChannelId);
     } catch (_) {}
     return NotificationStatus(
       notificationsEnabled: enabled,
       exactAlarms: exact,
       adhanChannel: adhanChannel,
       pending: await pendingCount(),
+      adhanSoundOk: adhanSoundAvailable,
+      statIconOk: statIconAvailable,
+      mediaChannel: mediaChannel,
+      mediaActive: mediaActive,
     );
   }
 
@@ -175,6 +271,9 @@ class NotificationService {
   }
 
   static Future<void> cancelAdhan() async {
+    try {
+      await _plugin.cancel(_probeId);
+    } catch (_) {}
     for (var i = 0; i < 42; i++) {
       try {
         await _plugin.cancel(70000 + i);
@@ -218,7 +317,7 @@ class NotificationService {
             'أذان ${entry.name}',
             'حان الآن وقت صلاة ${entry.name}',
             tz.TZDateTime.from(entry.time, tz.local),
-            _details('حان الآن وقت صلاة ${entry.name}'),
+            _adhanDetails('حان الآن وقت صلاة ${entry.name}', custom: false),
             mode: AndroidScheduleMode.inexactAllowWhileIdle,
             match: null,
             payload: 'adhan:${entry.name}',
@@ -336,10 +435,18 @@ class NotificationStatus {
   final bool? exactAlarms;
   final String? adhanChannel;
   final int pending;
+  final bool adhanSoundOk;
+  final bool statIconOk;
+  final String? mediaChannel;
+  final bool? mediaActive;
   const NotificationStatus({
     required this.notificationsEnabled,
     required this.exactAlarms,
     required this.adhanChannel,
     required this.pending,
+    this.adhanSoundOk = false,
+    this.statIconOk = false,
+    this.mediaChannel,
+    this.mediaActive,
   });
 }

@@ -10,27 +10,30 @@ MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 PROGUARD = pathlib.Path('android/app/proguard-rules.pro')
 ACTIVITY_ROOT = pathlib.Path('android/app/src/main')
 
-PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
-    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
-    <uses-feature android:name="android.hardware.location.network" android:required="false"/>
-"""
+PERMISSION_NAMES = [
+    'android.permission.POST_NOTIFICATIONS',
+    'android.permission.INTERNET',
+    'android.permission.RECEIVE_BOOT_COMPLETED',
+    'android.permission.VIBRATE',
+    'android.permission.SCHEDULE_EXACT_ALARM',
+    'android.permission.USE_EXACT_ALARM',
+    'android.permission.WAKE_LOCK',
+    'android.permission.FOREGROUND_SERVICE',
+    'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+    'android.permission.USE_FULL_SCREEN_INTENT',
+    'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.ACCESS_FINE_LOCATION',
+]
+FEATURE_NAMES = [
+    'android.hardware.sensor.compass',
+    'android.hardware.location.gps',
+    'android.hardware.location.network',
+]
 
-RECEIVERS = """        <receiver android:exported="false"
+NOTIF_RECEIVER = """        <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
-        <receiver android:exported="false"
+"""
+NOTIF_BOOT_RECEIVER = """        <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
@@ -39,7 +42,8 @@ RECEIVERS = """        <receiver android:exported="false"
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
-        <service android:name="com.ryanheise.audioservice.AudioService"
+"""
+AUDIO_SERVICE = """        <service android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true"
             android:stopWithTask="false">
@@ -47,13 +51,21 @@ RECEIVERS = """        <receiver android:exported="false"
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
-        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+"""
+MEDIA_BUTTON_RECEIVER = """        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
 """
+# (اسم المكوّن كما يظهر في المانيفست، نصّه)
+COMPONENTS = [
+    ('com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"', NOTIF_RECEIVER),
+    ('com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"', NOTIF_BOOT_RECEIVER),
+    ('com.ryanheise.audioservice.AudioService"', AUDIO_SERVICE),
+    ('com.ryanheise.audioservice.MediaButtonReceiver"', MEDIA_BUTTON_RECEIVER),
+]
 
 PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notifications with Gson.
 # Keep generic type signatures so R8 full mode does not throw Missing type parameter.
@@ -124,16 +136,33 @@ def patch_notification_icon() -> None:
     print(f'تمت كتابة {NOTIFICATION_ICON}')
 
 
+ADHAN_EXTS = ['ogg', 'mp3', 'wav', 'm4a', 'aac', 'opus']
+RAW_DIR = pathlib.Path('android/app/src/main/res/raw')
+
+
+def find_adhan_source():
+    for ext in ADHAN_EXTS:
+        src = pathlib.Path(f'assets/audio/adhan.{ext}')
+        if src.exists() and src.stat().st_size > 0:
+            return src
+    return None
+
+
 def patch_adhan_sound() -> None:
-    """ينسخ تسجيل الأذان المرخّص إلى موارد Android الخام كي يعمل مع الإشعار المجدول."""
-    source = pathlib.Path('assets/audio/adhan.ogg')
-    target = pathlib.Path('android/app/src/main/res/raw/adhan.ogg')
-    if not source.exists():
-        print(f'ERROR: ملف الأذان غير موجود: {source}', file=sys.stderr)
-        raise FileNotFoundError(source)
-    target.parent.mkdir(parents=True, exist_ok=True)
+    """ينسخ تسجيل الأذان إلى موارد Android الخام (res/raw/adhan.*) كي يعمل مع الإشعار المجدول."""
+    source = find_adhan_source()
+    if source is None:
+        print('ERROR: ملف الأذان غير موجود. ضع assets/audio/adhan.ogg (أو mp3/wav) في المشروع.',
+              file=sys.stderr)
+        raise FileNotFoundError('assets/audio/adhan.*')
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    # اسم المورد يجب أن يكون فريدًا: نحذف أي adhan.* قديم بامتداد مختلف.
+    for old in RAW_DIR.glob('adhan.*'):
+        if old.name != f'adhan.{source.suffix[1:]}':
+            old.unlink()
+    target = RAW_DIR / f'adhan{source.suffix}'
     shutil.copyfile(source, target)
-    print(f'تم نسخ صوت الأذان إلى {target}')
+    print(f'تم نسخ صوت الأذان إلى {target} ({target.stat().st_size} بايت)')
 
 
 def patch_gradle() -> None:
@@ -199,25 +228,50 @@ def patch_main_activity() -> bool:
     return ok
 
 
+def ensure_permissions(s: str) -> str:
+    lines = []
+    for name in PERMISSION_NAMES:
+        if f'android:name="{name}"' not in s:
+            lines.append(f'    <uses-permission android:name="{name}"/>')
+    for name in FEATURE_NAMES:
+        if f'android:name="{name}"' not in s:
+            lines.append(f'    <uses-feature android:name="{name}" android:required="false"/>')
+    if not lines:
+        return s
+    idx = s.find('<application')
+    if idx < 0:
+        print('ERROR: لم أجد <application> في المانيفست', file=sys.stderr)
+        sys.exit(1)
+    block = '    <!-- أُضيفت بواسطة tool/patch_android.py -->\n' + '\n'.join(lines) + '\n    '
+    print(f'أُضيف {len(lines)} إذن/ميزة ناقصة إلى المانيفست')
+    return s[:idx] + block + s[idx:]
+
+
+def ensure_components(s: str) -> str:
+    for marker, block in COMPONENTS:
+        if marker in s:
+            continue
+        idx = s.rfind('</application>')
+        if idx < 0:
+            print('ERROR: لم أجد </application> في المانيفست', file=sys.stderr)
+            sys.exit(1)
+        s = s[:idx] + block + '    ' + s[idx:]
+        print(f'أُضيف مكوّن ناقص: {marker.strip(chr(34))}')
+    # خدمة الميديا يجب أن تكون من نوع mediaPlayback (أندرويد 14+) وإلا لا يظهر الإشعار.
+    s = re.sub(
+        r'(<service\s+android:name="com\.ryanheise\.audioservice\.AudioService")(?![^>]*foregroundServiceType)',
+        r'\1 android:foregroundServiceType="mediaPlayback"', s)
+    return s
+
+
 def main() -> int:
     if not MANIFEST.exists():
         print(f'ERROR: {MANIFEST} غير موجود. شغّل flutter create --platforms=android . أولًا', file=sys.stderr)
         return 1
     s = MANIFEST.read_text(encoding='utf-8')
 
-    if 'POST_NOTIFICATIONS' not in s:
-        idx = s.find('<application')
-        if idx < 0:
-            print('ERROR: لم أجد <application> في المانيفست', file=sys.stderr)
-            return 1
-        s = s[:idx] + PERMISSIONS.lstrip('\n') + '\n    ' + s[idx:]
-
-    if 'ScheduledNotificationReceiver' not in s:
-        idx = s.rfind('</application>')
-        if idx < 0:
-            print('ERROR: لم أجد </application> في المانيفست', file=sys.stderr)
-            return 1
-        s = s[:idx] + RECEIVERS + '    ' + s[idx:]
+    s = ensure_permissions(s)
+    s = ensure_components(s)
 
     if 'com.google.android.gms.ads.APPLICATION_ID' not in s:
         idx = s.rfind('</application>')
@@ -245,20 +299,25 @@ def main() -> int:
     if not patch_main_activity():
         return 1
 
-    # تحقق نهائي
+    # تحقق نهائي من المانيفست
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM', 'USE_EXACT_ALARM',
-            'USE_FULL_SCREEN_INTENT',
+            'FOREGROUND_SERVICE_MEDIA_PLAYBACK', 'USE_FULL_SCREEN_INTENT',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
             'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver',
+            'foregroundServiceType="mediaPlayback"',
             'com.google.android.gms.ads.APPLICATION_ID', ADMOB_APP_ID,
             'MobileAdsInitProvider', 'xmlns:tools=']
     missing = [n for n in need if n not in s]
+    # تحقق نهائي من الموارد (هذان بالضبط هما سبب غياب الأذان وإشعار الميديا لو لم يوجدا)
+    if not list(RAW_DIR.glob('adhan.*')):
+        missing.append('res/raw/adhan.*')
+    if not NOTIFICATION_ICON.exists():
+        missing.append(str(NOTIFICATION_ICON))
     if missing:
-        print('ERROR: ناقص في المانيفست:', missing, file=sys.stderr)
+        print('ERROR: ناقص:', missing, file=sys.stderr)
         return 1
-    print('AndroidManifest.xml جاهز:')
-    print(s)
+    print('OK: المانيفست + res/raw/adhan + ic_stat_quran + AudioServiceActivity جاهزة')
     return 0
 
 

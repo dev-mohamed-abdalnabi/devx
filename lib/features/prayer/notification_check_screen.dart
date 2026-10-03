@@ -97,6 +97,14 @@ class _NotificationCheckScreenState extends State<NotificationCheckScreen> {
                     : null,
               ),
               _row(
+                ok: s.adhanSoundOk,
+                title: 'ملف صوت الأذان داخل التطبيق',
+                detail: s.adhanSoundOk
+                    ? 'موجود (res/raw/adhan)'
+                    : 'غير موجود في الـ APK؛ الأذان سيعمل بصوت النظام فقط. '
+                        'شغّل tool/patch_android.py قبل البناء وتأكد من وجود assets/audio/adhan.ogg.',
+              ),
+              _row(
                 ok: s.adhanChannel == null ? null : s.adhanChannel == 'مفعّلة',
                 title: 'قناة الأذان',
                 detail: s.adhanChannel ?? 'لم تُنشأ بعد',
@@ -109,17 +117,42 @@ class _NotificationCheckScreenState extends State<NotificationCheckScreen> {
                     : 'لا يوجد. اختر مدينتك من شاشة المواقيت وفعّل الأذان.',
               ),
               _row(
-                ok: mediaError == null,
+                ok: s.statIconOk,
+                title: 'أيقونة إشعار الميديا',
+                detail: s.statIconOk
+                    ? 'موجودة (ic_stat_quran)'
+                    : 'غير موجودة؛ استُخدمت أيقونة التطبيق بدلها. شغّل tool/patch_android.py وأعد البناء.',
+              ),
+              _row(
+                ok: mediaError != null
+                    ? false
+                    : (s.mediaChannel == 'مفعّلة' && s.mediaActive == true
+                        ? true
+                        : (s.mediaChannel != null && s.mediaChannel != 'مفعّلة'
+                            ? false
+                            : null)),
                 title: 'خدمة إشعار القرآن (ميديا)',
-                detail: mediaError == null
-                    ? 'تعمل. يظهر الإشعار عند تشغيل أي سورة.'
-                    : 'فشلت التهيئة: $mediaError',
+                detail: mediaError != null
+                    ? 'فشلت التهيئة: $mediaError'
+                    : (s.mediaChannel == null
+                        ? 'لم تبدأ بعد. شغّل أي سورة ثم اضغط تحديث.'
+                        : (s.mediaChannel != 'مفعّلة'
+                            ? 'قناة الميديا ${s.mediaChannel}. فعّلها من إعدادات التطبيق ← الإشعارات ← تلاوة القرآن.'
+                            : (s.mediaActive == true
+                                ? 'تعمل. الإشعار ظاهر الآن.'
+                                : 'القناة موجودة لكن لا يوجد إشعار ظاهر حاليًا. '
+                                    'شغّل سورة ثم اضغط تحديث؛ لو لم يظهر فاسمح للتطبيق بالعمل في الخلفية بدون قيود بطارية.'))),
               ),
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: () async {
                   try {
-                    await NotificationService.testAdhanNow();
+                    final msg = await NotificationService.testAdhanNow();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(msg)));
+                      _refresh();
+                    }
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
