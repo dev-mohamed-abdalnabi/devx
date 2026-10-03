@@ -6,7 +6,6 @@ import '../../data/quran_data.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
 import '../../widgets/app_ui.dart';
-import '../../widgets/support_app_button.dart';
 import 'audio_player_ui.dart';
 
 class QuranAudioScreen extends StatefulWidget {
@@ -58,12 +57,28 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               sliver: SliverToBoxAdapter(child: _ReciterPanel(audio: audio)),
             ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(12, 10, 12, 0),
-                child: Align(alignment: AlignmentDirectional.centerStart, child: SupportAppButton(compact: true)),
+            if (QuranAudioProvider.backgroundInitError != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      'إشعار التحكم في التلاوة غير مفعّل بسبب خطأ في خدمة الخلفية:\n${QuranAudioProvider.backgroundInitError}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.5,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                      textDirection: TextDirection.ltr,
+                    ),
+                  ),
+                ),
               ),
-            ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
               sliver: SliverToBoxAdapter(

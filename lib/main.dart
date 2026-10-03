@@ -14,6 +14,7 @@ import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/supabase_config.dart';
+import 'widgets/support_app_button.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,18 +29,23 @@ Future<void> main() async {
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
-      androidNotificationOngoing: true,
+      // التركيبة القياسية المختبرة في audio_service: (ongoing=false مع stopForegroundOnPause=true).
+      // التركيبة السابقة (ongoing=true مع stopForegroundOnPause=false) غير مدعومة وتُفشل الإشعار.
+      androidNotificationOngoing: false,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
-      androidStopForegroundOnPause: false,
+      androidStopForegroundOnPause: true,
+      androidNotificationIcon: 'drawable/ic_stat_quran',
       notificationColor: const Color(0xFF2F6B55),
       fastForwardInterval: const Duration(seconds: 10),
       rewindInterval: const Duration(seconds: 10),
       preloadArtwork: true,
     );
-  } catch (_) {
-    // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل.
+  } catch (e) {
+    // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل،
+    // واحفظ السبب ليظهر في شاشة «القرآن صوتيًا» بدل أن يختفي الإشعار بصمت.
+    QuranAudioProvider.backgroundInitError = e.toString();
     JustAudioPlatform.instance = normalAudioPlatform;
   }
   try {
@@ -70,6 +76,7 @@ class AzkarApp extends StatelessWidget {
           return MaterialApp(
             title: 'ذكر',
             debugShowCheckedModeBanner: false,
+            navigatorKey: appNavigatorKey,
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar')],
             localizationsDelegates: const [
@@ -79,7 +86,7 @@ class AzkarApp extends StatelessWidget {
             ],
             builder: (context, child) => Directionality(
               textDirection: TextDirection.rtl,
-              child: child!,
+              child: SupportTopBar(child: child!),
             ),
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),

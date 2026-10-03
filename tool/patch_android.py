@@ -100,6 +100,27 @@ ADMOB_PROVIDER_REMOVE = """        <!-- يمنع تشغيل SDK الإعلانا
 """
 
 
+NOTIFICATION_ICON = pathlib.Path('android/app/src/main/res/drawable/ic_stat_quran.xml')
+NOTIFICATION_ICON_XML = """<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9,2c-1.05,0 -2.05,0.16 -3,0.46 4.06,1.27 7,5.06 7,9.54 0,4.48 -2.94,8.27 -7,9.54 0.95,0.3 1.95,0.46 3,0.46 5.52,0 10,-4.48 10,-10S14.52,2 9,2z"/>
+</vector>
+"""
+
+
+def patch_notification_icon() -> None:
+    """أيقونة صغيرة أحادية اللون لإشعار التلاوة (أيقونة التطبيق الملونة تظهر مربعًا أبيض أو تُفشل الإشعار)."""
+    NOTIFICATION_ICON.parent.mkdir(parents=True, exist_ok=True)
+    NOTIFICATION_ICON.write_text(NOTIFICATION_ICON_XML, encoding='utf-8')
+    print(f'تمت كتابة {NOTIFICATION_ICON}')
+
+
 def patch_gradle() -> None:
     """يضغط المكتبات الأصلية داخل الـ APK (أكبر توفير في الحجم). لا يُفشل البناء إن تعذّر."""
     kts = pathlib.Path('android/app/build.gradle.kts')
@@ -138,27 +159,29 @@ def patch_proguard() -> None:
         print(f'تمت إضافة قواعد R8 إلى {PROGUARD}')
 
 
-def patch_main_activity() -> None:
-    """يجعل Activity الرئيسية متوافقة مع audio_service للإشعارات وشاشة القفل."""
+def patch_main_activity() -> bool:
+    """يجعل Activity الرئيسية AudioServiceActivity (شرط لإشعار التحكم وشاشة القفل). يرجع True عند النجاح."""
     candidates = list(ACTIVITY_ROOT.rglob('MainActivity.kt')) + list(ACTIVITY_ROOT.rglob('MainActivity.java'))
     if not candidates:
-        print('WARNING: لم أجد MainActivity؛ تخطّيت ربط AudioServiceActivity')
-        return
+        print('ERROR: لم أجد MainActivity؛ إشعار التلاوة لن يعمل', file=sys.stderr)
+        return False
     path = candidates[0]
     c = path.read_text(encoding='utf-8')
     if path.suffix == '.kt':
-        if 'AudioServiceActivity' not in c:
-            c = c.replace('import io.flutter.embedding.android.FlutterActivity',
-                          'import com.ryanheise.audioservice.AudioServiceActivity')
-            c = re.sub(r'class\s+MainActivity\s*:\s*FlutterActivity\s*\(\)',
-                       'class MainActivity : AudioServiceActivity()', c)
+        c = re.sub(r':\s*FlutterActivity\s*\(\s*\)', ': AudioServiceActivity()', c)
+        c = c.replace('import io.flutter.embedding.android.FlutterActivity',
+                      'import com.ryanheise.audioservice.AudioServiceActivity')
+        if 'import com.ryanheise.audioservice.AudioServiceActivity' not in c:
+            c = re.sub(r'(package [^\n]+\n)', r'\1\nimport com.ryanheise.audioservice.AudioServiceActivity\n', c, count=1)
+        ok = 'AudioServiceActivity()' in c
     else:
-        if 'AudioServiceActivity' not in c:
-            c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
-                          'import com.ryanheise.audioservice.AudioServiceActivity;')
-            c = c.replace('extends FlutterActivity', 'extends AudioServiceActivity')
+        c = c.replace('import io.flutter.embedding.android.FlutterActivity;',
+                      'import com.ryanheise.audioservice.AudioServiceActivity;')
+        c = c.replace('extends FlutterActivity', 'extends AudioServiceActivity')
+        ok = 'extends AudioServiceActivity' in c
     path.write_text(c, encoding='utf-8')
-    print(f'تم ربط {path} بـ AudioServiceActivity')
+    print(f'{"تم ربط" if ok else "فشل ربط"} {path} بـ AudioServiceActivity')
+    return ok
 
 
 def main() -> int:
@@ -202,7 +225,9 @@ def main() -> int:
     MANIFEST.write_text(s, encoding='utf-8')
     patch_gradle()
     patch_proguard()
-    patch_main_activity()
+    patch_notification_icon()
+    if not patch_main_activity():
+        return 1
 
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',

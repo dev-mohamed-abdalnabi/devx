@@ -19,22 +19,67 @@ class AdsService {
   String get _rewardedId => kDebugMode ? _testRewarded : rewardedUnitId;
 
   Future<void>? _initFuture;
+  Future<bool>? _loading;
   RewardedAd? _rewarded;
-  bool _loadingRewarded = false;
+
+  /// آخر خطأ حدث أثناء التحميل (كود AdMob + الرسالة) لعرضه للمستخدم وللتشخيص.
+  int? lastErrorCode;
+  String? lastErrorMessage;
 
   Future<void> init() {
-    return _initFuture ??= MobileAds.instance.initialize().then((_) {}).catchError((_) {
+    return _initFuture ??= MobileAds.instance.initialize().then((_) {}).catchError((Object e) {
+      lastErrorCode = -1;
+      lastErrorMessage = 'فشل تهيئة SDK: $e';
       _initFuture = null;
     });
   }
 
   bool get rewardedReady => _rewarded != null;
 
-  Future<bool> loadRewarded() async {
-    if (_rewarded != null) return true;
-    if (_loadingRewarded) return false;
-    _loadingRewarded = true;
+  /// رسالة مفهومة للمستخدم حسب كود الخطأ.
+  String get friendlyError {
+    switch (lastErrorCode) {
+      case 3:
+        return 'لا يوجد إعلان متاح الآن (No fill). غالبًا وحدة الإعلان جديدة أو التطبيق لم يُراجَع بعد في AdMob.';
+      case 2:
+        return 'تعذّر الاتصال. تأكد من الإنترنت ثم أعد المحاولة.';
+      case 1:
+        return 'معرّف وحدة الإعلان غير صحيح أو لا يطابق معرّف التطبيق في AdMob.';
+      case 0:
+        return 'خطأ داخلي في خدمة الإعلانات. أعد المحاولة بعد قليل.';
+      case 9:
+        return 'انتهت مهلة تحميل الإعلان. أعد المحاولة.';
+      case -1:
+        return 'تعذّرت تهيئة خدمة الإعلانات.';
+      default:
+        return 'لا يوجد إعلان متاح الآن، جرّب لاحقًا.';
+    }
+  }
+
+  String get technicalError => 'AdMob [${lastErrorCode ?? '-'}] ${lastErrorMessage ?? ''}'.trim();
+
+  /// يحمّل إعلان المكافأة مع محاولة ثانية تلقائية. الطلبات المتزامنة تشارك نفس التحميل.
+  Future<bool> loadRewarded({int attempts = 2}) {
+    if (_rewarded != null) return Future.value(true);
+    return _loading ??= _loadWithRetry(attempts).whenComplete(() => _loading = null);
+  }
+
+  Future<bool> _loadWithRetry(int attempts) async {
     await init();
+    for (var i = 0; i < attempts; i++) {
+      if (await _loadOnce()) {
+        lastErrorCode = null;
+        lastErrorMessage = null;
+        return true;
+      }
+      // كود 1 = طلب غير صالح (معرّف خاطئ)، إعادة المحاولة لا تفيد.
+      if (lastErrorCode == 1 || i == attempts - 1) break;
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return false;
+  }
+
+  Future<bool> _loadOnce() async {
     final completer = Completer<bool>();
     try {
       await RewardedAd.load(
@@ -45,18 +90,25 @@ class AdsService {
             _rewarded = ad;
             if (!completer.isCompleted) completer.complete(true);
           },
-          onAdFailedToLoad: (_) {
+          onAdFailedToLoad: (LoadAdError error) {
             _rewarded = null;
+            lastErrorCode = error.code;
+            lastErrorMessage = error.message;
+            debugPrint('AdMob load failed: code=${error.code} domain=${error.domain} message=${error.message}');
             if (!completer.isCompleted) completer.complete(false);
           },
         ),
       );
-    } catch (_) {
+    } catch (e) {
+      lastErrorCode = -1;
+      lastErrorMessage = '$e';
       if (!completer.isCompleted) completer.complete(false);
     }
-    final ok = await completer.future.timeout(const Duration(seconds: 20), onTimeout: () => false);
-    _loadingRewarded = false;
-    return ok;
+    return completer.future.timeout(const Duration(seconds: 15), onTimeout: () {
+      lastErrorCode = 9;
+      lastErrorMessage = 'timeout';
+      return false;
+    });
   }
 
   /// يعرض إعلان المكافأة. يرجع true إذا شاهده المستخدم حتى النهاية.
@@ -71,18 +123,21 @@ class AdsService {
         ad.dispose();
         if (!done.isCompleted) done.complete(earned);
       },
-      onAdFailedToShowFullScreenContent: (ad, _) {
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        lastErrorCode = error.code;
+        lastErrorMessage = error.message;
         ad.dispose();
         if (!done.isCompleted) done.complete(false);
       },
     );
     try {
       await ad.show(onUserEarnedReward: (_, __) => earned = true);
-    } catch (_) {
+    } catch (e) {
+      lastErrorCode = -1;
+      lastErrorMessage = '$e';
       ad.dispose();
       return false;
     }
     return done.future;
   }
-
 }

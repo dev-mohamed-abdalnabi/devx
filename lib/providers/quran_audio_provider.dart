@@ -10,6 +10,8 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'notification_service.dart';
+
 class QuranReciter {
   final String id;
   final String name;
@@ -59,6 +61,9 @@ int _extractSurahZip(List<String> args) {
 }
 
 class QuranAudioProvider extends ChangeNotifier {
+  /// سبب فشل تهيئة خدمة الخلفية (إن حدث) ليظهر للمستخدم بدل الفشل الصامت.
+  static String? backgroundInitError;
+
   static const int surahCount = 114;
   static const int maxDownloadBytes = 100 * 1024 * 1024;
   static const List<double> speeds = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -412,6 +417,8 @@ class QuranAudioProvider extends ChangeNotifier {
   Future<void> playSurah(int surah, {Duration? startAt, bool autoplay = true}) async {
     try {
       error = null;
+      // أندرويد 13+ لا يعرض إشعار التحكم دون إذن الإشعارات.
+      unawaited(NotificationService.requestPermission());
       if (!hasSurah(surah)) throw 'نزّل التلاوة أولًا للاستماع إلى سورة ${surahName(surah)}';
       final index = _queue.indexOf(surah);
       if (!_sourceReady || player.audioSource == null) {
