@@ -5,6 +5,7 @@ import '../../core/text_utils.dart';
 import '../../core/prayer_times.dart';
 import '../../providers/prayer_provider.dart';
 import 'city_picker_screen.dart';
+import 'notification_check_screen.dart';
 import 'qibla_screen.dart';
 import 'tick_builder.dart';
 import '../../widgets/app_ui.dart';
@@ -312,6 +313,15 @@ class _PrayerScreenState extends State<PrayerScreen> {
                         );
                       }
                     },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_active_outlined),
+                    title: const Text('فحص الأذان والإشعارات'),
+                    subtitle: const Text('تجربة الصوت ومعرفة سبب عدم ظهور الإشعار'),
+                    trailing: const Icon(Icons.chevron_left),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const NotificationCheckScreen())),
                   ),
                   const Divider(height: 1),
                   SwitchListTile(

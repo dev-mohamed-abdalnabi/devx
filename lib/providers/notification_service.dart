@@ -13,7 +13,9 @@ class NotificationService {
   static const _channelId = 'azkar_reminders';
   static const _channelName = 'تذكيرات الأذكار';
   static const _channelDesc = 'تذكيرات الأذكار والقرآن والتحديات في مواعيدها';
-  static const _adhanChannelId = 'adhan_times';
+  // قنوات أندرويد لا تتغير إعداداتها بعد إنشائها؛ لذلك معرّف جديد (v2) يضمن صوت الأذان.
+  static const _adhanChannelId = 'adhan_times_v2';
+  static const _oldAdhanChannelId = 'adhan_times';
 
   static AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<
@@ -39,6 +41,9 @@ class NotificationService {
         description: _channelDesc,
         importance: Importance.high,
       ));
+    } catch (_) {}
+    try {
+      await _android?.deleteNotificationChannel(_oldAdhanChannelId);
     } catch (_) {}
     try {
       await _android?.createNotificationChannel(const AndroidNotificationChannel(
@@ -112,6 +117,48 @@ class NotificationService {
           builder: (_) =>
               AdhanScreen(prayerName: prayer.isEmpty ? 'الصلاة' : prayer)));
     });
+  }
+
+  /// يعرض إشعار الأذان فورًا بنفس القناة والصوت المستخدمين في الجدولة.
+  static Future<void> testAdhanNow() async {
+    await _plugin.show(
+      999998,
+      'تجربة الأذان',
+      'إذا سمعت الأذان فالإشعار والصوت يعملان',
+      _adhanDetails('إذا سمعت الأذان فالإشعار والصوت يعملان'),
+      payload: 'adhan:الصلاة',
+    );
+  }
+
+  /// حالة الإشعارات لعرضها في شاشة الفحص.
+  static Future<NotificationStatus> status() async {
+    bool? enabled;
+    bool? exact;
+    String? adhanChannel;
+    try {
+      enabled = await _android?.areNotificationsEnabled();
+    } catch (_) {}
+    try {
+      exact = await _android?.canScheduleExactNotifications();
+    } catch (_) {}
+    try {
+      final channels = await _android?.getNotificationChannels();
+      final ch = channels?.where((c) => c.id == _adhanChannelId);
+      if (ch != null && ch.isNotEmpty) {
+        final c = ch.first;
+        adhanChannel = c.importance.value == 0
+            ? 'مغلقة من إعدادات النظام'
+            : (c.importance.value >= Importance.high.value
+                ? 'مفعّلة'
+                : 'أهميتها منخفضة (قد لا يُسمع الصوت)');
+      }
+    } catch (_) {}
+    return NotificationStatus(
+      notificationsEnabled: enabled,
+      exactAlarms: exact,
+      adhanChannel: adhanChannel,
+      pending: await pendingCount(),
+    );
   }
 
   static Future<void> showTest() async {
@@ -282,4 +329,17 @@ class NotificationService {
   }
 
   static Future<void> cancelAll() => _plugin.cancelAll();
+}
+
+class NotificationStatus {
+  final bool? notificationsEnabled;
+  final bool? exactAlarms;
+  final String? adhanChannel;
+  final int pending;
+  const NotificationStatus({
+    required this.notificationsEnabled,
+    required this.exactAlarms,
+    required this.adhanChannel,
+    required this.pending,
+  });
 }

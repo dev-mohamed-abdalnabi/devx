@@ -26,21 +26,17 @@ Future<void> main() async {
   final normalAudioPlatform = JustAudioPlatform.instance;
   try {
     await JustAudioBackground.init(
-      // قناة جديدة حتى لا يرث Android إعداد القناة القديمة العامة.
-      androidNotificationChannelId: 'com.azkarapp.quran_media_playback',
+      // قناة جديدة (v2) حتى لا يرث Android إعدادات القناة القديمة.
+      androidNotificationChannelId: 'com.azkarapp.quran_media_playback_v2',
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
-      // إعداد مستقر مع إبقاء الخدمة الخلفية وإشعار الوسائط عند التشغيل.
+      // الإعداد الموصى به في توثيق just_audio_background.
       androidNotificationOngoing: true,
-      androidShowNotificationBadge: true,
-      androidResumeOnClick: true,
-      androidNotificationClickStartsActivity: true,
-      androidStopForegroundOnPause: false,
       androidNotificationIcon: 'drawable/ic_stat_quran',
       notificationColor: const Color(0xFF2F6B55),
-      fastForwardInterval: const Duration(seconds: 10),
-      rewindInterval: const Duration(seconds: 10),
-      preloadArtwork: true,
+      // مهم: بدون تصغير تُرسل صورة الغلاف بحجمها الكامل فيرفض أندرويد الإشعار.
+      artDownscaleWidth: 256,
+      artDownscaleHeight: 256,
     );
   } catch (e) {
     // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل،

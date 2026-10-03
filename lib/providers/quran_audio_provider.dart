@@ -380,10 +380,10 @@ class QuranAudioProvider extends ChangeNotifier {
     if (_artUri != null) return _artUri;
     try {
       final root = await getApplicationSupportDirectory();
-      final file = File('${root.path}/quran_audio/artwork.png');
+      final file = File('${root.path}/quran_audio/artwork_256.png');
       if (!await file.exists()) {
         await file.parent.create(recursive: true);
-        final data = await rootBundle.load('assets/brand/app_icon.png');
+        final data = await rootBundle.load('assets/brand/notification_art.png');
         await file.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
       }
       return _artUri = Uri.file(file.path);

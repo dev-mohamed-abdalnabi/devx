@@ -41,6 +41,7 @@ flutter:
     - assets/data/quran.json
     - assets/data/challenges.json
     - assets/brand/app_icon.png
+    - assets/brand/notification_art.png
   fonts:
     - family: Tajawal
       fonts:

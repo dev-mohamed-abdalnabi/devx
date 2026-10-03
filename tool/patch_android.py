@@ -16,6 +16,7 @@ PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
@@ -245,7 +246,7 @@ def main() -> int:
         return 1
 
     # تحقق نهائي
-    need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
+    need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM', 'USE_EXACT_ALARM',
             'USE_FULL_SCREEN_INTENT',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
