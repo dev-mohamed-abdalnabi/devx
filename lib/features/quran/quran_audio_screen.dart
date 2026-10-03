@@ -6,6 +6,7 @@ import '../../data/quran_data.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
 import '../../widgets/app_ui.dart';
+import '../../widgets/support_app_button.dart';
 import 'audio_player_ui.dart';
 
 class QuranAudioScreen extends StatefulWidget {
@@ -56,6 +57,12 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               sliver: SliverToBoxAdapter(child: _ReciterPanel(audio: audio)),
+            ),
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(12, 10, 12, 0),
+                child: Align(alignment: AlignmentDirectional.centerStart, child: SupportAppButton(compact: true)),
+              ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),

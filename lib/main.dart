@@ -27,7 +27,8 @@ Future<void> main() async {
     await JustAudioBackground.init(
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
       androidNotificationChannelName: 'تلاوة القرآن',
-      androidNotificationOngoing: false,
+      androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
+      androidNotificationOngoing: true,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
@@ -43,6 +44,7 @@ Future<void> main() async {
   }
   try {
     await NotificationService.init();
+    await NotificationService.requestPermission();
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }

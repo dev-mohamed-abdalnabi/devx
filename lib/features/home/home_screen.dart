@@ -13,6 +13,7 @@ import '../quran/quran_home_screen.dart';
 import '../quran/quran_audio_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
 import '../../widgets/app_ui.dart';
+import '../../widgets/support_app_button.dart';
 
 class HomeDashboard extends StatelessWidget {
   final void Function(int tab) onSwitchTab;
@@ -46,6 +47,8 @@ class HomeDashboard extends StatelessWidget {
           _QuranCard(quran: quran, onStart: () => onSwitchTab(1)),
           const SizedBox(height: 12),
           const _QuranAudioCard(),
+          const SizedBox(height: 12),
+          const Align(alignment: AlignmentDirectional.centerStart, child: SupportAppButton()),
           const SizedBox(height: 12),
           if (daily.isNotEmpty) ...[
             _ChallengesCard(
