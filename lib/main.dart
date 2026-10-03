@@ -26,11 +26,12 @@ Future<void> main() async {
   final normalAudioPlatform = JustAudioPlatform.instance;
   try {
     await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.azkarapp.quran_audio',
+      // قناة جديدة حتى لا يرث Android إعداد القناة القديمة العامة.
+      androidNotificationChannelId: 'com.azkarapp.quran_media_playback',
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
       // إعداد مستقر مع إبقاء الخدمة الخلفية وإشعار الوسائط عند التشغيل.
-      androidNotificationOngoing: false,
+      androidNotificationOngoing: true,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
