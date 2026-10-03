@@ -198,66 +198,6 @@ class NotificationService {
     });
   }
 
-  /// يعرض إشعار الأذان فورًا ويعيد رسالة توضح النتيجة.
-  static Future<String> testAdhanNow() async {
-    adhanSoundAvailable = await _probeAdhanSound();
-    await _plugin.show(
-      999998,
-      'تجربة الأذان',
-      'إذا سمعت الأذان فالإشعار والصوت يعملان',
-      _adhanDetails('إذا سمعت الأذان فالإشعار والصوت يعملان'),
-      payload: 'adhan:الصلاة',
-    );
-    return adhanSoundAvailable
-        ? 'تم إرسال إشعار الأذان بصوت الأذان'
-        : 'ملف الأذان غير موجود داخل التطبيق (res/raw/adhan) فتم استخدام صوت النظام. '
-            'شغّل tool/patch_android.py وأعد بناء التطبيق.';
-  }
-
-  /// حالة الإشعارات لعرضها في شاشة الفحص.
-  static Future<NotificationStatus> status() async {
-    bool? enabled;
-    bool? exact;
-    String? adhanChannel;
-    String? mediaChannel;
-    bool? mediaActive;
-    try {
-      enabled = await _android?.areNotificationsEnabled();
-    } catch (_) {}
-    try {
-      exact = await _android?.canScheduleExactNotifications();
-    } catch (_) {}
-    try {
-      final channels = await _android?.getNotificationChannels();
-      String describe(AndroidNotificationChannel c) => c.importance.value == 0
-          ? 'مغلقة من إعدادات النظام'
-          : (c.importance.value >= Importance.high.value
-              ? 'مفعّلة'
-              : 'أهميتها منخفضة (قد لا يُسمع الصوت)');
-      final adhanId = adhanSoundAvailable ? _adhanChannelId : _fallbackChannelId;
-      for (final c in channels ?? const <AndroidNotificationChannel>[]) {
-        if (c.id == adhanId) adhanChannel = describe(c);
-        if (c.id == mediaChannelId) {
-          mediaChannel = c.importance.value == 0 ? 'مغلقة من إعدادات النظام' : 'مفعّلة';
-        }
-      }
-    } catch (_) {}
-    try {
-      final active = await _android?.getActiveNotifications();
-      mediaActive = active?.any((n) => n.channelId == mediaChannelId);
-    } catch (_) {}
-    return NotificationStatus(
-      notificationsEnabled: enabled,
-      exactAlarms: exact,
-      adhanChannel: adhanChannel,
-      pending: await pendingCount(),
-      adhanSoundOk: adhanSoundAvailable,
-      statIconOk: statIconAvailable,
-      mediaChannel: mediaChannel,
-      mediaActive: mediaActive,
-    );
-  }
-
   static Future<void> showTest() async {
     await _plugin.show(999999, 'إشعار تجريبي', 'التذكيرات تعمل على هذا الجهاز',
         _details('التذكيرات تعمل على هذا الجهاز'));
@@ -429,25 +369,4 @@ class NotificationService {
   }
 
   static Future<void> cancelAll() => _plugin.cancelAll();
-}
-
-class NotificationStatus {
-  final bool? notificationsEnabled;
-  final bool? exactAlarms;
-  final String? adhanChannel;
-  final int pending;
-  final bool adhanSoundOk;
-  final bool statIconOk;
-  final String? mediaChannel;
-  final bool? mediaActive;
-  const NotificationStatus({
-    required this.notificationsEnabled,
-    required this.exactAlarms,
-    required this.adhanChannel,
-    required this.pending,
-    this.adhanSoundOk = false,
-    this.statIconOk = false,
-    this.mediaChannel,
-    this.mediaActive,
-  });
 }
