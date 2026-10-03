@@ -44,21 +44,6 @@ class RemindersScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('التذكيرات'),
-        actions: [
-          IconButton(
-            tooltip: 'إشعار تجريبي',
-            icon: const Icon(Icons.notifications_active_rounded),
-            onPressed: () async {
-              final ok = await NotificationService.requestPermission();
-              if (!context.mounted) return;
-              if (!ok) {
-                _snack(context, 'الإشعارات غير مسموحة. فعّلها من إعدادات النظام.');
-                return;
-              }
-              await NotificationService.showTest();
-            },
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addCustom(context),

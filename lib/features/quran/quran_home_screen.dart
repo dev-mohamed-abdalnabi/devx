@@ -6,6 +6,7 @@ import '../../data/quran_data.dart';
 import '../../providers/quran_provider.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../widgets/app_ui.dart';
+import '../reminders/reminders_screen.dart';
 import 'audio_player_ui.dart' show StarBadge;
 import 'reader_screen.dart';
 
@@ -62,11 +63,12 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
             child: AppSectionHeader(
               title: 'القرآن الكريم',
               subtitle: 'تابع وردك واقرأ براحة وطمأنينة',
+              trailing: _QuranReminderButton(),
             ),
           ),
           Padding(
@@ -113,6 +115,21 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
           ] else
             Expanded(child: _Results(data: data, query: _query)),
         ],
+      ),
+    );
+  }
+}
+
+class _QuranReminderButton extends StatelessWidget {
+  const _QuranReminderButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      tooltip: 'إشعار ورد القرآن',
+      icon: const Icon(Icons.notifications_active_outlined),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RemindersScreen()),
       ),
     );
   }
