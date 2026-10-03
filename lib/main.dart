@@ -14,6 +14,7 @@ import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/supabase_config.dart';
+import 'widgets/support_app_button.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
