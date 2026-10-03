@@ -16,7 +16,7 @@ class SupportBarVisibility {
       });
 }
 
-/// شريط رفيع في أعلى كل الشاشات فيه زر «ادعم التطبيق» صغير.
+/// حاوية قديمة متاحة للتوافق، لكن لا تُستخدم لعرض الدعم فوق الهيدر.
 class SupportTopBar extends StatelessWidget {
   final Widget child;
   const SupportTopBar({super.key, required this.child});
@@ -41,7 +41,7 @@ class SupportTopBar extends StatelessWidget {
                 alignment: AlignmentDirectional.centerStart,
                 child: const Padding(
                   padding: EdgeInsetsDirectional.only(start: 12),
-                  child: _SupportPill(),
+                  child: SupportPill(),
                 ),
               )
             else
@@ -59,8 +59,8 @@ class SupportTopBar extends StatelessWidget {
   }
 }
 
-class _SupportPill extends StatelessWidget {
-  const _SupportPill();
+class SupportPill extends StatelessWidget {
+  const SupportPill({super.key});
 
   @override
   Widget build(BuildContext context) {

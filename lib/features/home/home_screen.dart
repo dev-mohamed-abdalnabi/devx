@@ -13,6 +13,7 @@ import '../quran/quran_home_screen.dart';
 import '../quran/quran_audio_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
 import '../../widgets/app_ui.dart';
+import '../../widgets/support_app_button.dart';
 
 class HomeDashboard extends StatelessWidget {
   final void Function(int tab) onSwitchTab;
@@ -34,6 +35,7 @@ class HomeDashboard extends StatelessWidget {
           const AppSectionHeader(
             title: 'ابدأ الآن',
             subtitle: 'أهم ما تحتاجه اليوم مرتب حسب الأولوية',
+            trailing: SupportPill(),
           ),
           const SizedBox(height: 8),
           const SizedBox(height: 10),
