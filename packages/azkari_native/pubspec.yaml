@@ -1,0 +1,19 @@
+name: azkari_native
+description: موارد وإعدادات أندرويد الأصلية (مانيفست الخدمات + صوت الأذان + أيقونة الإشعار) بحيث تُدمج تلقائيًا في أي بناء بدون سكربتات.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.azkar.azkari_native
+        pluginClass: AzkariNativePlugin

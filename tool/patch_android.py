@@ -152,6 +152,10 @@ def find_adhan_source():
 def patch_adhan_sound() -> None:
     """ينسخ تسجيل الأذان إلى موارد Android الخام (res/raw/adhan.*) كي يعمل مع الإشعار المجدول."""
     source = find_adhan_source()
+    plugin_raw = pathlib.Path('packages/azkari_native/android/src/main/res/raw')
+    if source is None and list(plugin_raw.glob('adhan.*')):
+        print('الأذان موجود داخل حزمة azkari_native ويُدمج تلقائيًا')
+        return
     if source is None:
         print('ERROR: ملف الأذان غير موجود. ضع assets/audio/adhan.ogg (أو mp3/wav) في المشروع.',
               file=sys.stderr)
@@ -311,14 +315,15 @@ def main() -> int:
             'MobileAdsInitProvider', 'xmlns:tools=']
     missing = [n for n in need if n not in s]
     # تحقق نهائي من الموارد (هذان بالضبط هما سبب غياب الأذان وإشعار الميديا لو لم يوجدا)
-    if not list(RAW_DIR.glob('adhan.*')):
+    plugin_raw = pathlib.Path('packages/azkari_native/android/src/main/res/raw')
+    if not list(RAW_DIR.glob('adhan.*')) and not list(plugin_raw.glob('adhan.*')):
         missing.append('res/raw/adhan.*')
     if not NOTIFICATION_ICON.exists():
         missing.append(str(NOTIFICATION_ICON))
     if missing:
         print('ERROR: ناقص:', missing, file=sys.stderr)
         return 1
-    print('OK: المانيفست + res/raw/adhan + ic_stat_quran + AudioServiceActivity جاهزة')
+    print('OK: المانيفست + res/raw/adhan + ic_stat_blank + AudioServiceActivity جاهزة')
     return 0
 
 

@@ -27,6 +27,8 @@ dependencies:
   archive: ^3.6.1
   supabase_flutter: ^2.9.1
   google_mobile_ads: ^7.0.0
+  azkari_native:
+    path: packages/azkari_native
 
 dev_dependencies:
   flutter_test:

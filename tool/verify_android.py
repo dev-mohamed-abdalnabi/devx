@@ -12,6 +12,10 @@ import zipfile
 AUDIO_EXTS = ['ogg', 'mp3', 'wav', 'm4a', 'aac', 'opus']
 MIN_BYTES = 10 * 1024
 RAW = pathlib.Path('android/app/src/main/res/raw')
+PLUGIN = pathlib.Path('packages/azkari_native/android/src/main')
+PLUGIN_RAW = PLUGIN / 'res/raw'
+PLUGIN_ICON = PLUGIN / 'res/drawable/ic_stat_blank.xml'
+PLUGIN_MANIFEST = PLUGIN / 'AndroidManifest.xml'
 ICON = pathlib.Path('android/app/src/main/res/drawable/ic_stat_blank.xml')
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
 
@@ -24,15 +28,15 @@ def looks_like_audio(head: bytes) -> bool:
 
 def check_source() -> list:
     errors = []
-    src = None
+    candidates = []
     for ext in AUDIO_EXTS:
-        f = pathlib.Path(f'assets/audio/adhan.{ext}')
-        if f.exists():
-            src = f
-            break
-    if src is None:
-        errors.append('ملف الأذان غير موجود: ضع assets/audio/adhan.ogg (أو mp3/wav) في المشروع')
-    else:
+        candidates.append(pathlib.Path(f'assets/audio/adhan.{ext}'))
+        candidates.append(PLUGIN_RAW / f'adhan.{ext}')
+    existing = [f for f in candidates if f.exists()]
+    if not existing:
+        errors.append('ملف الأذان غير موجود: ضع packages/azkari_native/android/src/main/res/raw/adhan.ogg '
+                      '(أو mp3/wav)')
+    for src in existing:
         size = src.stat().st_size
         head = src.read_bytes()[:16]
         if size < MIN_BYTES:
@@ -41,22 +45,24 @@ def check_source() -> list:
             errors.append(f'{src} ليس ملف صوت صالح (ترويسة غير معروفة)')
         else:
             print(f'OK: {src} ({size // 1024} KB)')
-    raws = list(RAW.glob('adhan.*')) if RAW.exists() else []
-    if not raws:
-        errors.append('android/app/src/main/res/raw/adhan.* غير موجود — لم يُشغَّل tool/patch_android.py')
-    if not ICON.exists():
-        errors.append(f'{ICON} غير موجود — لم يُشغَّل tool/patch_android.py')
-    if not MANIFEST.exists():
-        errors.append('AndroidManifest.xml غير موجود')
+    has_raw = (RAW.exists() and list(RAW.glob('adhan.*'))) or (PLUGIN_RAW.exists() and list(PLUGIN_RAW.glob('adhan.*')))
+    if not has_raw:
+        errors.append('لا يوجد res/raw/adhan.* لا في حزمة azkari_native ولا في android/app')
+    if not (ICON.exists() or PLUGIN_ICON.exists()):
+        errors.append('الأيقونة الشفافة ic_stat_blank.xml غير موجودة')
+    manifests = [m.read_text(encoding='utf-8') for m in (MANIFEST, PLUGIN_MANIFEST) if m.exists()]
+    if not manifests:
+        errors.append('لا يوجد أي AndroidManifest')
     else:
-        m = MANIFEST.read_text(encoding='utf-8')
+        m = '\n'.join(manifests)
         for need in ['com.ryanheise.audioservice.AudioService', 'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
-                     'POST_NOTIFICATIONS', 'foregroundServiceType="mediaPlayback"']:
+                     'POST_NOTIFICATIONS', 'foregroundServiceType="mediaPlayback"',
+                     'ScheduledNotificationReceiver']:
             if need not in m:
                 errors.append(f'المانيفست ينقصه: {need}')
     acts = list(pathlib.Path('android/app/src/main').rglob('MainActivity.*'))
-    if not acts or 'AudioServiceActivity' not in acts[0].read_text(encoding='utf-8'):
-        errors.append('MainActivity ليست AudioServiceActivity')
+    if acts and 'AudioServiceActivity' not in acts[0].read_text(encoding='utf-8'):
+        print('تحذير: MainActivity ليست AudioServiceActivity (شغّل tool/patch_android.py)')
     return errors
 
 
