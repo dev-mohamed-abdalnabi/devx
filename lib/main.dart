@@ -29,9 +29,8 @@ Future<void> main() async {
       androidNotificationChannelId: 'com.azkarapp.quran_audio',
       androidNotificationChannelName: 'تلاوة القرآن',
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
-      // إشعار الوسائط يجب أن يبقى ظاهرًا خارج التطبيق حتى بعد الضغط على إيقاف.
-      // هذا يتيح استكمال التشغيل والتحكم في السابق/التالي من شريط الإشعارات.
-      androidNotificationOngoing: true,
+      // إعداد مستقر مع إبقاء الخدمة الخلفية وإشعار الوسائط عند التشغيل.
+      androidNotificationOngoing: false,
       androidShowNotificationBadge: true,
       androidResumeOnClick: true,
       androidNotificationClickStartsActivity: true,
