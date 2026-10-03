@@ -40,14 +40,20 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
     ProcessingState.completed: AudioProcessingState.completed,
   };
 
+  // أيقونات الأزرار من حزمة azkari_native (محمية من الحذف بملف keep.xml).
+  static const MediaControl _playControl =
+      MediaControl(androidIcon: 'drawable/ic_media_play', label: 'تشغيل', action: MediaAction.play);
+  static const MediaControl _pauseControl =
+      MediaControl(androidIcon: 'drawable/ic_media_pause', label: 'إيقاف مؤقت', action: MediaAction.pause);
+  static const MediaControl _nextControl =
+      MediaControl(androidIcon: 'drawable/ic_media_next', label: 'التالي', action: MediaAction.skipToNext);
+  static const MediaControl _previousControl =
+      MediaControl(androidIcon: 'drawable/ic_media_previous', label: 'السابق', action: MediaAction.skipToPrevious);
+
   void _broadcast() {
     final playing = player.playing;
     playbackState.add(PlaybackState(
-      controls: [
-        MediaControl.skipToPrevious,
-        if (playing) MediaControl.pause else MediaControl.play,
-        MediaControl.skipToNext,
-      ],
+      controls: [_previousControl, if (playing) _pauseControl else _playControl, _nextControl],
       systemActions: const {
         MediaAction.seek,
         MediaAction.seekForward,

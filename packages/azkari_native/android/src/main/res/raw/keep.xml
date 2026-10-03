@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- يمنع مُقلّص الموارد من حذف الأذان (يُقرأ بالاسم فقط من إضافة الإشعارات) -->
+<!-- يمنع مُقلّص الموارد من حذف موارد تُقرأ بالاسم فقط (الأذان + أيقونات إشعار الميديا) -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/adhan,@drawable/ic_stat_blank" />
+    tools:keep="@raw/adhan,@drawable/ic_stat_blank,@drawable/ic_media_*,@drawable/audio_service_*" />

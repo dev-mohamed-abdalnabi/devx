@@ -135,6 +135,11 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
         out.put("statIconId", ctx.getResources().getIdentifier("ic_stat_blank", "drawable", pkg));
         out.put("launcherIconId", ctx.getResources().getIdentifier("ic_launcher", "mipmap", pkg));
         out.put("adhanRawId", ctx.getResources().getIdentifier("adhan", "raw", pkg));
+        String[] mediaIcons = {"ic_media_play", "ic_media_pause", "ic_media_next", "ic_media_previous",
+                "audio_service_play", "audio_service_pause", "audio_service_skip_next"};
+        for (String n : mediaIcons) {
+            out.put("icon." + n, ctx.getResources().getIdentifier(n, "drawable", pkg));
+        }
 
         // 4) إذن خدمة تشغيل الميديا (أندرويد 14+)
         if (Build.VERSION.SDK_INT >= 34) {
