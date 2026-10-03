@@ -20,7 +20,7 @@ dependencies:
   flutter_compass: ^0.8.0
   url_launcher: ^6.3.1
   just_audio: ^0.9.46
-  just_audio_background: ^0.0.1-beta.15
+  just_audio_background: ^0.0.1-beta.17
   just_audio_platform_interface: ^4.6.0
   path_provider: ^2.1.5
   http: ^1.2.2
