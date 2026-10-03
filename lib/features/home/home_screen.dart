@@ -91,7 +91,7 @@ class HomeDashboard extends StatelessWidget {
                       Expanded(child: _ActionCard(icon: LineIcon.heart, title: 'المفضّلة', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavoritesScreen())))), const SizedBox(width: 10), Expanded(flex: 2, child: _ChallengesCard(done: done, total: daily.length, streak: activity.streak, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChallengesScreen())))),
                     ])),
                     const SizedBox(height: 10),
-                    Expanded(flex: 120, child: const _AyahCard()),
+                    Expanded(flex: 120, child: _AyahCard(quran: quran)),
                   ],
                 ),
               ),
@@ -151,7 +151,25 @@ class _ActionCard extends StatelessWidget { final String icon, title; final Void
 class _ReadingCard extends StatelessWidget { final QuranProvider quran; final VoidCallback onTap; const _ReadingCard({required this.quran, required this.onTap}); @override Widget build(BuildContext context) { final data = quran.data; final page = quran.lastPage.clamp(1, data?.pageCount ?? 604).toInt(); final first = data?.byPage[page]?.first; final surah = first == null ? 'ابدأ من الفاتحة' : QuranAudioProvider.surahName(first.surah); final read = quran.readPages.length; return _TapCard(onTap: quran.hasStartedReading ? () => openReader(context, page) : onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const LineIcon(LineIcon.book), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('تابع القراءة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)), Text('$surah · صفحة ${toArabicDigits(page)} — قرأت ${toArabicDigits(read)} من ${toArabicDigits(data?.pageCount ?? 604)} صفحة', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: _muted)), _ProgressBar(value: quran.khatmaProgress)])])); } }
 class _AudioCard extends StatelessWidget { final QuranAudioProvider audio; const _AudioCard({required this.audio}); @override Widget build(BuildContext context) => _InfoCard(icon: LineIcon.headphones, title: 'القرآن صوتيًا', subtitle: audio.displaySurah == null ? 'اختر شيخًا للاستماع' : 'آخر استماع: سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranAudioScreen()))); }
 class _ChallengesCard extends StatelessWidget { final int done, total, streak; final VoidCallback onTap; const _ChallengesCard({required this.done, required this.total, required this.streak, required this.onTap}); @override Widget build(BuildContext context) => _TapCard(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const LineIcon(LineIcon.trophy), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('تحديات اليوم · ${toArabicDigits( done)} / ${toArabicDigits(total)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)), Text('أيام متواصلة: ${toArabicDigits(streak)}', style: const TextStyle(fontSize: 11.5, color: _muted)), _ProgressBar(value: total == 0 ? 0 : done / total)])])); }
-class _AyahCard extends StatelessWidget { const _AyahCard(); @override Widget build(BuildContext context) => _TapCard(border: _gold, child: Stack(children: [const Positioned.fill(child: _Pattern(opacity: .18)), Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Text('آية اليوم', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold)), Text('﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾', textAlign: TextAlign.center, style: const TextStyle(fontFamily: 'Amiri', fontSize: 19, height: 1.7, color: _ink)), const Text('سورة الرعد · ٢٨', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold))]))])); }
+class _AyahCard extends StatelessWidget {
+  final QuranProvider quran;
+  const _AyahCard({required this.quran});
+  @override
+  Widget build(BuildContext context) {
+    final data = quran.data;
+    final day = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
+    final ayah = data == null || data.ayahs.isEmpty ? null : data.ayahs[day % data.ayahs.length];
+    final source = ayah == null ? 'جارٍ تحميل آية اليوم' : 'سورة ${QuranAudioProvider.surahName(ayah.surah)} · ${toArabicDigits(ayah.number)}';
+    return _TapCard(border: _gold, child: Stack(children: [
+      const Positioned.fill(child: _Pattern(opacity: .18)),
+      Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Text('آية اليوم', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold)),
+        Text(ayah == null ? 'جارٍ تحميل القرآن…' : '﴿ ${ayah.text} ﴾', textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Amiri', fontSize: 19, height: 1.7, color: _ink)),
+        Text(source, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold)),
+      ])),
+    ]));
+  }
+}
 
 class _InfoCard extends StatelessWidget {
   final String icon, title, subtitle;
