@@ -20,13 +20,13 @@ class NotificationService {
   static const _oldAdhanChannelIds = ['adhan_times', 'adhan_times_v2'];
   static const _fallbackChannelId = 'adhan_fallback_v1';
   static const _probeId = 69999;
-  static const _statIcon = 'ic_stat_quran';
+  static const _statIcon = 'ic_stat_blank';
   static const _launcherIcon = '@mipmap/ic_launcher';
 
   /// نفس معرّف قناة إشعار الميديا في main.dart (يستخدمه فحص الحالة).
   static const mediaChannelId = 'com.azkarapp.quran_media_playback_v2';
 
-  /// أيقونة إشعار الميديا: الأيقونة الأحادية لو موجودة في الـ APK، وإلا أيقونة التطبيق.
+  /// أيقونة إشعار الميديا: الأيقونة الشفافة لو موجودة في الـ APK، وإلا أيقونة التطبيق.
   /// (لو الأيقونة غير موجودة يرفض أندرويد إشعار الميديا بصمت.)
   static String mediaIcon = 'mipmap/ic_launcher';
   static bool statIconAvailable = false;
@@ -46,7 +46,7 @@ class NotificationService {
     } catch (_) {
       // نبقى على tz.local الافتراضي (UTC)؛ سيظهر الخطأ كتأخر في المواعيد فقط.
     }
-    // الإضافة ترفض initialize لو الأيقونة غير موجودة، فنستخدمها كاختبار لوجود المورد.
+    // الإضافة ترفض initialize لو الأيقونة غير موجودة، فنستخدمها كاختبار لوجود الأيقونة الشفافة.
     try {
       await _plugin.initialize(
         const InitializationSettings(
@@ -56,14 +56,15 @@ class NotificationService {
       statIconAvailable = true;
     } catch (_) {
       statIconAvailable = false;
-      await _plugin.initialize(
-        const InitializationSettings(
-            android: AndroidInitializationSettings(_launcherIcon)),
-        onDidReceiveNotificationResponse: _onNotificationResponse,
-      );
     }
+    // باقي الإشعارات (التذكيرات والأذان) تبقى بأيقونة التطبيق العادية.
+    await _plugin.initialize(
+      const InitializationSettings(
+          android: AndroidInitializationSettings(_launcherIcon)),
+      onDidReceiveNotificationResponse: _onNotificationResponse,
+    );
     mediaIcon =
-        statIconAvailable ? 'drawable/ic_stat_quran' : 'mipmap/ic_launcher';
+        statIconAvailable ? 'drawable/ic_stat_blank' : 'mipmap/ic_launcher';
 
     try {
       await _android?.createNotificationChannel(const AndroidNotificationChannel(

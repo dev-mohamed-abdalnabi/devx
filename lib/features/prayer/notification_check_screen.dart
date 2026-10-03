@@ -117,13 +117,6 @@ class _NotificationCheckScreenState extends State<NotificationCheckScreen> {
                     : 'لا يوجد. اختر مدينتك من شاشة المواقيت وفعّل الأذان.',
               ),
               _row(
-                ok: s.statIconOk,
-                title: 'أيقونة إشعار الميديا',
-                detail: s.statIconOk
-                    ? 'موجودة (ic_stat_quran)'
-                    : 'غير موجودة؛ استُخدمت أيقونة التطبيق بدلها. شغّل tool/patch_android.py وأعد البناء.',
-              ),
-              _row(
                 ok: mediaError != null
                     ? false
                     : (s.mediaChannel == 'مفعّلة' && s.mediaActive == true

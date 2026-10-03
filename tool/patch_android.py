@@ -115,7 +115,8 @@ ADMOB_PROVIDER_REMOVE = """        <!-- يمنع تشغيل SDK الإعلانا
 """
 
 
-NOTIFICATION_ICON = pathlib.Path('android/app/src/main/res/drawable/ic_stat_quran.xml')
+NOTIFICATION_ICON = pathlib.Path('android/app/src/main/res/drawable/ic_stat_blank.xml')
+# أندرويد يرفض أي إشعار بدون أيقونة صغيرة، لذلك نستخدم أيقونة شفافة بالكامل (لا يظهر منها شيء).
 NOTIFICATION_ICON_XML = """<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -123,14 +124,14 @@ NOTIFICATION_ICON_XML = """<?xml version="1.0" encoding="utf-8"?>
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M9,2c-1.05,0 -2.05,0.16 -3,0.46 4.06,1.27 7,5.06 7,9.54 0,4.48 -2.94,8.27 -7,9.54 0.95,0.3 1.95,0.46 3,0.46 5.52,0 10,-4.48 10,-10S14.52,2 9,2z"/>
+        android:fillColor="#00000000"
+        android:pathData="M0,0h1v1h-1z"/>
 </vector>
 """
 
 
 def patch_notification_icon() -> None:
-    """أيقونة صغيرة أحادية اللون لإشعار التلاوة (أيقونة التطبيق الملونة تظهر مربعًا أبيض أو تُفشل الإشعار)."""
+    """أيقونة شفافة لإشعار التلاوة (لا تظهر أي أيقونة في الإشعار)."""
     NOTIFICATION_ICON.parent.mkdir(parents=True, exist_ok=True)
     NOTIFICATION_ICON.write_text(NOTIFICATION_ICON_XML, encoding='utf-8')
     print(f'تمت كتابة {NOTIFICATION_ICON}')

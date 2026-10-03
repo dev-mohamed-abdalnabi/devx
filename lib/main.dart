@@ -39,6 +39,7 @@ Future<void> main() async {
       androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
       // الإعداد الموصى به في توثيق just_audio_background.
       androidNotificationOngoing: true,
+      // أيقونة شفافة (بدون أي رمز ظاهر)؛ تعود تلقائيًا لأيقونة التطبيق لو غابت من الـ APK.
       androidNotificationIcon: NotificationService.mediaIcon,
       notificationColor: const Color(0xFF2F6B55),
       // مهم: بدون تصغير تُرسل صورة الغلاف بحجمها الكامل فيرفض أندرويد الإشعار.

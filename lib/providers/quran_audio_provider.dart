@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -108,7 +107,6 @@ class QuranAudioProvider extends ChangeNotifier {
   Timer? _saveTimer;
   Timer? _sleepTimer;
   Timer? _sleepTicker;
-  Uri? _artUri;
 
   String selectedReciterId = reciters.first.id;
   Map<int, File> _files = <int, File>{};
@@ -376,24 +374,7 @@ class QuranAudioProvider extends ChangeNotifier {
 
   // ───────── التشغيل ─────────
 
-  Future<Uri?> _artworkUri() async {
-    if (_artUri != null) return _artUri;
-    try {
-      final root = await getApplicationSupportDirectory();
-      final file = File('${root.path}/quran_audio/artwork_256.png');
-      if (!await file.exists()) {
-        await file.parent.create(recursive: true);
-        final data = await rootBundle.load('assets/brand/notification_art.png');
-        await file.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
-      }
-      return _artUri = Uri.file(file.path);
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<ConcatenatingAudioSource> _buildSource() async {
-    final art = await _artworkUri();
     final reciter = selectedReciter.name;
     return ConcatenatingAudioSource(
       children: [
@@ -405,7 +386,6 @@ class QuranAudioProvider extends ChangeNotifier {
               title: 'سورة ${surahName(n)}',
               artist: reciter,
               album: 'القرآن الكريم',
-              artUri: art,
               extras: {'surah': n},
             ),
           ),
