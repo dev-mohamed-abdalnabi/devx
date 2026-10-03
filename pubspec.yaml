@@ -59,7 +59,3 @@ flutter_launcher_icons:
   image_path: assets/brand/app_icon.png
   adaptive_icon_background: '#003B34'
   adaptive_icon_foreground: assets/brand/app_icon.png
-
-dependency_overrides:
-  just_audio_background:
-    path: third_party/just_audio_background
