@@ -10,15 +10,13 @@ class AdsService {
   static final AdsService instance = AdsService._();
 
   // معرّفات AdMob (App ID موجود في AndroidManifest عبر tool/patch_android.py)
-  static const String rewardedUnitId = 'ca-app-pub-6238197963590573/9944188563';
-  static const String bannerUnitId = 'ca-app-pub-6238197963590573/8854293168';
+  // /885... هو Rewarded الذي أرسله المستخدم، و/994... وحدة Native وليست Banner.
+  static const String rewardedUnitId = 'ca-app-pub-6238197963590573/8854293168';
 
   // أثناء التطوير (debug) نستخدم إعلانات الاختبار الرسمية من Google لتجنب حظر الحساب.
   static const String _testRewarded = 'ca-app-pub-3940256099942544/5224354917';
-  static const String _testBanner = 'ca-app-pub-3940256099942544/6300978111';
 
   String get _rewardedId => kDebugMode ? _testRewarded : rewardedUnitId;
-  String get _bannerId => kDebugMode ? _testBanner : bannerUnitId;
 
   Future<void>? _initFuture;
   RewardedAd? _rewarded;
@@ -87,18 +85,4 @@ class AdsService {
     return done.future;
   }
 
-  BannerAd createBanner({required VoidCallback onLoaded, required VoidCallback onFailed}) {
-    return BannerAd(
-      adUnitId: _bannerId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) => onLoaded(),
-        onAdFailedToLoad: (ad, _) {
-          ad.dispose();
-          onFailed();
-        },
-      ),
-    );
-  }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/ads_service.dart';
@@ -17,9 +16,6 @@ class _SupportScreenState extends State<SupportScreen> {
   static const _countKey = 'support_ads_count';
   int _count = 0;
   bool _loading = false;
-  bool _bannerOn = false;
-  bool _bannerLoaded = false;
-  BannerAd? _banner;
 
   @override
   void initState() {
@@ -31,7 +27,6 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   void dispose() {
-    _banner?.dispose();
     super.dispose();
   }
 
@@ -61,38 +56,6 @@ class _SupportScreenState extends State<SupportScreen> {
       if (mounted) setState(() => _count = next);
       _snack('جزاك الله خيرًا، شكرًا لدعمك التطبيق 🤍');
     }
-  }
-
-  Future<void> _toggleBanner(bool on) async {
-    if (!on) {
-      _banner?.dispose();
-      setState(() {
-        _banner = null;
-        _bannerOn = false;
-        _bannerLoaded = false;
-      });
-      return;
-    }
-    setState(() => _bannerOn = true);
-    await AdsService.instance.init();
-    if (!mounted || !_bannerOn) return;
-    final banner = AdsService.instance.createBanner(
-      onLoaded: () {
-        if (mounted) setState(() => _bannerLoaded = true);
-      },
-      onFailed: () {
-        if (mounted) {
-          setState(() {
-            _banner = null;
-            _bannerOn = false;
-            _bannerLoaded = false;
-          });
-          _snack('تعذر تحميل الإعلان الآن.');
-        }
-      },
-    );
-    setState(() => _banner = banner);
-    await banner.load();
   }
 
   @override
@@ -140,26 +103,6 @@ class _SupportScreenState extends State<SupportScreen> {
               Text('دعمتَ التطبيق $_count ${_count == 1 ? 'مرة' : 'مرات'}، جزاك الله خيرًا',
                   textAlign: TextAlign.center,
                   style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-            ],
-            const SizedBox(height: 20),
-            AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: SwitchListTile(
-                value: _bannerOn,
-                onChanged: _toggleBanner,
-                title: const Text('إظهار إعلان صغير في هذه الشاشة', style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('يظهر هنا فقط ما دمت فاتح هذه الشاشة'),
-              ),
-            ),
-            if (_bannerOn && _bannerLoaded && _banner != null) ...[
-              const SizedBox(height: 12),
-              Center(
-                child: SizedBox(
-                  width: _banner!.size.width.toDouble(),
-                  height: _banner!.size.height.toDouble(),
-                  child: AdWidget(ad: _banner!),
-                ),
-              ),
             ],
           ],
         ),
