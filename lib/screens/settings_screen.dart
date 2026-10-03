@@ -85,8 +85,8 @@ class SettingsScreen extends StatelessWidget {
             children: [
               ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.asset('assets/brand/app_icon.png', width: 48, height: 48)),
               const SizedBox(width: 14),
-              Expanded(child: Text('عن ذكر\nيعمل بالكامل بدون إنترنت', style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5))),
-              Text('1.2.0', style: TextStyle(color: scheme.onSurfaceVariant)),
+              Expanded(child: Text('عن ذكر\nأذكار وقرآن ومواقيت صلاة ومجتمع', style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5))),
+              Text('1.3.0', style: TextStyle(color: scheme.onSurfaceVariant)),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_left_rounded),
             ],

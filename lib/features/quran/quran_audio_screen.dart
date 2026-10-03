@@ -291,7 +291,7 @@ class _ReciterPanel extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'تُنزَّل مرة واحدة (حتى ١٠٠ ميجابايت) وتعمل بعدها بدون إنترنت.',
+                'تُنزَّل مرة واحدة (حتى ١٠٠ ميجابايت) للاستماع إليها لاحقًا.',
                 style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],

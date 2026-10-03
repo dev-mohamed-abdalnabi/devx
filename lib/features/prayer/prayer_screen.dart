@@ -348,7 +348,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'تُحسب المواقيت فلكيًا على جهازك بدون إنترنت، وقد تختلف دقيقة أو دقيقتين عن '
+              'تُحسب المواقيت فلكيًا على جهازك، وقد تختلف دقيقة أو دقيقتين عن '
               'التقويم الرسمي في بلدك. والتاريخ الهجري بالحساب الجدولي وقد يختلف يومًا عن الرؤية.',
               style: Theme.of(context).textTheme.bodySmall,
             ),

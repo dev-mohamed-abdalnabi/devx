@@ -45,7 +45,7 @@ class AboutScreen extends StatelessWidget {
             _InfoDivider(),
             _InfoRow(icon: Icons.language_rounded, title: 'الموقع الشخصي', value: 'mohamed-abdalnaby.is-a.dev', onTap: () => _openDeveloper(context)),
             _InfoDivider(),
-            const _InfoRow(icon: Icons.new_releases_outlined, title: 'الإصدار', value: '1.2.0'),
+            const _InfoRow(icon: Icons.new_releases_outlined, title: 'الإصدار', value: '1.3.0'),
           ]),
           const SizedBox(height: 14),
           Material(
