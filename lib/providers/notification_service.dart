@@ -32,21 +32,25 @@ class NotificationService {
     );
     await _plugin.initialize(settings,
         onDidReceiveNotificationResponse: _onNotificationResponse);
-    await _android?.createNotificationChannel(const AndroidNotificationChannel(
-      _channelId,
-      _channelName,
-      description: _channelDesc,
-      importance: Importance.high,
-    ));
-    await _android?.createNotificationChannel(const AndroidNotificationChannel(
-      _adhanChannelId,
-      'الأذان ومواقيت الصلاة',
-      description: 'تنبيه عند دخول وقت الصلاة',
-      importance: Importance.max,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('adhan'),
-      audioAttributesUsage: AudioAttributesUsage.alarm,
-    ));
+    try {
+      await _android?.createNotificationChannel(const AndroidNotificationChannel(
+        _channelId,
+        _channelName,
+        description: _channelDesc,
+        importance: Importance.high,
+      ));
+    } catch (_) {}
+    try {
+      await _android?.createNotificationChannel(const AndroidNotificationChannel(
+        _adhanChannelId,
+        'الأذان ومواقيت الصلاة',
+        description: 'تنبيه عند دخول وقت الصلاة',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+      ));
+    } catch (_) {}
   }
 
   /// يطلب إذن الإشعارات (أندرويد 13+). يعيد true إن كان ممنوحًا.
@@ -132,25 +136,48 @@ class NotificationService {
   }
 
   static Future<void> scheduleAdhan(Iterable<PrayerEntry> entries) async {
-    await cancelAdhan();
-    final exact = await canScheduleExact();
-    final mode = exact
-        ? AndroidScheduleMode.alarmClock
-        : AndroidScheduleMode.inexactAllowWhileIdle;
-    var index = 0;
-    for (final entry
-        in entries.where((e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
-      if (index >= 42) break;
-      await _scheduleOne(
-        70000 + index++,
-        'أذان ${entry.name}',
-        'حان الآن وقت صلاة ${entry.name}',
-        tz.TZDateTime.from(entry.time, tz.local),
-        _adhanDetails('حان الآن وقت صلاة ${entry.name}'),
-        mode: mode,
-        match: null,
-        payload: 'adhan:${entry.name}',
-      );
+    try {
+      await cancelAdhan();
+      final exact = await canScheduleExact();
+      final mode = exact
+          ? AndroidScheduleMode.alarmClock
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+      var index = 0;
+      for (final entry in entries.where(
+          (e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
+        if (index >= 42) break;
+        await _scheduleOne(
+          70000 + index++,
+          'أذان ${entry.name}',
+          'حان الآن وقت صلاة ${entry.name}',
+          tz.TZDateTime.from(entry.time, tz.local),
+          _adhanDetails('حان الآن وقت صلاة ${entry.name}'),
+          mode: mode,
+          match: null,
+          payload: 'adhan:${entry.name}',
+        );
+      }
+    } catch (_) {
+      // لا يجوز أن ينهار التطبيق إذا رفض الجهاز صوت الأذان أو المنبه الدقيق.
+      // نعيد المحاولة بإشعار عادي وصوت النظام.
+      try {
+        await cancelAdhan();
+        var index = 0;
+        for (final entry in entries.where(
+            (e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
+          if (index >= 42) break;
+          await _scheduleOne(
+            70000 + index++,
+            'أذان ${entry.name}',
+            'حان الآن وقت صلاة ${entry.name}',
+            tz.TZDateTime.from(entry.time, tz.local),
+            _details('حان الآن وقت صلاة ${entry.name}'),
+            mode: AndroidScheduleMode.inexactAllowWhileIdle,
+            match: null,
+            payload: 'adhan:${entry.name}',
+          );
+        }
+      } catch (_) {}
     }
   }
 

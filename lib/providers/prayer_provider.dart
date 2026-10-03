@@ -192,12 +192,16 @@ class PrayerProvider extends ChangeNotifier {
 
   Future<void> syncAdhan() async {
     if (!adhanEnabled || !hasLocation) return;
-    final entries = <PrayerEntry>[];
-    final today = DateTime.now();
-    for (var i = 0; i < 8; i++) {
-      final day = timesFor(DateTime(today.year, today.month, today.day + i));
-      if (day != null) entries.addAll(day.prayers);
+    try {
+      final entries = <PrayerEntry>[];
+      final today = DateTime.now();
+      for (var i = 0; i < 8; i++) {
+        final day = timesFor(DateTime(today.year, today.month, today.day + i));
+        if (day != null) entries.addAll(day.prayers);
+      }
+      await NotificationService.scheduleAdhan(entries);
+    } catch (_) {
+      // فشل الجدولة لا يجب أن يغلق التطبيق، ويمكن إعادة المحاولة عند تغيير المدينة.
     }
-    await NotificationService.scheduleAdhan(entries);
   }
 }
