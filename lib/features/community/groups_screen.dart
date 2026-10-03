@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_config.dart';
 import '../../widgets/app_ui.dart';
 import 'community_utils.dart';
+import 'group_feed_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({super.key});
@@ -113,7 +114,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
-  Future<void> _leave(Map<String, dynamic> group, {required bool pending}) async {
+  Future<void> _leave(Map<String, dynamic> group,
+      {required bool pending}) async {
     final id = group['id'].toString();
     if (!_busy.add(id)) return;
     setState(() {});
@@ -139,27 +141,38 @@ class _GroupsScreenState extends State<GroupsScreen> {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
+  void _openGroup(Map<String, dynamic> group) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => GroupFeedScreen(group: group),
+    ));
+  }
+
   Widget _action(Map<String, dynamic> g) {
     final id = g['id'].toString();
     final membership = _mine[id];
     final userId = supabase.auth.currentUser?.id;
     if (_busy.contains(id)) {
       return const SizedBox(
-          width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2));
     }
     if (g['owner_id'] == userId || membership?['role'] == 'owner') {
-      return const Chip(label: Text('جروبك'), visualDensity: VisualDensity.compact);
+      return const Chip(
+          label: Text('جروبك'), visualDensity: VisualDensity.compact);
     }
     switch (membership?['status']) {
       case 'active':
         return OutlinedButton(
-            onPressed: () => _leave(g, pending: false), child: const Text('مغادرة'));
+            onPressed: () => _leave(g, pending: false),
+            child: const Text('مغادرة'));
       case 'pending':
         return OutlinedButton(
             onPressed: () => _leave(g, pending: true),
             child: const Text('إلغاء الطلب'));
       case 'blocked':
-        return const Chip(label: Text('محظور'), visualDensity: VisualDensity.compact);
+        return const Chip(
+            label: Text('محظور'), visualDensity: VisualDensity.compact);
       default:
         return FilledButton.tonal(
             onPressed: () => _join(g),
@@ -192,20 +205,23 @@ class _GroupsScreenState extends State<GroupsScreen> {
                         AppEmptyState(
                             icon: Icons.groups_outlined,
                             title: 'لا توجد جروبات بعد',
-                            message: 'أنشئ أول مساحة تجمع أصحاب الاهتمام الواحد.')
+                            message:
+                                'أنشئ أول مساحة تجمع أصحاب الاهتمام الواحد.')
                       ])
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                         itemCount: _groups.length,
                         itemBuilder: (_, i) {
                           final g = _groups[i];
-                          final p =
-                              (g['profiles'] as Map?)?.cast<String, dynamic>() ?? {};
+                          final p = (g['profiles'] as Map?)
+                                  ?.cast<String, dynamic>() ??
+                              {};
                           final desc = g['description']?.toString() ?? '';
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: AppCard(
                               padding: const EdgeInsets.all(16),
+                              onTap: () => _openGroup(g),
                               child: Row(children: [
                                 AppIconBadge(
                                     icon: g['is_private'] == true
@@ -215,7 +231,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(g['name']?.toString() ?? '',
                                             style: const TextStyle(
@@ -230,8 +247,9 @@ class _GroupsScreenState extends State<GroupsScreen> {
                                         const SizedBox(height: 5),
                                         Text(
                                             '${g['member_count'] ?? 0} عضو · بواسطة ${displayName(p)}',
-                                            style:
-                                                Theme.of(context).textTheme.bodySmall),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall),
                                       ]),
                                 ),
                                 const SizedBox(width: 8),
@@ -285,8 +303,8 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
             TextField(
                 controller: _name,
                 maxLength: 80,
-                decoration:
-                    InputDecoration(labelText: 'اسم الجروب', errorText: _error)),
+                decoration: InputDecoration(
+                    labelText: 'اسم الجروب', errorText: _error)),
             const SizedBox(height: 8),
             TextField(
                 controller: _desc,
@@ -304,7 +322,8 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء')),
           FilledButton(onPressed: _submit, child: const Text('إنشاء')),
         ],
       );

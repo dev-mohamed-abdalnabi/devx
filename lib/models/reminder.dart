@@ -39,7 +39,10 @@ class Reminder {
 
   String get daysLabel {
     if (days.length == 7) return 'كل يوم';
-    return weekdayDisplayOrder.where(days.contains).map((d) => weekdayNames[d]!).join('، ');
+    return weekdayDisplayOrder
+        .where(days.contains)
+        .map((d) => weekdayNames[d]!)
+        .join('، ');
   }
 
   Map<String, dynamic> toJson() => {
@@ -60,12 +63,13 @@ class Reminder {
         body: (j['body'] as String?) ?? '',
         hour: j['h'] as int,
         minute: j['m'] as int,
-        days: ((j['days'] as List?) ?? allWeekdays.toList()).cast<int>().toSet(),
+        days:
+            ((j['days'] as List?) ?? allWeekdays.toList()).cast<int>().toSet(),
         enabled: (j['on'] as bool?) ?? false,
       );
 }
 
-/// التذكيرات الافتراضية (كلها مغلقة حتى يفعّلها المستخدم ويمنح إذن الإشعارات).
+/// التذكيرات الافتراضية مفعّلة في أول تشغيل، ويمكن للمستخدم إيقاف أي منها.
 List<Reminder> defaultReminders() => [
       Reminder(
           id: 1,
@@ -73,33 +77,38 @@ List<Reminder> defaultReminders() => [
           title: 'أذكار الصباح',
           body: 'حان وقت أذكار الصباح',
           hour: 6,
-          minute: 0),
+          minute: 0,
+          enabled: true),
       Reminder(
           id: 2,
           kind: 'evening',
           title: 'أذكار المساء',
           body: 'حان وقت أذكار المساء',
           hour: 17,
-          minute: 0),
+          minute: 0,
+          enabled: true),
       Reminder(
           id: 3,
           kind: 'sleep',
           title: 'أذكار النوم',
           body: 'حان وقت أذكار النوم',
           hour: 22,
-          minute: 30),
+          minute: 30,
+          enabled: true),
       Reminder(
           id: 4,
           kind: 'quran',
           title: 'ورد القرآن',
           body: 'موعد وردك من القرآن الكريم',
           hour: 21,
-          minute: 0),
+          minute: 0,
+          enabled: true),
       Reminder(
           id: 5,
           kind: 'challenges',
           title: 'تحديات اليوم',
           body: 'راجع تحدياتك اليومية وأكمل ما بقي منها',
           hour: 20,
-          minute: 0),
+          minute: 0,
+          enabled: true),
     ];

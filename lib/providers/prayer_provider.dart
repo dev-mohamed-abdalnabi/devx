@@ -21,7 +21,7 @@ class PrayerProvider extends ChangeNotifier {
   bool usingGps = false;
   String methodId = 'egyptian';
   bool hanafi = false;
-  bool adhanEnabled = false;
+  bool adhanEnabled = true;
   int hijriAdjust = 0;
   bool loading = true;
   bool locating = false;
@@ -44,7 +44,7 @@ class PrayerProvider extends ChangeNotifier {
         usingGps = (j['gps'] as bool?) ?? false;
         methodId = (j['method'] as String?) ?? 'egyptian';
         hanafi = (j['hanafi'] as bool?) ?? false;
-        adhanEnabled = (j['adhan'] as bool?) ?? false;
+        adhanEnabled = (j['adhan'] as bool?) ?? true;
         hijriAdjust = (j['hijri'] as int?) ?? 0;
       } catch (_) {
         await _prefs!.setString('${_key}_corrupt', raw);
@@ -88,7 +88,8 @@ class PrayerProvider extends ChangeNotifier {
     return f == null ? null : NextPrayer('fajr', 'الفجر', f);
   }
 
-  HijriDate hijriFor(DateTime d) => HijriDate.fromGregorian(d, adjust: hijriAdjust);
+  HijriDate hijriFor(DateTime d) =>
+      HijriDate.fromGregorian(d, adjust: hijriAdjust);
 
   double? get qibla => hasLocation ? qiblaBearing(lat!, lng!) : null;
 
@@ -132,11 +133,13 @@ class PrayerProvider extends ChangeNotifier {
       } catch (_) {
         pos = await Geolocator.getLastKnownPosition();
       }
-      if (pos == null) return 'تعذّر تحديد موقعك الآن. جرّب مرة أخرى أو اختر مدينتك.';
+      if (pos == null)
+        return 'تعذّر تحديد موقعك الآن. جرّب مرة أخرى أو اختر مدينتك.';
       lat = pos.latitude;
       lng = pos.longitude;
       final near = nearestCity(pos.latitude, pos.longitude);
-      placeName = near == null ? 'موقعك الحالي' : 'موقعك الحالي (قرب ${near.name})';
+      placeName =
+          near == null ? 'موقعك الحالي' : 'موقعك الحالي (قرب ${near.name})';
       usingGps = true;
       await _save();
       if (adhanEnabled) await syncAdhan();

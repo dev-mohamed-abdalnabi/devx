@@ -3,6 +3,7 @@
 آمن للتشغيل أكثر من مرة (idempotent). يفشل بخطأ واضح إن تغيّر شكل الملف."""
 import pathlib
 import re
+import shutil
 import sys
 
 MANIFEST = pathlib.Path('android/app/src/main/AndroidManifest.xml')
@@ -18,6 +19,7 @@ PERMISSIONS = """    <!-- أُضيفت بواسطة tool/patch_android.py -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-feature android:name="android.hardware.sensor.compass" android:required="false"/>
@@ -119,6 +121,18 @@ def patch_notification_icon() -> None:
     NOTIFICATION_ICON.parent.mkdir(parents=True, exist_ok=True)
     NOTIFICATION_ICON.write_text(NOTIFICATION_ICON_XML, encoding='utf-8')
     print(f'تمت كتابة {NOTIFICATION_ICON}')
+
+
+def patch_adhan_sound() -> None:
+    """ينسخ تسجيل الأذان المرخّص إلى موارد Android الخام كي يعمل مع الإشعار المجدول."""
+    source = pathlib.Path('assets/audio/adhan.ogg')
+    target = pathlib.Path('android/app/src/main/res/raw/adhan.ogg')
+    if not source.exists():
+        print(f'ERROR: ملف الأذان غير موجود: {source}', file=sys.stderr)
+        raise FileNotFoundError(source)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+    print(f'تم نسخ صوت الأذان إلى {target}')
 
 
 def patch_gradle() -> None:
@@ -226,11 +240,13 @@ def main() -> int:
     patch_gradle()
     patch_proguard()
     patch_notification_icon()
+    patch_adhan_sound()
     if not patch_main_activity():
         return 1
 
     # تحقق نهائي
     need = ['POST_NOTIFICATIONS', 'INTERNET', 'RECEIVE_BOOT_COMPLETED', 'SCHEDULE_EXACT_ALARM',
+            'USE_FULL_SCREEN_INTENT',
             'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION',
             'ScheduledNotificationReceiver', 'ScheduledNotificationBootReceiver',
             'com.ryanheise.audioservice.AudioService', 'MediaButtonReceiver',
