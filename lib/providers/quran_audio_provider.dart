@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:archive/archive.dart';
+import 'package:audio_service/audio_service.dart' show MediaItem;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/quran_audio_handler.dart';
 import 'notification_service.dart';
 
 class QuranReciter {
@@ -60,8 +62,8 @@ int _extractSurahZip(List<String> args) {
 }
 
 class QuranAudioProvider extends ChangeNotifier {
-  /// سبب فشل تهيئة خدمة الخلفية (إن حدث) ليظهر للمستخدم بدل الفشل الصامت.
-  static String? backgroundInitError;
+  /// سبب فشل تهيئة خدمة الميديا (إن حدث) ليظهر في شاشة الفحص بدل الفشل الصامت.
+  static String? get backgroundInitError => QuranAudioService.initError;
 
   static const int surahCount = 114;
   static const int maxDownloadBytes = 100 * 1024 * 1024;
@@ -101,17 +103,25 @@ class QuranAudioProvider extends ChangeNotifier {
 
   static String surahName(int surah) => surahNames[surah - 1];
 
-  final AudioPlayer player = AudioPlayer();
+  /// المشغل المشترك مع إشعار الميديا (نفس الكائن الذي يقرأ منه الإشعار الموضع والحالة).
+  AudioPlayer get player => QuranAudioService.player;
+
   SharedPreferences? _prefs;
   final List<StreamSubscription<dynamic>> _subs = [];
   Timer? _saveTimer;
   Timer? _sleepTimer;
   Timer? _sleepTicker;
+  QuranAudioHandler? _attached;
 
   String selectedReciterId = reciters.first.id;
   Map<int, File> _files = <int, File>{};
   List<int> _queue = <int>[];
-  bool _sourceReady = false;
+  List<int> _shuffleOrder = <int>[];
+
+  /// السورة المحمّلة فعليًا في المشغل الآن (null = لا شيء محمّل).
+  int? _loadedSurah;
+  int _loadToken = 0;
+  bool _advancing = false;
   bool _disposed = false;
   bool _cancelRequested = false;
 
@@ -123,6 +133,7 @@ class QuranAudioProvider extends ChangeNotifier {
   AudioRepeat repeat = AudioRepeat.off;
   bool shuffle = false;
 
+  bool loading = false;
   bool downloading = false;
   bool extracting = false;
   int downloadedBytes = 0;
@@ -136,11 +147,12 @@ class QuranAudioProvider extends ChangeNotifier {
   QuranAudioProvider() {
     _subs.add(player.playerStateStream.listen((state) {
       if (!state.playing) _savePosition();
+      if (state.processingState == ProcessingState.completed) unawaited(_onCompleted());
       _notify();
     }));
-    _subs.add(player.currentIndexStream.listen(_onIndexChanged));
     _subs.add(player.positionStream.listen(_onPosition));
     _subs.add(player.playbackEventStream.listen((_) {}, onError: (Object e, StackTrace _) {
+      loading = false;
       error = 'تعذّر تشغيل هذا الملف. جرّب سورة أخرى أو أعد تنزيل التلاوة.';
       _notify();
     }));
@@ -150,6 +162,7 @@ class QuranAudioProvider extends ChangeNotifier {
 
   QuranReciter get selectedReciter => reciters.firstWhere((r) => r.id == selectedReciterId);
   int get availableCount => _files.length;
+  List<int> get availableSurahs => List<int>.unmodifiable(_queue);
   bool get isReady => _files.length == surahCount;
   bool get hasAnyAudio => _files.isNotEmpty;
   bool get isPlaying => player.playing;
@@ -189,7 +202,19 @@ class QuranAudioProvider extends ChangeNotifier {
     await _migrateLegacyAudioDirectory();
     await _scanFiles();
     _loadLastPosition();
+    _attachHandler();
     _notify();
+  }
+
+  /// يربط أزرار الإشعار بالمزوّد. آمن للتكرار، ويلتقط الخدمة لو اكتملت تهيئتها متأخرة.
+  void _attachHandler() {
+    final h = QuranAudioService.handler;
+    if (h == null || identical(h, _attached)) return;
+    _attached = h;
+    h.onPlay = _resumeFromSystem;
+    h.onSkipNext = next;
+    h.onSkipPrevious = previous;
+    h.onBeforeStop = _beforeStop;
   }
 
   void _loadLastPosition() {
@@ -207,7 +232,6 @@ class QuranAudioProvider extends ChangeNotifier {
     await stop();
     selectedReciterId = id;
     currentSurah = null;
-    _sourceReady = false;
     _queue = <int>[];
     error = null;
     await _prefs?.setString(_reciterKey, id);
@@ -239,17 +263,14 @@ class QuranAudioProvider extends ChangeNotifier {
 
   Future<void> toggleShuffle() async {
     shuffle = !shuffle;
-    await player.setShuffleModeEnabled(shuffle);
-    if (shuffle) await player.shuffle();
+    if (shuffle) _rebuildShuffle();
     await _prefs?.setBool(_shuffleKey, shuffle);
     _notify();
   }
 
-  Future<void> _applyLoopMode() => player.setLoopMode(switch (repeat) {
-        AudioRepeat.off => LoopMode.off,
-        AudioRepeat.all => LoopMode.all,
-        AudioRepeat.one => LoopMode.one,
-      });
+  /// «تكرار سورة واحدة» يتولاه المشغل نفسه؛ بقية الأوضاع نتولاها نحن عند انتهاء السورة.
+  Future<void> _applyLoopMode() =>
+      player.setLoopMode(repeat == AudioRepeat.one ? LoopMode.one : LoopMode.off);
 
   // ───────── الملفات ─────────
 
@@ -287,7 +308,14 @@ class QuranAudioProvider extends ChangeNotifier {
     }
     _files = found;
     _queue = found.keys.toList()..sort();
-    _sourceReady = false;
+    _rebuildShuffle();
+  }
+
+  void _rebuildShuffle() {
+    final order = List<int>.of(_queue)..shuffle(Random());
+    final current = currentSurah ?? lastSurah;
+    if (current != null && order.remove(current)) order.insert(0, current);
+    _shuffleOrder = order;
   }
 
   // ───────── التنزيل ─────────
@@ -374,54 +402,61 @@ class QuranAudioProvider extends ChangeNotifier {
 
   // ───────── التشغيل ─────────
 
-  Future<ConcatenatingAudioSource> _buildSource() async {
-    final reciter = selectedReciter.name;
-    return ConcatenatingAudioSource(
-      children: [
-        for (final n in _queue)
-          AudioSource.file(
-            _files[n]!.path,
-            tag: MediaItem(
-              id: '$selectedReciterId-$n',
-              title: 'سورة ${surahName(n)}',
-              artist: reciter,
-              album: 'القرآن الكريم',
-              extras: {'surah': n},
-            ),
-          ),
-      ],
-    );
-  }
+  MediaItem _mediaItem(int surah) => MediaItem(
+        id: '$selectedReciterId-$surah',
+        title: 'سورة ${surahName(surah)}',
+        artist: selectedReciter.name,
+        album: 'القرآن الكريم',
+        extras: {'surah': surah},
+      );
 
-  /// يشغّل سورة ويكمل بعدها السور التالية تلقائيًا.
+  /// يحمّل سورة واحدة في المشغل ويشغّلها. عند انتهائها ننتقل للتالية (انظر [_onCompleted]).
   Future<void> playSurah(int surah, {Duration? startAt, bool autoplay = true}) async {
+    final token = ++_loadToken;
     try {
       error = null;
       // أندرويد 13+ لا يعرض إشعار التحكم دون إذن الإشعارات.
       unawaited(NotificationService.requestPermission());
-      if (!hasSurah(surah)) throw 'نزّل التلاوة أولًا للاستماع إلى سورة ${surahName(surah)}';
-      final index = _queue.indexOf(surah);
-      if (!_sourceReady || player.audioSource == null) {
-        await player.setAudioSource(
-          await _buildSource(),
-          initialIndex: index,
-          initialPosition: startAt ?? Duration.zero,
-        );
-        _sourceReady = true;
-        await player.setSpeed(speed);
-        await _applyLoopMode();
-        await player.setShuffleModeEnabled(shuffle);
-      } else {
-        await player.seek(startAt ?? Duration.zero, index: index);
-      }
+      final file = _files[surah];
+      if (file == null) throw 'نزّل التلاوة أولًا للاستماع إلى سورة ${surahName(surah)}';
+      _attachHandler();
       currentSurah = surah;
-      _rememberSurah(surah);
+      loading = true;
       _notify();
-      if (autoplay) unawaited(player.play());
+
+      // بيانات الإشعار تُضبط قبل التحميل والتشغيل، فيظهر الإشعار باسم السورة من أول لحظة.
+      final item = _mediaItem(surah);
+      QuranAudioService.handler?.mediaItem.add(item);
+
+      final duration = await player.setFilePath(file.path, initialPosition: startAt);
+      if (token != _loadToken || _disposed) return;
+      _loadedSurah = surah;
+      if (duration != null) {
+        QuranAudioService.handler?.mediaItem.add(item.copyWith(duration: duration));
+      }
+      await player.setSpeed(speed);
+      await _applyLoopMode();
+      if (token != _loadToken || _disposed) return;
+      _rememberSurah(surah, position: startAt ?? Duration.zero);
+      loading = false;
+      _notify();
+      if (autoplay) _startPlayback();
     } catch (e) {
-      error = e is String ? e : 'تعذّر تشغيل السورة. حاول مرة أخرى.';
+      if (token == _loadToken) {
+        loading = false;
+        _loadedSurah = null;
+        error = e is String ? e : 'تعذّر تشغيل السورة. حاول مرة أخرى.';
+      }
       _notify();
     }
+  }
+
+  /// play() لا يكتمل إلا بانتهاء التشغيل؛ لذلك لا ننتظره، ونلتقط أخطاءه.
+  void _startPlayback() {
+    unawaited(player.play().catchError((Object e, StackTrace s) {
+      error = 'تعذّر تشغيل هذا الملف. جرّب سورة أخرى أو أعد تنزيل التلاوة.';
+      _notify();
+    }));
   }
 
   /// زر التشغيل/الإيقاف: يستأنف من آخر موضع إن لم يكن هناك شيء محمّل.
@@ -430,43 +465,81 @@ class QuranAudioProvider extends ChangeNotifier {
       await player.pause();
       return;
     }
-    if (_sourceReady && player.audioSource != null) {
-      if (player.processingState == ProcessingState.completed) await player.seek(Duration.zero, index: 0);
-      unawaited(player.play());
+    if (_loadedSurah != null && player.processingState != ProcessingState.idle) {
+      if (player.processingState == ProcessingState.completed) await player.seek(Duration.zero);
+      _startPlayback();
       return;
     }
     final surah = lastSurah ?? (_queue.isEmpty ? null : _queue.first);
-    if (surah != null) await playSurah(surah, startAt: surah == lastSurah ? lastPosition : Duration.zero);
+    if (surah != null) {
+      await playSurah(surah, startAt: surah == lastSurah ? lastPosition : Duration.zero);
+    }
+  }
+
+  /// زر التشغيل في الإشعار: يشغّل فقط (لا يوقف).
+  Future<void> _resumeFromSystem() async {
+    if (!player.playing) await togglePlay();
   }
 
   Future<void> pause() => player.pause();
 
   Future<void> stop() async {
-    await _savePosition();
-    await player.stop();
-  }
-
-  Future<void> next() async {
-    if (!_sourceReady) return;
-    if (player.hasNext) {
-      await player.seekToNext();
-    } else if (repeat == AudioRepeat.all && _queue.isNotEmpty) {
-      await player.seek(Duration.zero, index: 0);
+    _loadToken++; // يلغي أي تحميل جارٍ
+    _attachHandler();
+    final h = QuranAudioService.handler;
+    if (h != null) {
+      await h.stop(); // يستدعي _beforeStop ثم يوقف المشغل ويزيل الإشعار
+    } else {
+      await _beforeStop();
+      await player.stop();
     }
   }
 
+  Future<void> _beforeStop() async {
+    await _savePosition();
+    _loadedSurah = null;
+    loading = false;
+    _notify();
+  }
+
+  /// السورة المجاورة حسب الترتيب الحالي (عادي أو عشوائي). null = لا توجد.
+  int? _neighbor(int delta, {required bool wrap}) {
+    final order = shuffle ? _shuffleOrder : _queue;
+    if (order.isEmpty) return null;
+    final current = currentSurah ?? lastSurah;
+    final index = current == null ? -1 : order.indexOf(current);
+    if (index < 0) return delta > 0 ? order.first : order.last;
+    var target = index + delta;
+    if (target < 0 || target >= order.length) {
+      if (!wrap) return null;
+      target = (target % order.length + order.length) % order.length;
+    }
+    return order[target];
+  }
+
+  Future<void> next() async {
+    final target = _neighbor(1, wrap: repeat == AudioRepeat.all);
+    if (target == null) return;
+    await playSurah(target, autoplay: player.playing || _loadedSurah == null);
+  }
+
   Future<void> previous() async {
-    if (!_sourceReady) return;
-    if (player.position > const Duration(seconds: 3) || !player.hasPrevious) {
+    if (_loadedSurah == null) return;
+    if (player.position > const Duration(seconds: 3)) {
+      await player.seek(Duration.zero);
+      return;
+    }
+    final target = _neighbor(-1, wrap: repeat == AudioRepeat.all);
+    if (target == null) {
       await player.seek(Duration.zero);
     } else {
-      await player.seekToPrevious();
+      await playSurah(target, autoplay: player.playing);
     }
   }
 
   /// تقديم أو تأخير بمقدار [delta] (±10 ثوانٍ افتراضيًا من الواجهة).
   Future<void> seekBy(Duration delta) async {
-    if (!_sourceReady) return;
+    if (_loadedSurah == null) return;
     final duration = player.duration;
     var target = player.position + delta;
     if (target.isNegative) target = Duration.zero;
@@ -478,7 +551,7 @@ class QuranAudioProvider extends ChangeNotifier {
   }
 
   Future<void> seekTo(Duration position) async {
-    if (!_sourceReady) return;
+    if (_loadedSurah == null) return;
     await player.seek(position);
   }
 
@@ -514,13 +587,30 @@ class QuranAudioProvider extends ChangeNotifier {
 
   // ───────── مراقبة المشغل ─────────
 
-  void _onIndexChanged(int? index) {
-    if (index == null || index < 0 || index >= _queue.length) return;
-    final surah = _queue[index];
-    if (surah == currentSurah) return;
-    currentSurah = surah;
-    _rememberSurah(surah);
-    _notify();
+  /// انتهت السورة الحالية: ننتقل للتالية حسب وضع التكرار/العشوائي.
+  Future<void> _onCompleted() async {
+    if (_advancing || _sleepFiring || _loadedSurah == null) return;
+    _advancing = true;
+    try {
+      if (sleepAtSurahEnd) {
+        _sleepFiring = true;
+        await _finishSleepAtSurahEnd();
+        return;
+      }
+      final target = _neighbor(1, wrap: repeat == AudioRepeat.all);
+      if (target == null) {
+        // آخر سورة بلا تكرار: نقف على بدايتها جاهزة للتشغيل.
+        await player.pause();
+        await player.seek(Duration.zero);
+        await _savePosition();
+        return;
+      }
+      await playSurah(target);
+    } catch (_) {
+      // لا نترك علمًا عالقًا إن فشل الانتقال.
+    } finally {
+      _advancing = false;
+    }
   }
 
   void _onPosition(Duration position) {
@@ -530,7 +620,7 @@ class QuranAudioProvider extends ChangeNotifier {
         _savePosition();
       });
     }
-    if (sleepAtSurahEnd && !_sleepFiring) {
+    if (sleepAtSurahEnd && !_sleepFiring && _loadedSurah != null) {
       final duration = player.duration;
       if (duration != null && duration > Duration.zero && duration - position < const Duration(milliseconds: 500)) {
         _sleepFiring = true;
@@ -540,27 +630,30 @@ class QuranAudioProvider extends ChangeNotifier {
   }
 
   Future<void> _finishSleepAtSurahEnd() async {
-    await player.pause();
-    // نجهّز السورة التالية بدل أن تبقى على آخر ثانية.
-    if (repeat != AudioRepeat.one && player.hasNext) {
-      await player.seekToNext();
-    } else {
-      await player.seek(Duration.zero);
+    try {
+      await player.pause();
+      // نجهّز السورة التالية (دون تشغيل) بدل أن نبقى على آخر ثانية.
+      final target = repeat == AudioRepeat.one ? null : _neighbor(1, wrap: repeat == AudioRepeat.all);
+      if (target != null) {
+        await playSurah(target, autoplay: false);
+      } else {
+        await player.seek(Duration.zero);
+      }
+    } finally {
+      clearSleepTimer();
     }
-    await player.pause();
-    clearSleepTimer();
   }
 
-  void _rememberSurah(int surah) {
+  void _rememberSurah(int surah, {Duration position = Duration.zero}) {
     lastSurah = surah;
+    lastPosition = position;
     _prefs?.setInt(_lastSurahKey(selectedReciterId), surah);
-    _prefs?.setInt(_lastPositionKey(selectedReciterId), 0);
-    lastPosition = Duration.zero;
+    _prefs?.setInt(_lastPositionKey(selectedReciterId), position.inMilliseconds);
   }
 
   Future<void> _savePosition() async {
     final surah = currentSurah;
-    if (surah == null || !_sourceReady) return;
+    if (surah == null || _loadedSurah == null) return;
     lastPosition = player.position;
     await _prefs?.setInt(_lastSurahKey(selectedReciterId), surah);
     await _prefs?.setInt(_lastPositionKey(selectedReciterId), player.position.inMilliseconds);
@@ -579,7 +672,7 @@ class QuranAudioProvider extends ChangeNotifier {
     for (final s in _subs) {
       unawaited(s.cancel());
     }
-    unawaited(player.dispose());
+    // المشغل مشترك مع إشعار الميديا ويعيش مع التطبيق؛ لا نغلقه هنا.
     super.dispose();
   }
 }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:just_audio_background/just_audio_background.dart';
-import 'package:just_audio_platform_interface/just_audio_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme.dart';
 import 'providers/quran_provider.dart';
 import 'providers/quran_audio_provider.dart';
+import 'services/quran_audio_handler.dart';
 import 'providers/activity_provider.dart';
 import 'providers/azkar_provider.dart';
 import 'providers/notification_service.dart';
@@ -30,28 +29,9 @@ Future<void> main() async {
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }
-  final normalAudioPlatform = JustAudioPlatform.instance;
-  try {
-    await JustAudioBackground.init(
-      // قناة جديدة (v2) حتى لا يرث Android إعدادات القناة القديمة.
-      androidNotificationChannelId: NotificationService.mediaChannelId,
-      androidNotificationChannelName: 'تلاوة القرآن',
-      androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
-      // الإعداد الموصى به في توثيق just_audio_background.
-      androidNotificationOngoing: true,
-      // أيقونة شفافة (بدون أي رمز ظاهر)؛ تعود تلقائيًا لأيقونة التطبيق لو غابت من الـ APK.
-      androidNotificationIcon: NotificationService.mediaIcon,
-      notificationColor: const Color(0xFF2F6B55),
-      // مهم: بدون تصغير تُرسل صورة الغلاف بحجمها الكامل فيرفض أندرويد الإشعار.
-      artDownscaleWidth: 256,
-      artDownscaleHeight: 256,
-    );
-  } catch (e) {
-    // إذا فشلت خدمة الخلفية، أعد المشغل العادي حتى لا ينهار عند أول تشغيل،
-    // واحفظ السبب ليظهر في شاشة «القرآن صوتيًا» بدل أن يختفي الإشعار بصمت.
-    QuranAudioProvider.backgroundInitError = e.toString();
-    JustAudioPlatform.instance = normalAudioPlatform;
-  }
+  // خدمة الميديا (إشعار التلاوة). لا ترمي أخطاء: لو فشلت يعمل التشغيل بدون إشعار
+  // ويظهر السبب في شاشة «فحص الأذان والإشعارات».
+  await QuranAudioService.init();
   runApp(const AzkarApp());
 }
 
