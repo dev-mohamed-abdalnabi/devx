@@ -47,6 +47,7 @@ flutter:
     - assets/data/tafsir.json
     - assets/data/challenges.json
     - assets/brand/app_icon.png
+    - assets/brand/logo_mark.png
     - assets/brand/notification_art.png
   fonts:
     - family: Tajawal
