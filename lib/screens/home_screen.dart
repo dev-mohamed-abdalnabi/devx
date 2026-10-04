@@ -44,7 +44,7 @@ class HomeBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
-    final items = const [
+    const items = [
       (HomeIcons.home, 'الرئيسية'),
       (HomeIcons.quran, 'القرآن'),
       (HomeIcons.forum, 'المنتدى'),

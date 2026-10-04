@@ -413,7 +413,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ? ListView.builder(
                         key: const ValueKey('cont'),
                         controller: _sc,
-                        scrollCacheExtent: 1500,
+                        scrollCacheExtent: const ScrollCacheExtent.pixels(1500),
                         itemCount: data.pageCount,
                         itemBuilder: (ctx, i) => KeyedSubtree(
                           key: _keyFor(i + 1),
