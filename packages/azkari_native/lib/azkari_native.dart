@@ -19,4 +19,26 @@ class AzkariNative {
       return <String, dynamic>{'error': e.toString()};
     }
   }
+
+  static Future<bool> _bool(String m, [Map<String, dynamic>? args]) async {
+    try {
+      return (await _channel.invokeMethod<bool>(m, args)) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// يجدول الأذان الكامل (منبّه دقيق + خدمة تشغيل). كل عنصر: id (int)، time (ms)، name.
+  static Future<bool> scheduleAdhan(List<Map<String, Object>> entries) =>
+      _bool('scheduleAdhan', {'entries': entries});
+
+  static Future<bool> cancelAdhan() => _bool('cancelAdhan');
+  static Future<bool> stopAdhan() => _bool('stopAdhan');
+
+  /// قفل CPU جزئي أثناء تشغيل التلاوة.
+  static Future<bool> setKeepAwake(bool on) => _bool('setKeepAwake', {'on': on});
+
+  /// true = مستثنى من توفير البطارية؛ false = فُتحت نافذة النظام لطلب ذلك.
+  static Future<bool> requestIgnoreBatteryOptimizations() =>
+      _bool('requestIgnoreBatteryOptimizations');
 }

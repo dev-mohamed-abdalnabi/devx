@@ -10,6 +10,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/battery_prompt.dart';
 import '../services/quran_audio_handler.dart';
 import 'notification_service.dart';
 
@@ -453,6 +454,7 @@ class QuranAudioProvider extends ChangeNotifier {
 
   /// play() لا يكتمل إلا بانتهاء التشغيل؛ لذلك لا ننتظره، ونلتقط أخطاءه.
   void _startPlayback() {
+    unawaited(BatteryPrompt.maybeAsk());
     unawaited(player.play().catchError((Object e, StackTrace s) {
       error = 'تعذّر تشغيل هذا الملف. جرّب سورة أخرى أو أعد تنزيل التلاوة.';
       _notify();

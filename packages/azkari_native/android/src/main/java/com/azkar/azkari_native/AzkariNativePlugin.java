@@ -76,9 +76,82 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
             } catch (Exception e) {
                 result.error("diagnose_failed", String.valueOf(e), null);
             }
+        } else if ("scheduleAdhan".equals(call.method)) {
+            try {
+                java.util.List<java.util.Map<String, Object>> list = call.argument("entries");
+                org.json.JSONArray arr = new org.json.JSONArray();
+                if (list != null) {
+                    for (java.util.Map<String, Object> m : list) {
+                        org.json.JSONObject o = new org.json.JSONObject();
+                        o.put("id", ((Number) m.get("id")).intValue());
+                        o.put("time", ((Number) m.get("time")).longValue());
+                        o.put("name", String.valueOf(m.get("name")));
+                        arr.put(o);
+                    }
+                }
+                AdhanScheduler.scheduleAll(context, arr);
+                result.success(true);
+            } catch (Exception e) {
+                result.error("schedule_failed", String.valueOf(e), null);
+            }
+        } else if ("cancelAdhan".equals(call.method)) {
+            AdhanScheduler.cancelAll(context);
+            result.success(true);
+        } else if ("stopAdhan".equals(call.method)) {
+            context.stopService(new android.content.Intent(context, AdhanService.class));
+            result.success(true);
+        } else if ("setKeepAwake".equals(call.method)) {
+            Boolean on = call.argument("on");
+            setKeepAwake(on != null && on);
+            result.success(true);
+        } else if ("requestIgnoreBatteryOptimizations".equals(call.method)) {
+            result.success(requestIgnoreBattery());
         } else {
             result.notImplemented();
         }
+    }
+
+    private PowerManager.WakeLock keepAwake;
+
+    /** قفل CPU جزئي أثناء تشغيل التلاوة فقط، حتى لا ينام الجهاز ويقطع الصوت. */
+    private void setKeepAwake(boolean on) {
+        try {
+            if (on) {
+                if (keepAwake == null) {
+                    PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+                    if (pm == null) return;
+                    keepAwake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "azkari:quran");
+                    keepAwake.setReferenceCounted(false);
+                }
+                keepAwake.acquire(6 * 60 * 60 * 1000L);
+            } else if (keepAwake != null && keepAwake.isHeld()) {
+                keepAwake.release();
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** يعيد true لو التطبيق مستثنى بالفعل؛ وإلا يفتح نافذة النظام لطلب الاستثناء ويعيد false. */
+    private boolean requestIgnoreBattery() {
+        try {
+            if (Build.VERSION.SDK_INT < 23) return true;
+            String pkg = context.getPackageName();
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (pm != null && pm.isIgnoringBatteryOptimizations(pkg)) return true;
+            android.content.Intent i;
+            try {
+                i = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        android.net.Uri.parse("package:" + pkg));
+                i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(i);
+            } catch (Exception e) {
+                i = new android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(i);
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 
     private Map<String, Object> diagnose() {

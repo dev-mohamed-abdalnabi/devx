@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:azkari_native/azkari_native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -220,6 +222,7 @@ class NotificationService {
         await _plugin.cancel(70000 + i);
       } catch (_) {}
     }
+    if (Platform.isAndroid) await AzkariNative.cancelAdhan();
   }
 
   /// [modes]: لكل صلاة (بالمعرّف) 0 = أذان بصوت، 1 = بدون صوت، 2 = بدون تنبيه.
@@ -232,12 +235,34 @@ class NotificationService {
             (modes[e.id] ?? 0) != 2)
         .toList();
 
+    // الأذان بصوت: خدمة أصلية تشغّل الملف كاملًا (منبّه دقيق)، بدل صوت قناة الإشعار الذي
+    // يقطعه النظام. لو فشلت (أو منصة غير أندرويد) نرجع للإشعار القديم.
+    Future<bool> scheduleNative() async {
+      if (!Platform.isAndroid) return false;
+      final loud = <Map<String, Object>>[
+        for (var i = 0; i < list.length; i++)
+          if ((modes[list[i].id] ?? 0) == 0)
+            {
+              'id': 80000 + i,
+              'time': list[i].time.millisecondsSinceEpoch,
+              'name': list[i].name,
+            }
+      ];
+      if (loud.isEmpty) return false;
+      return AzkariNative.scheduleAdhan(loud);
+    }
+
     Future<void> run({required bool exact, required bool custom}) async {
       await cancelAdhan();
+      final nativeOk = await scheduleNative();
       var index = 0;
       for (final entry in list) {
         if (index >= 42) break;
         final silent = (modes[entry.id] ?? 0) == 1;
+        if (nativeOk && !silent) {
+          index++;
+          continue;
+        }
         final body = silent
             ? 'حافظ على صلاتك في وقتها، تقبّل الله منك'
             : 'حان الآن وقت صلاة ${entry.name}';

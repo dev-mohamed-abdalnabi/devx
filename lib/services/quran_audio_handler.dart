@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:azkari_native/azkari_native.dart';
 import 'package:flutter/material.dart' show Color;
 import 'package:just_audio/just_audio.dart';
 
@@ -16,7 +17,11 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
   QuranAudioHandler(this.player) {
     _subs.addAll([
       player.playbackEventStream.listen((_) => _broadcast(), onError: (Object e, StackTrace s) {}),
-      player.playingStream.listen((_) => _broadcast()),
+      player.playingStream.listen((p) {
+        _broadcast();
+        // قفل CPU أثناء التشغيل فقط حتى لا ينام الجهاز ويقطع التلاوة.
+        AzkariNative.setKeepAwake(p);
+      }),
       player.processingStateStream.listen((_) => _broadcast()),
       player.speedStream.listen((_) => _broadcast()),
       player.durationStream.listen(_onDuration),
@@ -137,8 +142,10 @@ class QuranAudioService {
         androidNotificationChannelName: 'تلاوة القرآن',
         androidNotificationChannelDescription: 'التحكم في تلاوة القرآن من الإشعارات',
         androidNotificationIcon: NotificationService.mediaIcon,
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
+        // الخدمة تبقى أمامية حتى عند الإيقاف المؤقت: لو خرجت من الأمامية يقتلها النظام
+        // بعد قليل ويتعطل الإشعار ولا يمكن استئناف التشغيل منه (أندرويد 12+ يمنع إعادة تشغيلها).
+        androidNotificationOngoing: false,
+        androidStopForegroundOnPause: false,
         notificationColor: const Color(0xFF2F6B55),
       ),
     ).then<void>((h) {
