@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/home_tokens.dart';
 import '../../core/text_utils.dart';
 import '../../data/quran_data.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
-import '../../widgets/app_ui.dart';
+import '../../widgets/home_style.dart';
+import '../home/home_art.dart';
 import 'audio_player_ui.dart';
 
+/// القرآن صوتيًا — بنفس ألوان ونسب وكروت الشاشة الرئيسية.
 class QuranAudioScreen extends StatefulWidget {
   const QuranAudioScreen({super.key});
 
@@ -41,139 +44,128 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
     final audio = context.watch<QuranAudioProvider>();
     final surahs =
         context.select<QuranProvider, List<Surah>?>((q) => q.data?.surahs);
     final visible = _visibleSurahs(audio);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('القرآن صوتيًا')),
-      body: PatternBackground(
-        opacity: 0.045,
-        child: CustomScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-              sliver: SliverToBoxAdapter(child: _ReciterPanel(audio: audio)),
-            ),
-            if (QuranAudioProvider.backgroundInitError != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      'إشعار التحكم في التلاوة غير مفعّل بسبب خطأ في خدمة الخلفية:\n${QuranAudioProvider.backgroundInitError}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.5,
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                      textDirection: TextDirection.ltr,
-                    ),
-                  ),
-                ),
-              ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _search,
-                      onChanged: (v) => setState(() => _query = v.trim()),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'ابحث باسم السورة أو رقمها',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'مسح',
-                                icon: const Icon(Icons.close_rounded),
-                                onPressed: () => setState(() {
-                                  _search.clear();
-                                  _query = '';
-                                }),
-                              ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        ChoiceChip(
-                          label: const Text('كل السور'),
-                          selected: !_favoritesOnly,
-                          onSelected: (_) =>
-                              setState(() => _favoritesOnly = false),
+      body: MediaQuery(
+        data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                const PageHeader(title: 'القرآن صوتيًا'),
+                Expanded(
+                  child: CustomScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    slivers: [
+                      const SliverToBoxAdapter(child: SizedBox(height: 6)),
+                      SliverToBoxAdapter(
+                          child: _ReciterPanel(tk: tk, audio: audio)),
+                      if (QuranAudioProvider.backgroundInitError != null)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: _Notice(
+                              tk: tk,
+                              text:
+                                  'إشعار التحكم في التلاوة غير مفعّل بسبب خطأ في خدمة الخلفية:\n${QuranAudioProvider.backgroundInitError}',
+                              ltr: true,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        ChoiceChip(
-                          avatar: const Icon(Icons.favorite_rounded, size: 16),
-                          label: Text(audio.favorites.isEmpty
-                              ? 'المفضلة'
-                              : 'المفضلة (${toArabicDigits(audio.favorites.length)})'),
-                          selected: _favoritesOnly,
-                          onSelected: (_) =>
-                              setState(() => _favoritesOnly = true),
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      SliverToBoxAdapter(
+                        child: HomeSearchField(
+                          tk: tk,
+                          controller: _search,
+                          hint: 'ابحث باسم السورة أو رقمها',
+                          onChanged: (v) => setState(() => _query = v.trim()),
+                          onClear: () => setState(() {
+                            _search.clear();
+                            _query = '';
+                          }),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      SliverToBoxAdapter(
+                        child: Row(
+                          children: [
+                            HomeChip(
+                              tk: tk,
+                              label: 'كل السور',
+                              selected: !_favoritesOnly,
+                              onTap: () =>
+                                  setState(() => _favoritesOnly = false),
+                            ),
+                            const SizedBox(width: 8),
+                            HomeChip(
+                              tk: tk,
+                              label: audio.favorites.isEmpty
+                                  ? 'المفضلة'
+                                  : 'المفضلة (${toArabicDigits(audio.favorites.length)})',
+                              selected: _favoritesOnly,
+                              onTap: () =>
+                                  setState(() => _favoritesOnly = true),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      if (visible.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: HomeEmpty(
+                            tk: tk,
+                            icon: _favoritesOnly && _query.isEmpty
+                                ? HomeIcons.heart
+                                : ZikrIcons.search,
+                            title: _favoritesOnly && _query.isEmpty
+                                ? 'لم تضف سورًا إلى المفضلة بعد'
+                                : 'لا توجد سورة بهذا الاسم',
+                            message: _favoritesOnly && _query.isEmpty
+                                ? 'اضغط على القلب بجانب أي سورة'
+                                : null,
+                          ),
+                        )
+                      else
+                        SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            mainAxisExtent: 112,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, i) {
+                              final n = visible[i];
+                              return _SurahTile(
+                                tk: tk,
+                                audio: audio,
+                                surah: n,
+                                info: surahs != null && n <= surahs.length
+                                    ? surahs[n - 1]
+                                    : null,
+                              );
+                            },
+                            childCount: visible.length,
+                          ),
+                        ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            if (visible.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      _favoritesOnly && _query.isEmpty
-                          ? 'لم تضف سورًا إلى المفضلة بعد. اضغط على القلب بجانب أي سورة.'
-                          : 'لا توجد سورة بهذا الاسم.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    mainAxisExtent: 88,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final n = visible[i];
-                      return _SurahTile(
-                        audio: audio,
-                        surah: n,
-                        info: surahs != null && n <= surahs.length
-                            ? surahs[n - 1]
-                            : null,
-                      );
-                    },
-                    childCount: visible.length,
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
       // المشغل ثابت أسفل الشاشة ولا يتحرك مع القائمة.
@@ -182,15 +174,42 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
   }
 }
 
-class _ReciterPanel extends StatelessWidget {
-  final QuranAudioProvider audio;
-  const _ReciterPanel({required this.audio});
+/// رسالة تنبيه/خطأ بشكل الكروت.
+class _Notice extends StatelessWidget {
+  final HomeTokens tk;
+  final String text;
+  final bool ltr;
+  const _Notice({required this.tk, required this.text, this.ltr = false});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    const err = Color(0xFFB3423A);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tk.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: err.withValues(alpha: .6)),
+      ),
+      child: Text(
+        text,
+        textDirection: ltr ? TextDirection.ltr : null,
+        style: cairoStyle(12, weight: 600, color: err, height: 1.5),
+      ),
+    );
+  }
+}
+
+class _ReciterPanel extends StatelessWidget {
+  final HomeTokens tk;
+  final QuranAudioProvider audio;
+  const _ReciterPanel({required this.tk, required this.audio});
+
+  @override
+  Widget build(BuildContext context) {
     final reciter = audio.selectedReciter;
+    final sub = tk.mintInk.withValues(alpha: .75);
 
     String status;
     if (audio.extracting) {
@@ -208,129 +227,149 @@ class _ReciterPanel extends StatelessWidget {
       status = 'لم تُنزَّل بعد';
     }
 
-    return Card(
-      color: scheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        color: tk.mint,
+        child: Stack(
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: scheme.surface,
-                  child: Icon(Icons.mic_rounded, color: scheme.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            const Positioned.fill(
+              child: CustomPaint(painter: IslamicPatternPainter(opacity: .22)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(reciter.name,
-                          style: text.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          if (audio.isReady) ...[
-                            Icon(Icons.check_circle_rounded,
-                                size: 15, color: scheme.primary),
-                            const SizedBox(width: 4),
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: tk.card,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: tk.line),
+                        ),
+                        child: Center(
+                            child: StyledIcon(ZikrIcons.mic,
+                                size: 22, color: tk.gold)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(reciter.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: amiriStyle(22,
+                                    bold: true,
+                                    color: tk.mintInk,
+                                    height: 1.2)),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                if (audio.isReady) ...[
+                                  StyledIcon(ZikrIcons.check,
+                                      size: 14, color: tk.leaf),
+                                  const SizedBox(width: 4),
+                                ],
+                                Flexible(
+                                  child: Text(status,
+                                      style: cairoStyle(11.5, color: sub)),
+                                ),
+                              ],
+                            ),
                           ],
-                          Flexible(
-                            child: Text(status,
-                                style: text.bodySmall
-                                    ?.copyWith(color: scheme.onSurfaceVariant)),
+                        ),
+                      ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: audio.isBusy
+                            ? null
+                            : () => _showReciterSheet(context),
+                        child: Opacity(
+                          opacity: audio.isBusy ? .45 : 1,
+                          child: Container(
+                            height: 34,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: tk.card,
+                              borderRadius: BorderRadius.circular(17),
+                              border: Border.all(color: tk.line),
+                            ),
+                            child: Text('تغيير',
+                                style: cairoStyle(13,
+                                    weight: 600, color: tk.ink)),
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                TextButton(
-                  onPressed:
-                      audio.isBusy ? null : () => _showReciterSheet(context),
-                  child: const Text('تغيير'),
-                ),
-              ],
-            ),
-            if (audio.downloading) ...[
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  minHeight: 7,
-                  value: audio.downloadProgress == 0
-                      ? null
-                      : audio.downloadProgress,
-                  backgroundColor: scheme.surface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      audio.totalBytes == 0
-                          ? '${toArabicDigits((audio.downloadedBytes / 1048576).round())} ميجابايت'
-                          : '${toArabicDigits((audio.downloadProgress * 100).round())}٪ · '
-                              '${toArabicDigits((audio.downloadedBytes / 1048576).round())} من '
-                              '${toArabicDigits((audio.totalBytes / 1048576).round())} ميجابايت',
-                      style: text.bodySmall,
+                  if (audio.downloading) ...[
+                    const SizedBox(height: 12),
+                    HomeProgressBar(
+                        value: audio.downloadProgress, tokens: tk),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            audio.totalBytes == 0
+                                ? '${toArabicDigits((audio.downloadedBytes / 1048576).round())} ميجابايت'
+                                : '${toArabicDigits((audio.downloadProgress * 100).round())}٪ · '
+                                    '${toArabicDigits((audio.downloadedBytes / 1048576).round())} من '
+                                    '${toArabicDigits((audio.totalBytes / 1048576).round())} ميجابايت',
+                            style: cairoStyle(11.5, color: sub),
+                          ),
+                        ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: audio.cancelDownload,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 4),
+                            child: Text('إلغاء',
+                                style: cairoStyle(13,
+                                    weight: 700, color: tk.mintInk)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  TextButton(
-                      onPressed: audio.cancelDownload,
-                      child: const Text('إلغاء')),
-                ],
-              ),
-            ] else if (audio.extracting) ...[
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                    minHeight: 7, backgroundColor: scheme.surface),
-              ),
-            ] else if (!audio.isReady && reciter.available) ...[
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: audio.downloadPackage,
-                  icon: const Icon(Icons.download_rounded),
-                  label: Text(audio.hasAnyAudio
-                      ? 'إعادة تنزيل التلاوة'
-                      : 'تنزيل التلاوة'),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'تُنزَّل مرة واحدة (حتى ١٠٠ ميجابايت) للاستماع إليها لاحقًا.',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
-            if (audio.error != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.errorContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline_rounded,
-                        color: scheme.onErrorContainer),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(audio.error!,
-                          style: TextStyle(color: scheme.onErrorContainer)),
+                  ] else if (audio.extracting) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        minHeight: 6,
+                        color: tk.leaf,
+                        backgroundColor: tk.line,
+                      ),
+                    ),
+                  ] else if (!audio.isReady && reciter.available) ...[
+                    const SizedBox(height: 12),
+                    HomeButton(
+                      tk: tk,
+                      label: audio.hasAnyAudio
+                          ? 'إعادة تنزيل التلاوة'
+                          : 'تنزيل التلاوة',
+                      onTap: audio.downloadPackage,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'تُنزَّل مرة واحدة (حتى ١٠٠ ميجابايت) للاستماع إليها لاحقًا.',
+                      style: cairoStyle(11.5, color: sub),
                     ),
                   ],
-                ),
+                  if (audio.error != null) ...[
+                    const SizedBox(height: 10),
+                    _Notice(tk: tk, text: audio.error!),
+                  ],
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -340,62 +379,75 @@ class _ReciterPanel extends StatelessWidget {
 
 Future<void> _showReciterSheet(BuildContext context) {
   final audio = context.read<QuranAudioProvider>();
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text('اختر القارئ',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+  final tk = HomeTokens.of(context);
+  return showHomeSheet<void>(
+    context,
+    builder: (sheetContext) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('اختر القارئ', style: amiriStyle(24, bold: true, color: tk.ink)),
+        const SizedBox(height: 8),
+        for (final r in QuranAudioProvider.reciters)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () async {
+              Navigator.of(sheetContext).pop();
+              await audio.selectReciter(r.id);
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: r.id == audio.selectedReciterId ? tk.mint : tk.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                    color: r.id == audio.selectedReciterId ? tk.gold : tk.line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r.name,
+                            style: cairoStyle(15,
+                                weight: 700,
+                                color: r.id == audio.selectedReciterId
+                                    ? tk.mintInk
+                                    : tk.ink)),
+                        Text(r.available ? 'متاح للتنزيل' : 'سيتوفر قريبًا',
+                            style: cairoStyle(11.5, color: tk.muted)),
+                      ],
+                    ),
+                  ),
+                  if (r.id == audio.selectedReciterId)
+                    StyledIcon(ZikrIcons.check, size: 20, color: tk.leaf),
+                ],
+              ),
             ),
           ),
-          for (final r in QuranAudioProvider.reciters)
-            ListTile(
-              leading: Icon(
-                r.id == audio.selectedReciterId
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
-                color: r.id == audio.selectedReciterId
-                    ? Theme.of(sheetContext).colorScheme.primary
-                    : null,
-              ),
-              title: Text(r.name),
-              subtitle: Text(r.available ? 'متاح للتنزيل' : 'سيتوفر قريبًا'),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await audio.selectReciter(r.id);
-              },
-            ),
-        ],
-      ),
+      ],
     ),
   );
 }
 
 class _SurahTile extends StatelessWidget {
+  final HomeTokens tk;
   final QuranAudioProvider audio;
   final int surah;
   final Surah? info;
 
-  const _SurahTile({required this.audio, required this.surah, this.info});
+  const _SurahTile(
+      {required this.tk, required this.audio, required this.surah, this.info});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final available = audio.hasSurah(surah);
     final current = audio.currentSurah == surah;
     final playing = current && audio.isPlaying;
     final favorite = audio.isFavorite(surah);
-
-    final fill = current ? scheme.primaryContainer : scheme.surface;
-    final border = current ? scheme.primary : scheme.outlineVariant;
 
     String? meta;
     if (info != null) {
@@ -405,79 +457,40 @@ class _SurahTile extends StatelessWidget {
 
     return Opacity(
       opacity: available || !audio.hasAnyAudio ? 1.0 : 0.45,
-      child: Material(
-        color: fill,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: border, width: current ? 1.5 : 1),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => _onTap(context, available, current),
-          onLongPress: () => audio.toggleFavorite(surah),
-          child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 2, 8),
-            child: Row(
-              children: [
-                StarBadge(
-                  number: surah,
-                  size: 40,
-                  fill: current ? scheme.primary : scheme.primaryContainer,
-                  textColor: current ? scheme.onPrimary : scheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        QuranAudioProvider.surahName(surah),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: text.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      if (meta != null)
-                        Text(
-                          meta,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
+      child: NumberCard(
+        tk: tk,
+        number: surah,
+        title: QuranAudioProvider.surahName(surah),
+        subtitle: meta,
+        selected: current,
+        onTap: () => _onTap(context, available, current),
+        onLongPress: () => audio.toggleFavorite(surah),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (current)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: EqualizerBars(animate: playing, color: tk.leaf),
+              ),
+            Semantics(
+              label: favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
+              button: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => audio.toggleFavorite(surah),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 4, 0, 6),
+                  child: StyledIcon(
+                    HomeIcons.heart,
+                    size: 22,
+                    color: tk.gold,
+                    fill: favorite ? tk.gold : null,
                   ),
                 ),
-                if (current)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child:
-                        EqualizerBars(animate: playing, color: scheme.primary),
-                  ),
-                SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    iconSize: 20,
-                    tooltip:
-                        favorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
-                    onPressed: () => audio.toggleFavorite(surah),
-                    icon: Icon(
-                      favorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color:
-                          favorite ? scheme.primary : scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -490,9 +503,18 @@ class _SurahTile extends StatelessWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
-          content: Text(reciter.available
-              ? 'نزّل التلاوة أولًا للاستماع إلى هذه السورة'
-              : 'تلاوة ${reciter.name} ستتوفر قريبًا'),
+          backgroundColor: tk.card,
+          behavior: SnackBarBehavior.floating,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: tk.line),
+          ),
+          content: Text(
+              reciter.available
+                  ? 'نزّل التلاوة أولًا للاستماع إلى هذه السورة'
+                  : 'تلاوة ${reciter.name} ستتوفر قريبًا',
+              style: cairoStyle(13, weight: 600, color: tk.ink)),
         ));
       return;
     }

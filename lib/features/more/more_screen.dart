@@ -24,6 +24,10 @@ class MoreScreen extends StatelessWidget {
     ));
   }
 
+  void _pushPage(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -38,7 +42,7 @@ class MoreScreen extends StatelessWidget {
           const AppSectionHeader(title: 'العبادة اليومية'),
           const SizedBox(height: 10),
           _Tile(icon: Icons.task_alt_rounded, title: 'التحديات والإنجازات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChallengesScreen()))),
-          _Tile(icon: Icons.auto_awesome_outlined, title: 'الأذكار', onTap: () => _push(context, 'الأذكار', const CategoriesScreen())),
+          _Tile(icon: Icons.auto_awesome_outlined, title: 'الأذكار', onTap: () => _pushPage(context, const CategoriesScreen())),
           _Tile(icon: Icons.touch_app_rounded, title: 'التسبيح', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehScreen()))),
           _Tile(icon: Icons.notifications_active_outlined, title: 'التذكيرات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RemindersScreen()))),
           const SizedBox(height: 18),
@@ -50,8 +54,8 @@ class MoreScreen extends StatelessWidget {
           const AppSectionHeader(title: 'المكتبة والتخصيص'),
           const SizedBox(height: 10),
           _Tile(icon: Icons.bookmark_border_rounded, title: 'علامات القرآن', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookmarksScreen()))),
-          _Tile(icon: Icons.favorite_border_rounded, title: 'المفضلة', onTap: () => _push(context, 'المفضلة', const FavoritesScreen())),
-          _Tile(icon: Icons.search_rounded, title: 'البحث في الأذكار', onTap: () => _push(context, 'البحث', const SearchScreen())),
+          _Tile(icon: Icons.favorite_border_rounded, title: 'المفضلة', onTap: () => _pushPage(context, const FavoritesScreen())),
+          _Tile(icon: Icons.search_rounded, title: 'البحث في الأذكار', onTap: () => _pushPage(context, const SearchScreen())),
           _Tile(icon: Icons.volunteer_activism_outlined, title: 'ادعم التطبيق', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
           _Tile(icon: Icons.settings_outlined, title: 'الإعدادات', onTap: () => _push(context, 'الإعدادات', const SettingsScreen())),
         ],

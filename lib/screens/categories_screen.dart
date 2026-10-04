@@ -1,39 +1,25 @@
-import '../core/category_groups.dart';
-import '../core/short_titles.dart';
-import '../core/star_shape.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/category_groups.dart';
+import '../core/home_tokens.dart';
+import '../core/short_titles.dart';
+import '../core/text_utils.dart';
+import '../features/home/home_art.dart';
+import '../features/home/home_screen.dart' show HomeTile;
 import '../providers/azkar_provider.dart';
-import '../widgets/app_ui.dart';
+import '../widgets/home_style.dart';
+import 'search_screen.dart';
 import 'zikr_list_screen.dart';
 
-final _icons = {
-  'wb_sunny': Icons.wb_sunny_rounded,
-  'nightlight_round': Icons.nightlight_round,
-  'bedtime': Icons.bedtime_rounded,
-  'alarm': Icons.alarm_rounded,
-  'mosque': Icons.mosque_outlined,
-  'favorite': Icons.favorite_rounded,
-  'home': Icons.home_rounded,
-  'campaign': Icons.campaign_rounded,
-  'water_drop': Icons.water_drop_rounded,
-  'self_improvement': Icons.self_improvement_rounded,
-  'restaurant': Icons.restaurant_rounded,
-  'checkroom': Icons.checkroom_rounded,
-  'flight': Icons.flight_rounded,
-  'storefront': Icons.storefront_rounded,
-  'healing': Icons.healing_rounded,
-  'sentiment_stressed': Icons.sentiment_very_dissatisfied,
-  'mood_bad': Icons.mood_bad_rounded,
-  'payments': Icons.payments_rounded,
-  'thunderstorm': Icons.thunderstorm_rounded,
-  'sick': Icons.sick_rounded,
-  'back_hand': Icons.back_hand_rounded,
-  'route': Icons.route_rounded,
-  'wc': Icons.wc_rounded,
-  'child_care': Icons.child_care_rounded,
-};
+/// «ذكر ٣ أذكار / ذكران / ٥ أذكار / ١٢ ذكرًا»
+String _countLabel(int n) {
+  if (n == 1) return 'ذكر واحد';
+  if (n == 2) return 'ذكران';
+  if (n <= 10) return '${toArabicDigits(n)} أذكار';
+  return '${toArabicDigits(n)} ذكرًا';
+}
 
+/// صفحة أقسام الأذكار — بنفس ألوان ونسب وكروت الشاشة الرئيسية.
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 
@@ -54,28 +40,60 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
     final provider = context.watch<AzkarProvider>();
-    final scheme = Theme.of(context).colorScheme;
 
-    if (provider.loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (provider.categories.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-              provider.error?.toString() ?? 'لا توجد أذكار متاحة حاليًا',
-              textAlign: TextAlign.center),
+    final header = PageHeader(
+      title: 'الأذكار',
+      actions: [
+        HeaderButton(
+          icon: ZikrIcons.search,
+          label: 'البحث في كل الأذكار',
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SearchScreen())),
         ),
+      ],
+    );
+
+    Widget body;
+    if (provider.loading) {
+      body = Center(child: CircularProgressIndicator(color: tk.leaf));
+    } else if (provider.categories.isEmpty) {
+      body = HomeEmpty(
+        tk: tk,
+        icon: HomeIcons.sparkle,
+        title: 'لا توجد أذكار متاحة حاليًا',
+        message: provider.error?.toString(),
       );
+    } else {
+      body = _buildContent(context, tk, provider);
     }
 
+    return Scaffold(
+      body: MediaQuery(
+        data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                header,
+                Expanded(child: body),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(
+      BuildContext context, HomeTokens tk, AzkarProvider provider) {
     final q = normalizeArabic(_q);
     const pinned = ['hisn-27', 'hisn-28', 'hisn-25'];
     final ordered = [
-      for (final id in pinned)
-        ...provider.categories.where((c) => c.id == id),
+      for (final id in pinned) ...provider.categories.where((c) => c.id == id),
       ...provider.categories.where((c) => !pinned.contains(c.id)),
     ];
     final base = _group < 0
@@ -91,179 +109,99 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 normalizeArabic(shortCategoryTitle(c.id, c.title)).contains(q);
           }).toList();
 
-    return CustomScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: const AppSectionHeader(
-              title: 'ذكر',
-              subtitle: 'حفظكم الله بذكره · اختر بابًا للبدء',
-            ),
-          ),
+    return Column(
+      children: [
+        const SizedBox(height: 6),
+        HomeSearchField(
+          tk: tk,
+          controller: _search,
+          hint: 'ابحث في أقسام الأذكار...',
+          onChanged: (v) => setState(() => _q = v),
+          onClear: () {
+            _search.clear();
+            setState(() => _q = '');
+          },
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: TextField(
-              controller: _search,
-              onChanged: (v) => setState(() => _q = v),
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'ابحث في الأذكار...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _q.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          _search.clear();
-                          setState(() => _q = '');
-                        },
-                      ),
-                isDense: true,
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 46,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              children: [
-                for (var i = -1; i < kCategoryGroups.length; i++)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: ChoiceChip(
-                      label: Text(i < 0 ? 'الكل' : kCategoryGroups[i].$1),
-                      selected: _group == i,
-                      showCheckmark: false,
-                      visualDensity: VisualDensity.compact,
-                      onSelected: (_) => setState(() => _group = i),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        if (cats.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Text('لا توجد نتائج لـ «$_q»',
-                  style: TextStyle(color: scheme.onSurfaceVariant)),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                mainAxisExtent: 100,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final cat = cats[i];
-                  final progress = provider.categoryProgress(cat.id);
-                  return AppGridTile(
-                    leading: IslamicStar(
-                      size: 50,
-                      color: scheme.primaryContainer,
-                      child: Icon(_icons[cat.icon] ?? Icons.menu_book_rounded,
-                          size: 21, color: scheme.onPrimaryContainer),
-                    ),
-                    titleMaxLines: 2,
-                    title: shortCategoryTitle(cat.id, cat.title),
-                    subtitle: '${cat.azkar.length} أذكار',
-                    footer: AppProgressBar(value: progress),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ZikrListScreen(categoryId: cat.id)),
-                    ),
-                  );
-                },
-                childCount: cats.length,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final double progress;
-  final int count;
-  final VoidCallback onTap;
-
-  const _CategoryCard({
-    required this.title,
-    required this.icon,
-    required this.progress,
-    required this.count,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.surfaceContainerHighest.withOpacity(0.4),
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 34,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
             children: [
-              IslamicStar(
-                size: 54,
-                color: scheme.primaryContainer,
-                child: Icon(icon, size: 22, color: scheme.onPrimaryContainer),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 6,
-                        backgroundColor: scheme.surfaceContainerHighest,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text('$count أذكار',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: Colors.grey)),
-                  ],
+              for (var i = -1; i < kCategoryGroups.length; i++)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: HomeChip(
+                    tk: tk,
+                    label: i < 0 ? 'الكل' : kCategoryGroups[i].$1,
+                    selected: _group == i,
+                    onTap: () => setState(() => _group = i),
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_left),
             ],
           ),
         ),
-      ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              if (q.isEmpty && _group < 0) ...[
+                SliverToBoxAdapter(
+                  child: HomeHeroCard(
+                    tk: tk,
+                    icon: HomeIcons.sparkle,
+                    eyebrow: 'اختر بابًا للبدء',
+                    title: 'حفظكم الله بذكره',
+                    caption:
+                        '${toArabicDigits(provider.categories.length)} بابًا من حصن المسلم',
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 10)),
+              ],
+              if (cats.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: HomeEmpty(
+                    tk: tk,
+                    icon: ZikrIcons.search,
+                    title: 'لا توجد نتائج لـ «$_q»',
+                  ),
+                )
+              else
+                SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    mainAxisExtent: 112,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final cat = cats[i];
+                      return HomeTile(
+                        tk: tk,
+                        compact: false,
+                        icon: ZikrIcons.forKey(cat.icon),
+                        title: shortCategoryTitle(cat.id, cat.title),
+                        subtitle: _countLabel(cat.azkar.length),
+                        progress: provider.categoryProgress(cat.id),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  ZikrListScreen(categoryId: cat.id)),
+                        ),
+                      );
+                    },
+                    childCount: cats.length,
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

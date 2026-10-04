@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/home_tokens.dart';
 import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../core/theme.dart';
@@ -35,6 +36,7 @@ class StarBadge extends StatelessWidget {
           child: Text(
             toArabicDigits(number),
             style: TextStyle(
+              fontFamily: 'Cairo',
               color: textColor,
               fontWeight: FontWeight.w700,
               fontSize: size * (number > 99 ? 0.28 : 0.34),
@@ -125,7 +127,7 @@ class _PlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final tk = HomeTokens.of(context);
     return StreamBuilder<PlayerState>(
       stream: audio.player.playerStateStream,
       builder: (_, snap) {
@@ -138,7 +140,7 @@ class _PlayButton extends StatelessWidget {
         return Tooltip(
           message: playing ? 'إيقاف مؤقت' : 'تشغيل',
           child: Material(
-            color: enabled ? scheme.primary : scheme.surfaceContainerHighest,
+            color: enabled ? tk.leaf : tk.line,
             shape: const CircleBorder(),
             child: InkWell(
               customBorder: const CircleBorder(),
@@ -150,16 +152,14 @@ class _PlayButton extends StatelessWidget {
                     ? Padding(
                         padding: EdgeInsets.all(size * 0.3),
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: scheme.onPrimary),
+                            strokeWidth: 2.5, color: tk.mintInk),
                       )
                     : Icon(
                         playing
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded,
                         size: size * 0.6,
-                        color: enabled
-                            ? scheme.onPrimary
-                            : scheme.onSurfaceVariant,
+                        color: enabled ? tk.mintInk : tk.muted,
                       ),
               ),
             ),
@@ -177,15 +177,14 @@ class AudioMiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<QuranAudioProvider>();
-    final scheme = Theme.of(context).colorScheme;
+    final tk = HomeTokens.of(context);
     final surah = audio.displaySurah;
     final canSeek = audio.currentSurah != null;
 
     return Material(
-      color: scheme.surface,
-      elevation: 8,
-      shadowColor: Colors.black54,
-      surfaceTintColor: scheme.primary,
+      color: tk.card,
+      elevation: 0,
+      shape: Border(top: BorderSide(color: tk.line)),
       child: SafeArea(
         top: false,
         child: Column(
@@ -202,11 +201,11 @@ class AudioMiniPlayer extends StatelessWidget {
                         ? StarBadge(
                             number: surah,
                             size: 44,
-                            fill: scheme.primaryContainer,
-                            textColor: scheme.primary,
+                            fill: tk.mint,
+                            textColor: tk.mintInk,
                           )
                         : Icon(Icons.headphones_rounded,
-                            size: 32, color: scheme.onSurfaceVariant),
+                            size: 32, color: tk.muted),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -219,10 +218,7 @@ class AudioMiniPlayer extends StatelessWidget {
                                 : 'اختر سورة للاستماع',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w800),
+                            style: cairoStyle(15, weight: 700, color: tk.ink),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -231,10 +227,7 @@ class AudioMiniPlayer extends StatelessWidget {
                                 : audio.selectedReciter.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
+                            style: cairoStyle(12, color: tk.muted),
                           ),
                         ],
                       ),
@@ -250,7 +243,7 @@ class AudioMiniPlayer extends StatelessWidget {
                                 ? () =>
                                     audio.seekBy(-QuranAudioProvider.seekStep)
                                 : null,
-                            icon: const Icon(Icons.replay_10_rounded),
+                            icon: Icon(Icons.replay_10_rounded, color: tk.gold),
                           ),
                           _PlayButton(audio: audio, size: 48),
                           IconButton(
@@ -259,7 +252,7 @@ class AudioMiniPlayer extends StatelessWidget {
                                 ? () =>
                                     audio.seekBy(QuranAudioProvider.seekStep)
                                 : null,
-                            icon: const Icon(Icons.forward_10_rounded),
+                            icon: Icon(Icons.forward_10_rounded, color: tk.gold),
                           ),
                         ],
                       ),
@@ -287,7 +280,7 @@ class _ThinProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final tk = HomeTokens.of(context);
     return StreamBuilder<Duration>(
       stream: audio.player.positionStream,
       builder: (_, snap) {
@@ -298,8 +291,8 @@ class _ThinProgress extends StatelessWidget {
           child: LinearProgressIndicator(
             minHeight: 3,
             value: total <= 0 ? 0 : (pos / total).clamp(0.0, 1.0),
-            backgroundColor: scheme.surfaceContainerHighest,
-            color: scheme.primary,
+            backgroundColor: tk.line,
+            color: tk.leaf,
           ),
         );
       },

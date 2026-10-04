@@ -102,11 +102,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
   void _push(Widget w) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
 
-  void _pushTitled(String title, Widget body) => _push(Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: SafeArea(child: body),
-      ));
-
   @override
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
@@ -214,8 +209,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                     progress: progress,
                                     compact: compact,
                                     onTap: () => cat == null
-                                        ? _pushTitled(
-                                            'الأذكار', const CategoriesScreen())
+                                        ? _push(const CategoriesScreen())
                                         : _push(ZikrListScreen(
                                             categoryId: cat.id)),
                                   ),
@@ -313,8 +307,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                     compact: compact,
                                     icon: HomeIcons.sparkle,
                                     title: 'الأذكار',
-                                    onTap: () => _pushTitled(
-                                        'الأذكار', const CategoriesScreen()),
+                                    onTap: () => _push(const CategoriesScreen()),
                                   ),
                                 ),
                               ]),
@@ -329,8 +322,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                     compact: compact,
                                     icon: HomeIcons.heart,
                                     title: 'المفضّلة',
-                                    onTap: () => _pushTitled(
-                                        'المفضلة', const FavoritesScreen()),
+                                    onTap: () => _push(const FavoritesScreen()),
                                   ),
                                 ),
                                 slotTile(

@@ -2,73 +2,113 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../core/home_tokens.dart';
+import '../core/text_utils.dart';
 import '../models/zikr.dart';
 import '../providers/activity_provider.dart';
 import '../providers/azkar_provider.dart';
+import '../features/home/home_art.dart';
+import 'home_style.dart';
 
-class ZikrCard extends StatelessWidget {
+/// كارت الذكر بنفس لغة الرئيسية: خلفية card، radius 18، إطار line (ذهبي عند الضغط)،
+/// نص Amiri، مصدر ذهبي Cairo، وعدّاد نعناعي يتحوّل لأخضر عند الإكمال.
+class ZikrCard extends StatefulWidget {
   final Zikr zikr;
   final VoidCallback? onCompleted;
   const ZikrCard({super.key, required this.zikr, this.onCompleted});
 
+  @override
+  State<ZikrCard> createState() => _ZikrCardState();
+}
+
+class _ZikrCardState extends State<ZikrCard> {
+  bool _down = false;
+
+  Zikr get zikr => widget.zikr;
   String get _full => '${zikr.text}\n\n${zikr.source}';
 
-  Future<void> _run(BuildContext context, String action) async {
-    if (action == 'copy') {
-      await Clipboard.setData(ClipboardData(text: _full));
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-              content: Text('تم النسخ'), duration: Duration(seconds: 1)));
-      }
-    } else if (action == 'share') {
-      await Share.share(_full);
-    } else if (action == 'fav') {
-      context.read<AzkarProvider>().toggleFavorite(zikr);
+  void _setDown(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  Future<void> _copy() async {
+    final tk = HomeTokens.of(context);
+    await Clipboard.setData(ClipboardData(text: _full));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        backgroundColor: tk.card,
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
+        duration: const Duration(seconds: 1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: tk.line),
+        ),
+        content: Text('تم النسخ',
+            style: cairoStyle(13, weight: 600, color: tk.ink)),
+      ));
+  }
+
+  Future<void> _share() => Share.share(_full);
+
+  void _toggleFav() => context.read<AzkarProvider>().toggleFavorite(zikr);
+
+  void _tap() {
+    if (zikr.remaining == 0) return;
+    final provider = context.read<AzkarProvider>();
+    HapticFeedback.lightImpact();
+    provider.tapZikr(zikr);
+    context.read<ActivityProvider>().addZikr(
+          categoryId: zikr.categoryId,
+          categoryDone: provider.categoryProgress(zikr.categoryId) >= 1,
+        );
+    if (zikr.remaining == 0) {
+      HapticFeedback.mediumImpact();
+      widget.onCompleted?.call();
     }
   }
 
-  void _longPressMenu(BuildContext context) {
+  void _longPressMenu() {
     HapticFeedback.selectionClick();
     final p = context.read<AzkarProvider>();
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.copy_rounded),
-              title: const Text('نسخ'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _run(context, 'copy');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: const Text('مشاركة'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _run(context, 'share');
-              },
-            ),
-            ListTile(
-              leading: Icon(p.isFavorite(zikr)
-                  ? Icons.favorite
-                  : Icons.favorite_border),
-              title: Text(p.isFavorite(zikr)
-                  ? 'إزالة من المفضلة'
-                  : 'إضافة للمفضلة'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _run(context, 'fav');
-              },
-            ),
-          ],
-        ),
+    final tk = HomeTokens.of(context);
+    final fav = p.isFavorite(zikr);
+    showHomeSheet<void>(
+      context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          HomeSheetRow(
+            tk: tk,
+            icon: ZikrIcons.copy,
+            label: 'نسخ',
+            onTap: () {
+              Navigator.pop(ctx);
+              _copy();
+            },
+          ),
+          HomeSheetRow(
+            tk: tk,
+            icon: ZikrIcons.share,
+            label: 'مشاركة',
+            onTap: () {
+              Navigator.pop(ctx);
+              _share();
+            },
+          ),
+          HomeSheetRow(
+            tk: tk,
+            icon: HomeIcons.heart,
+            iconFill: fav ? tk.gold : null,
+            label: fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+            onTap: () {
+              Navigator.pop(ctx);
+              _toggleFav();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -84,121 +124,153 @@ class ZikrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
     final provider = context.watch<AzkarProvider>();
-    final scheme = Theme.of(context).colorScheme;
     final done = zikr.remaining == 0;
+    final fav = provider.isFavorite(zikr);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      decoration: BoxDecoration(
-        color:
-            done ? scheme.primaryContainer.withOpacity(0.35) : scheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(0.4)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onLongPress: () => _longPressMenu(context),
-        onTap: () {
-          if (!done) {
-            HapticFeedback.lightImpact();
-            provider.tapZikr(zikr);
-            context.read<ActivityProvider>().addZikr(
-                  categoryId: zikr.categoryId,
-                  categoryDone: provider.categoryProgress(zikr.categoryId) >= 1,
-                );
-            if (zikr.remaining == 0) {
-              HapticFeedback.mediumImpact();
-              onCompleted?.call();
-            }
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(18),
+    return AnimatedScale(
+      scale: _down ? 0.985 : 1.0,
+      duration: const Duration(milliseconds: 120),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _setDown(true),
+        onTapUp: (_) => _setDown(false),
+        onTapCancel: () => _setDown(false),
+        onLongPress: _longPressMenu,
+        onTap: _tap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          decoration: BoxDecoration(
+            color: done ? tk.mint : tk.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _down
+                  ? tk.gold
+                  : (done ? tk.leaf.withValues(alpha: .45) : tk.line),
+            ),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 zikr.text,
                 textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: 19 * provider.fontScale,
+                style: amiriStyle(
+                  21 * provider.fontScale,
+                  color: done ? tk.mintInk.withValues(alpha: .8) : tk.ink,
                   height: 1.9,
-                  fontWeight: FontWeight.w500,
-                  color: done
-                      ? scheme.onSurface.withOpacity(0.6)
-                      : scheme.onSurface,
                 ),
               ),
-              if (provider.showSources) ...[
-                const SizedBox(height: 14),
-                Text(_shortSource,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey)),
-              ],
+              if (provider.showSources)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(_shortSource,
+                      style: cairoStyle(11.5, weight: 600, color: tk.gold)),
+                ),
+              const SizedBox(height: 8),
+              Container(height: 1, color: done ? tk.leaf.withValues(alpha: .25) : tk.line),
+              const SizedBox(height: 4),
               Row(
                 children: [
-                  PopupMenuButton<String>(
-                    tooltip: 'المزيد',
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.more_horiz_rounded,
-                        color: Colors.grey),
-                    onSelected: (v) => _run(context, v),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                          value: 'copy',
-                          child: ListTile(
-                              dense: true,
-                              leading: Icon(Icons.copy_rounded),
-                              title: Text('نسخ'))),
-                      PopupMenuItem(
-                          value: 'share',
-                          child: ListTile(
-                              dense: true,
-                              leading: Icon(Icons.share_outlined),
-                              title: Text('مشاركة'))),
-                    ],
+                  _ActionIcon(
+                    icon: ZikrIcons.copy,
+                    color: tk.muted,
+                    label: 'نسخ',
+                    onTap: _copy,
+                  ),
+                  _ActionIcon(
+                    icon: ZikrIcons.share,
+                    color: tk.muted,
+                    label: 'مشاركة',
+                    onTap: _share,
                   ),
                   const Spacer(),
                   if (zikr.remaining < zikr.count)
-                    IconButton(
-                      tooltip: 'تراجع عن الضغطة الأخيرة',
-                      icon: const Icon(Icons.undo_rounded),
-                      color: scheme.primary,
-                      onPressed: () => provider.undoZikr(zikr),
+                    _ActionIcon(
+                      icon: ZikrIcons.undo,
+                      color: tk.gold,
+                      label: 'تراجع عن الضغطة الأخيرة',
+                      onTap: () => provider.undoZikr(zikr),
                     ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      provider.isFavorite(zikr)
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: provider.isFavorite(zikr)
-                          ? Colors.redAccent
-                          : Colors.grey,
-                    ),
-                    onPressed: () => provider.toggleFavorite(zikr),
+                  _ActionIcon(
+                    icon: HomeIcons.heart,
+                    color: tk.gold,
+                    fill: fav ? tk.gold : null,
+                    label: fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                    onTap: _toggleFav,
                   ),
-                  const SizedBox(width: 4),
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: done ? Colors.green : scheme.primary,
-                    child: done
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
-                        : Text(
-                            '${zikr.remaining}',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          ),
-                  ),
+                  const SizedBox(width: 6),
+                  _CounterBadge(tk: tk, zikr: zikr, done: done),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ActionIcon extends StatelessWidget {
+  final String icon;
+  final Color color;
+  final Color? fill;
+  final String label;
+  final VoidCallback onTap;
+  const _ActionIcon({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+    this.fill,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+              child: StyledIcon(icon, size: 20, color: color, fill: fill)),
+        ),
+      ),
+    );
+  }
+}
+
+class _CounterBadge extends StatelessWidget {
+  final HomeTokens tk;
+  final Zikr zikr;
+  final bool done;
+  const _CounterBadge(
+      {required this.tk, required this.zikr, required this.done});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: done ? tk.leaf : tk.mint,
+        border: Border.all(color: done ? tk.leaf : tk.leaf.withValues(alpha: .5)),
+      ),
+      child: Center(
+        child: done
+            ? const StyledIcon(ZikrIcons.check, size: 20, color: Colors.white)
+            : Text(
+                toArabicDigits(zikr.remaining),
+                style: cairoStyle(16, weight: 700, color: tk.mintInk),
+              ),
       ),
     );
   }

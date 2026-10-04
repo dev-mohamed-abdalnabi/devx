@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import '../core/home_tokens.dart';
+import '../core/text_utils.dart';
 import '../providers/azkar_provider.dart';
+import '../widgets/home_style.dart';
 import '../widgets/zikr_card.dart';
 
 class ZikrListScreen extends StatefulWidget {
@@ -47,61 +50,105 @@ class _ZikrListScreenState extends State<ZikrListScreen> {
   }
 
   void _fontSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
+    final tk = HomeTokens.of(context);
+    showHomeSheet<void>(
+      context,
       builder: (ctx) => Consumer<AzkarProvider>(
-        builder: (ctx, p, _) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('حجم الخط',
-                    style: Theme.of(ctx)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                Text('بسم الله الرحمن الرحيم',
-                    style: TextStyle(fontSize: 19 * p.fontScale, height: 1.8)),
-                Row(
-                  children: [
-                    const Text('أ', style: TextStyle(fontSize: 14)),
-                    Expanded(
-                      child: Slider(
-                        value: p.fontScale.clamp(0.8, 1.6),
-                        min: 0.8,
-                        max: 1.6,
-                        divisions: 8,
-                        onChanged: (v) => p.setFontScale(v),
-                      ),
-                    ),
-                    const Text('أ', style: TextStyle(fontSize: 26)),
-                  ],
-                ),
-              ],
+        builder: (ctx, p, _) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('حجم الخط', style: cairoStyle(16, weight: 700, color: tk.ink)),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
+              decoration: BoxDecoration(
+                color: tk.bg,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: tk.line),
+              ),
+              child: Text(
+                'بسم الله الرحمن الرحيم',
+                textAlign: TextAlign.center,
+                style: amiriStyle(21 * p.fontScale, color: tk.ink, height: 1.8),
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            SliderTheme(
+              data: SliderTheme.of(ctx).copyWith(
+                activeTrackColor: tk.gold,
+                inactiveTrackColor: tk.line,
+                thumbColor: tk.gold,
+                overlayColor: tk.gold.withValues(alpha: .15),
+                trackHeight: 4,
+              ),
+              child: Row(
+                children: [
+                  Text('أ', style: cairoStyle(14, weight: 700, color: tk.muted)),
+                  Expanded(
+                    child: Slider(
+                      value: p.fontScale.clamp(0.8, 1.6),
+                      min: 0.8,
+                      max: 1.6,
+                      divisions: 8,
+                      onChanged: (v) => p.setFontScale(v),
+                    ),
+                  ),
+                  Text('أ', style: cairoStyle(26, weight: 700, color: tk.muted)),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Future<void> _confirmReset(AzkarProvider provider) async {
+    final tk = HomeTokens.of(context);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('إعادة تعيين العداد؟'),
-        content: const Text('سيتم تصفير تقدّمك في هذا القسم.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('إعادة التعيين')),
-        ],
+      builder: (ctx) => Dialog(
+        backgroundColor: tk.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: tk.line),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('إعادة تعيين العداد؟',
+                  style: cairoStyle(16, weight: 700, color: tk.ink)),
+              const SizedBox(height: 6),
+              Text('سيتم تصفير تقدّمك في هذا القسم.',
+                  style: cairoStyle(13, color: tk.muted)),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: HomeButton(
+                        tk: tk,
+                        label: 'إلغاء',
+                        onTap: () => Navigator.pop(ctx, false)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: HomeButton(
+                        tk: tk,
+                        primary: true,
+                        label: 'إعادة التعيين',
+                        onTap: () => Navigator.pop(ctx, true)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
     if (ok == true && mounted) {
@@ -121,47 +168,51 @@ class _ZikrListScreenState extends State<ZikrListScreen> {
   }
 
   void _showDone() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    final tk = HomeTokens.of(context);
+    showHomeSheet<void>(
+      context,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: tk.mint,
+              shape: BoxShape.circle,
+              border: Border.all(color: tk.leaf.withValues(alpha: .5)),
+            ),
+            child: Center(
+                child: StyledIcon(ZikrIcons.check, size: 30, color: tk.leaf)),
+          ),
+          const SizedBox(height: 12),
+          Text('أتممت الأذكار، تقبّل الله منك',
+              textAlign: TextAlign.center,
+              style: amiriStyle(22, bold: true, color: tk.ink)),
+          const SizedBox(height: 18),
+          Row(
             children: [
-              Icon(Icons.check_circle_rounded,
-                  size: 56, color: Theme.of(ctx).colorScheme.primary),
-              const SizedBox(height: 12),
-              Text('أتممت الأذكار، تقبّل الله منك',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(ctx)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('البقاء هنا')),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.of(context).popUntil((r) => r.isFirst);
-                      },
-                      child: const Text('الرئيسية'),
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: HomeButton(
+                    tk: tk,
+                    label: 'البقاء هنا',
+                    onTap: () => Navigator.pop(ctx)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: HomeButton(
+                  tk: tk,
+                  primary: true,
+                  label: 'الرئيسية',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.of(context).popUntil((r) => r.isFirst);
+                  },
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -181,11 +232,31 @@ class _ZikrListScreenState extends State<ZikrListScreen> {
     });
   }
 
+  PopupMenuItem<String> _menuItem(
+      HomeTokens tk, String value, String icon, String label) {
+    return PopupMenuItem<String>(
+      value: value,
+      height: 46,
+      child: Row(
+        children: [
+          StyledIcon(icon, size: 20, color: tk.gold),
+          const SizedBox(width: 12),
+          Text(label, style: cairoStyle(13.5, weight: 600, color: tk.ink)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
     final provider = context.watch<AzkarProvider>();
     final cat = provider.categoryById(widget.categoryId);
     final progress = provider.categoryProgress(widget.categoryId);
+    final total = cat.azkar.length;
+    final doneCount = cat.azkar.where((z) => z.remaining == 0).length;
+    final pct = (progress * 100).round();
 
     if (!_restoredPosition) {
       _restoredPosition = true;
@@ -197,74 +268,94 @@ class _ZikrListScreenState extends State<ZikrListScreen> {
       }
     }
 
+    final allDone = cat.azkar.every((z) => z.remaining == 0);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(cat.title),
-        actions: [
-          PopupMenuButton<String>(
-            tooltip: 'المزيد',
-            onSelected: (v) {
-              if (v == 'font') _fontSheet();
-              if (v == 'hide') setState(() => _hideDone = !_hideDone);
-              if (v == 'reset') _confirmReset(provider);
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                  value: 'font',
-                  child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.text_fields_rounded),
-                      title: Text('حجم الخط'))),
-              PopupMenuItem(
-                  value: 'hide',
-                  child: ListTile(
-                      dense: true,
-                      leading: Icon(_hideDone
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
-                      title:
-                          Text(_hideDone ? 'إظهار المكتملة' : 'إخفاء المكتملة'))),
-              const PopupMenuItem(
-                  value: 'reset',
-                  child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.refresh),
-                      title: Text('إعادة تعيين العداد'))),
-            ],
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 4,
-            backgroundColor: Colors.transparent,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            for (var i = 0; i < cat.azkar.length; i++)
-              if (!(_hideDone && cat.azkar[i].remaining == 0))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: KeyedSubtree(
-                    key: _key(i),
-                    child: ZikrCard(
-                      zikr: cat.azkar[i],
-                      onCompleted: () => _afterComplete(i, cat.azkar.length),
+      body: MediaQuery(
+        data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.3)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                PageHeader(
+                  title: 'الأذكار',
+                  actions: [
+                    HeaderButton(
+                      icon: ZikrIcons.fontSize,
+                      label: 'حجم الخط',
+                      onTap: _fontSheet,
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: 'المزيد',
+                      padding: EdgeInsets.zero,
+                      color: tk.card,
+                      surfaceTintColor: Colors.transparent,
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(color: tk.line),
+                      ),
+                      onSelected: (v) {
+                        if (v == 'hide') setState(() => _hideDone = !_hideDone);
+                        if (v == 'reset') _confirmReset(provider);
+                      },
+                      itemBuilder: (_) => [
+                        _menuItem(
+                            tk,
+                            'hide',
+                            _hideDone ? ZikrIcons.eye : ZikrIcons.eyeOff,
+                            _hideDone ? 'إظهار المكتملة' : 'إخفاء المكتملة'),
+                        _menuItem(tk, 'reset', ZikrIcons.refresh,
+                            'إعادة تعيين العداد'),
+                      ],
+                      child: HeaderButton(icon: ZikrIcons.dots),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.only(top: 6, bottom: 24),
+                    child: Column(
+                      children: [
+                        HomeHeroCard(
+                          tk: tk,
+                          icon: ZikrIcons.forKey(cat.icon),
+                          eyebrow: '${toArabicDigits(total)} من الأذكار',
+                          title: cat.title,
+                          progress: progress,
+                          caption:
+                              'أنجزت ${toArabicDigits(pct)}٪ · ${toArabicDigits(doneCount)} من ${toArabicDigits(total)}',
+                        ),
+                        const SizedBox(height: 10),
+                        for (var i = 0; i < cat.azkar.length; i++)
+                          if (!(_hideDone && cat.azkar[i].remaining == 0))
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: KeyedSubtree(
+                                key: _key(i),
+                                child: ZikrCard(
+                                  zikr: cat.azkar[i],
+                                  onCompleted: () =>
+                                      _afterComplete(i, cat.azkar.length),
+                                ),
+                              ),
+                            ),
+                        if (_hideDone && allDone)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 30),
+                            child: Text('كل أذكار هذا القسم مكتملة ✓',
+                                style: cairoStyle(14,
+                                    weight: 600, color: tk.mintInk)),
+                          ),
+                      ],
                     ),
                   ),
                 ),
-            if (_hideDone && cat.azkar.every((z) => z.remaining == 0))
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Text('كل أذكار هذا القسم مكتملة ✓'),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
