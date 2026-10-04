@@ -1,0 +1,173 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/home_tokens.dart';
+import '../core/text_utils.dart';
+import '../features/home/home_art.dart';
+import 'home_screen.dart';
+import 'onboarding_screen.dart';
+
+/// شاشة الفتح: شعار «ذِكر» نفسه من أيقونة التطبيق (قبة + هلال + «ذكر») على أخضر الهوية.
+/// تظهر لحظات أثناء قراءة الإعدادات، ثم تنتقل بتلاشي إلى الترحيب أو الرئيسية.
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final reduce = MediaQuery.of(context).disableAnimations;
+    if (reduce) {
+      _c.value = 1;
+    } else {
+      _c.forward();
+    }
+    _go(reduce ? 400 : 2500);
+  }
+
+  Future<void> _go(int minMs) async {
+    var done = false;
+    try {
+      final results = await Future.wait<Object?>([
+        SharedPreferences.getInstance().then((p) => p.getBool('onboarding_completed') ?? false),
+        Future<void>.delayed(Duration(milliseconds: minMs)),
+      ]);
+      done = results.first == true;
+    } catch (_) {}
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (_, __, ___) => done ? const HomeScreen() : const OnboardingScreen(),
+      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+    ));
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  Animation<double> _iv(double a, double b, [Curve curve = Curves.easeOutCubic]) =>
+      CurvedAnimation(parent: _c, curve: Interval(a, b, curve: curve));
+
+  // ألوان الهوية من أيقونة التطبيق: أخضر عميق + كريمي.
+  static const _green = Color(0xFF08302D);
+  static const _greenDark = Color(0xFF041D1C);
+  static const _cream = Color(0xFFF4ECDE);
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final logoW = math.min(210.0, size.shortestSide * .5);
+    final bg = _iv(0, .35, Curves.easeOut);
+    final logo = _iv(.05, .6, Curves.easeOutCubic);
+    final line = _iv(.5, .75);
+    final verse = _iv(.6, .9);
+    final foot = _iv(.85, 1);
+
+    return Scaffold(
+      backgroundColor: _green,
+      body: Stack(children: [
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -.15),
+                radius: 1.1,
+                colors: [Color(0xFF0C4540), _green, _greenDark],
+                stops: [0, .55, 1],
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: FadeTransition(
+            opacity: bg,
+            child: const CustomPaint(painter: IslamicPatternPainter(opacity: .06)),
+          ),
+        ),
+        Center(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              FadeTransition(
+                opacity: logo,
+                child: SlideTransition(
+                  position: Tween(begin: const Offset(0, .06), end: Offset.zero).animate(logo),
+                  child: ScaleTransition(
+                    scale: Tween(begin: .88, end: 1.0).animate(logo),
+                    child: Image.asset('assets/brand/logo_mark.png',
+                        width: logoW, filterQuality: FilterQuality.high),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 26),
+              AnimatedBuilder(
+                animation: line,
+                builder: (_, __) => Container(
+                  width: 46 * line.value,
+                  height: 2,
+                  decoration: BoxDecoration(
+                    color: _cream.withValues(alpha: .7),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              FadeTransition(
+                opacity: verse,
+                child: SlideTransition(
+                  position: Tween(begin: const Offset(0, .25), end: Offset.zero).animate(verse),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 36),
+                    child: Column(children: [
+                      Text('﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾',
+                          textAlign: TextAlign.center,
+                          textDirection: TextDirection.rtl,
+                          style: amiriStyle(21, color: _cream, height: 1.7)),
+                      const SizedBox(height: 4),
+                      Text('سورة الرعد · ${toArabicDigits(28)}',
+                          style: cairoStyle(12.5, color: _cream.withValues(alpha: .6))),
+                    ]),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: MediaQuery.of(context).padding.bottom + 28,
+          child: FadeTransition(
+            opacity: foot,
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              for (final w in const ['أذكار', 'قرآن', 'صلاة']) ...[
+                if (w != 'أذكار')
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: _cream.withValues(alpha: .6), shape: BoxShape.circle)),
+                  ),
+                Text(w, style: cairoStyle(13, weight: 600, color: _cream.withValues(alpha: .7))),
+              ],
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+}
