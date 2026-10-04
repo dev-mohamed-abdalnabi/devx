@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'page_background.dart';
 
@@ -81,7 +80,7 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        surfaceTintColor: scheme.primary.withOpacity(0.04),
+        surfaceTintColor: scheme.primary.withValues(alpha: 0.04),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

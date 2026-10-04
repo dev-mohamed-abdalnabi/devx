@@ -302,6 +302,7 @@ class _ForumScreenState extends State<ForumScreen> {
 
   Future<void> _report(Map<String, dynamic> post) async {
     if (!await _requireAuth()) return;
+    if (!mounted) return;
     final reason = await showModalBottomSheet<String>(
         context: context,
         showDragHandle: true,

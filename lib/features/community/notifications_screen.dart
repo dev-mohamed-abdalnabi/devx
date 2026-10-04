@@ -144,7 +144,7 @@ class _CommunityNotificationsScreenState
                     color: scheme.onErrorContainer)),
             child: AppCard(
               padding: const EdgeInsets.all(14),
-              color: unread ? scheme.primaryContainer.withOpacity(.45) : null,
+              color: unread ? scheme.primaryContainer.withValues(alpha: .45) : null,
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: AppIconBadge(icon: icon, size: 44),

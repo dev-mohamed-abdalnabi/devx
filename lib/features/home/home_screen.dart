@@ -17,7 +17,6 @@ import '../challenges/challenges_screen.dart';
 import '../more/support_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
-import '../prayer/qibla_screen.dart';
 import '../quran/quran_audio_screen.dart';
 import '../quran/quran_home_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';

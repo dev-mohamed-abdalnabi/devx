@@ -177,8 +177,9 @@ class PrayerProvider extends ChangeNotifier {
       } catch (_) {
         pos = await Geolocator.getLastKnownPosition();
       }
-      if (pos == null)
+      if (pos == null) {
         return 'تعذّر تحديد موقعك الآن. جرّب مرة أخرى أو اختر مدينتك.';
+      }
       lat = pos.latitude;
       lng = pos.longitude;
       final near = nearestCity(pos.latitude, pos.longitude);

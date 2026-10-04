@@ -569,8 +569,6 @@ class _Seg {
         surah = 0;
 }
 
-const double _bannerH = 52; // 44 + هامش 4 فوق وتحت
-
 /// صفحة من المصحف بنص حر الحجم (يتحكم فيه حجم الخط من الإعدادات).
 class _MushafPage extends StatefulWidget {
   final QuranProvider q;

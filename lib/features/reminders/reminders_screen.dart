@@ -100,6 +100,7 @@ class RemindersScreen extends StatelessWidget {
                             return;
                           }
                           await NotificationService.showTest();
+                          if (!context.mounted) return;
                           _snack(context, 'أرسلنا إشعار اختبار الآن.');
                         },
                         icon: const Icon(Icons.send_rounded),

@@ -41,10 +41,10 @@ class AboutScreen extends StatelessWidget {
           Text('معلومات التطبيق', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
           _InfoPanel(children: [
-            _InfoRow(icon: Icons.person_outline_rounded, title: 'المطور', value: 'محمد عبد النبي'),
-            _InfoDivider(),
+            const _InfoRow(icon: Icons.person_outline_rounded, title: 'المطور', value: 'محمد عبد النبي'),
+            const _InfoDivider(),
             _InfoRow(icon: Icons.language_rounded, title: 'الموقع الشخصي', value: 'mohamed-abdalnaby.is-a.dev', onTap: () => _openDeveloper(context)),
-            _InfoDivider(),
+            const _InfoDivider(),
             const _InfoRow(icon: Icons.new_releases_outlined, title: 'الإصدار', value: '1.3.0'),
           ]),
           const SizedBox(height: 14),
