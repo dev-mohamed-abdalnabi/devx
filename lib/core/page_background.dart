@@ -44,3 +44,32 @@ class PatternedPageTransitions extends PageTransitionsBuilder {
     );
   }
 }
+
+/// خلفية الرئيسية (اللون + نقش النجمة) كويدجت مستقل، تُستخدم تحت الهيكل الرئيسي
+/// (التابات) ليظهر النقش في كل مكان وليس فقط في الصفحات المفتوحة بـ Navigator.
+class PatternedBackground extends StatelessWidget {
+  final Widget child;
+  const PatternedBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return ColoredBox(
+      color: tk.bg,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: IslamicPatternPainter(opacity: dark ? .07 : .10),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}

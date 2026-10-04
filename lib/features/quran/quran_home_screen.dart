@@ -37,6 +37,9 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
     super.dispose();
   }
 
+  // يحفظ حالة/تركيز حقل البحث عند التبديل بين الشبكة ونتائج البحث (لتبقى لوحة المفاتيح مفتوحة).
+  final GlobalKey _searchKey = GlobalKey();
+
   void _onChanged(String v) {
     setState(() {}); // لإظهار/إخفاء زر المسح فورًا
     _debounce?.cancel();
@@ -52,57 +55,68 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
     final q = context.watch<QuranProvider>();
     final data = q.data;
 
-    Widget body;
+    // الهيدر + البحث + الفلاتر جزء من المحتوى: يطلعوا مع التمرير.
+    Widget content;
     if (q.loading) {
-      body = Center(child: CircularProgressIndicator(color: tk.leaf));
+      content = Column(children: [
+        const PageHeader(title: 'القرآن الكريم'),
+        Expanded(
+            child: Center(child: CircularProgressIndicator(color: tk.leaf))),
+      ]);
     } else if (data == null) {
-      body = HomeEmpty(
-        tk: tk,
-        icon: HomeIcons.quran,
-        title: 'تعذّر تحميل بيانات القرآن',
-        message: 'أعد تشغيل التطبيق',
-      );
-    } else {
-      body = Column(
-        children: [
-          const SizedBox(height: 6),
-          HomeSearchField(
+      content = Column(children: [
+        const PageHeader(title: 'القرآن الكريم'),
+        Expanded(
+          child: HomeEmpty(
             tk: tk,
-            controller: _controller,
-            hint: 'ابحث باسم السورة أو رقمها أو جزء من آية',
-            onChanged: _onChanged,
-            onClear: () {
-              _controller.clear();
-              setState(() => _query = '');
-            },
+            icon: HomeIcons.quran,
+            title: 'تعذّر تحميل بيانات القرآن',
+            message: 'أعد تشغيل التطبيق',
+          ),
+        ),
+      ]);
+    } else {
+      final top = <Widget>[
+        const PageHeader(title: 'القرآن الكريم'),
+        const SizedBox(height: 6),
+        HomeSearchField(
+          key: _searchKey,
+          tk: tk,
+          controller: _controller,
+          hint: 'ابحث باسم السورة أو رقمها أو جزء من آية',
+          onChanged: _onChanged,
+          onClear: () {
+            _controller.clear();
+            setState(() => _query = '');
+          },
+        ),
+        const SizedBox(height: 10),
+        if (_query.isEmpty) ...[
+          Row(
+            children: [
+              HomeChip(
+                  tk: tk,
+                  label: 'السور',
+                  selected: !_byJuz,
+                  onTap: () => setState(() => _byJuz = false)),
+              const SizedBox(width: 8),
+              HomeChip(
+                  tk: tk,
+                  label: 'الأجزاء',
+                  selected: _byJuz,
+                  onTap: () => setState(() => _byJuz = true)),
+            ],
           ),
           const SizedBox(height: 10),
-          if (_query.isEmpty) ...[
-            Row(
-              children: [
-                HomeChip(
-                    tk: tk,
-                    label: 'السور',
-                    selected: !_byJuz,
-                    onTap: () => setState(() => _byJuz = false)),
-                const SizedBox(width: 8),
-                HomeChip(
-                    tk: tk,
-                    label: 'الأجزاء',
-                    selected: _byJuz,
-                    onTap: () => setState(() => _byJuz = true)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: _byJuz
-                  ? _JuzGrid(tk: tk, data: data)
-                  : _SurahGrid(tk: tk, data: data),
-            ),
-          ] else
-            Expanded(child: _Results(tk: tk, data: data, query: _query)),
         ],
-      );
+      ];
+      if (_query.isNotEmpty) {
+        content = _Results(tk: tk, data: data, query: _query, top: top);
+      } else {
+        content = _byJuz
+            ? _JuzGrid(tk: tk, data: data, top: top)
+            : _SurahGrid(tk: tk, data: data, top: top);
+      }
     }
 
     return MediaQuery(
@@ -111,12 +125,7 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Column(
-            children: [
-              const PageHeader(title: 'القرآن الكريم'),
-              Expanded(child: body),
-            ],
-          ),
+          child: content,
         ),
       ),
     );
@@ -133,25 +142,35 @@ const _grid = SliverGridDelegateWithFixedCrossAxisCount(
 class _SurahGrid extends StatelessWidget {
   final HomeTokens tk;
   final QuranData data;
-  const _SurahGrid({required this.tk, required this.data});
+  final List<Widget> top;
+  const _SurahGrid({required this.tk, required this.data, required this.top});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
-      gridDelegate: _grid,
-      itemCount: data.surahs.length,
-      itemBuilder: (ctx, i) {
-        final s = data.surahs[i];
-        return NumberCard(
-          tk: tk,
-          number: s.number,
-          title: QuranAudioProvider.surahName(s.number),
-          subtitle:
-              '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
-          onTap: () => openReader(ctx, s.firstPage),
-        );
-      },
+    return CustomScrollView(
+      slivers: [
+        SliverList(delegate: SliverChildListDelegate(top)),
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 16),
+          sliver: SliverGrid(
+            gridDelegate: _grid,
+            delegate: SliverChildBuilderDelegate(
+              childCount: data.surahs.length,
+              (ctx, i) {
+                final s = data.surahs[i];
+                return NumberCard(
+                  tk: tk,
+                  number: s.number,
+                  title: QuranAudioProvider.surahName(s.number),
+                  subtitle:
+                      '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
+                  onTap: () => openReader(ctx, s.firstPage),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -159,24 +178,34 @@ class _SurahGrid extends StatelessWidget {
 class _JuzGrid extends StatelessWidget {
   final HomeTokens tk;
   final QuranData data;
-  const _JuzGrid({required this.tk, required this.data});
+  final List<Widget> top;
+  const _JuzGrid({required this.tk, required this.data, required this.top});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
-      gridDelegate: _grid,
-      itemCount: 30,
-      itemBuilder: (ctx, i) {
-        final page = data.juzStartPages[i];
-        return NumberCard(
-          tk: tk,
-          number: i + 1,
-          title: 'الجزء ${toArabicDigits(i + 1)}',
-          subtitle: 'صفحة ${toArabicDigits(page)}',
-          onTap: () => openReader(ctx, page),
-        );
-      },
+    return CustomScrollView(
+      slivers: [
+        SliverList(delegate: SliverChildListDelegate(top)),
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 16),
+          sliver: SliverGrid(
+            gridDelegate: _grid,
+            delegate: SliverChildBuilderDelegate(
+              childCount: 30,
+              (ctx, i) {
+                final page = data.juzStartPages[i];
+                return NumberCard(
+                  tk: tk,
+                  number: i + 1,
+                  title: 'الجزء ${toArabicDigits(i + 1)}',
+                  subtitle: 'صفحة ${toArabicDigits(page)}',
+                  onTap: () => openReader(ctx, page),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -185,7 +214,12 @@ class _Results extends StatelessWidget {
   final HomeTokens tk;
   final QuranData data;
   final String query;
-  const _Results({required this.tk, required this.data, required this.query});
+  final List<Widget> top;
+  const _Results(
+      {required this.tk,
+      required this.data,
+      required this.query,
+      required this.top});
 
   @override
   Widget build(BuildContext context) {
@@ -199,13 +233,19 @@ class _Results extends StatelessWidget {
         asNumber == null ? data.searchAyahs(query) : const <Ayah>[];
 
     if (surahHits.isEmpty && ayahHits.isEmpty) {
-      return HomeEmpty(
-          tk: tk, icon: ZikrIcons.search, title: 'لا توجد نتائج مطابقة');
+      return Column(children: [
+        ...top,
+        Expanded(
+          child: HomeEmpty(
+              tk: tk, icon: ZikrIcons.search, title: 'لا توجد نتائج مطابقة'),
+        ),
+      ]);
     }
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 16),
       children: [
+        ...top,
         for (final s in surahHits)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),

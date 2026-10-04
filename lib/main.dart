@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -17,6 +18,14 @@ import 'widgets/support_app_button.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // شريط حالة وشريط تنقل شفافان 100%: المحتوى يمتد خلفهما (edge-to-edge).
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemStatusBarContrastEnforced: false,
+    systemNavigationBarContrastEnforced: false,
+  ));
   SupabaseConfig.validate();
   await Supabase.initialize(
     url: SupabaseConfig.url,
@@ -65,15 +74,30 @@ class AzkarApp extends StatelessWidget {
             // (وهما سبب الخط الصغير/الكبير جدًا) ونضبط الحجم حسب عرض الشاشة نفسه.
             builder: (context, child) {
               final mq = MediaQuery.of(context);
-              final scale = (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
-              return MediaQuery(
-                data: mq.copyWith(textScaler: TextScaler.linear(scale)),
-                child: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: child!,
+              final scale =
+                  (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              final icons = dark ? Brightness.light : Brightness.dark;
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness: icons,
+                  statusBarBrightness:
+                      dark ? Brightness.dark : Brightness.light,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarIconBrightness: icons,
+                  systemStatusBarContrastEnforced: false,
+                  systemNavigationBarContrastEnforced: false,
+                ),
+                child: MediaQuery(
+                  data: mq.copyWith(textScaler: TextScaler.linear(scale)),
+                  child: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: child!,
+                      ),
                     ),
                   ),
                 ),

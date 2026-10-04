@@ -2,14 +2,32 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/star_shape.dart';
 
-/// مشاهد الكارت الرئيسي حسب وقت اليوم.
-enum HeroScene { dawn, day, sunset, night }
+/// مشاهد الكارت الرئيسي: ١٠ مشاهد تتبدّل على مدار اليوم.
+/// (العصر هو المشهد المفضّل: برتقالي/بنفسجي دافئ.)
+enum HeroScene {
+  deepNight, // ٠٠:٠٠ – ٠٣:٠٠  الليل العميق
+  sahar, //     ٠٣:٠٠ – ٠٥:٠٠  السَّحَر
+  dawn, //      ٠٥:٠٠ – ٠٦:٣٠  الفجر
+  morning, //   ٠٦:٣٠ – ٠٩:٣٠  الضحى
+  noon, //      ٠٩:٣٠ – ١٣:٠٠  الظهيرة
+  afternoon, // ١٣:٠٠ – ١٥:٠٠  بعد الظهر
+  asr, //       ١٥:٠٠ – ١٧:٣٠  العصر
+  maghrib, //   ١٧:٣٠ – ١٩:٠٠  الغروب
+  dusk, //      ١٩:٠٠ – ٢١:٠٠  العشاء
+  night, //     ٢١:٠٠ – ٢٤:٠٠  الليل
+}
 
 HeroScene heroSceneFor(DateTime n) {
-  final h = n.hour;
-  if (h >= 3 && h < 6) return HeroScene.dawn;
-  if (h >= 6 && h < 15) return HeroScene.day;
-  if (h >= 15 && h < 19) return HeroScene.sunset;
+  final h = n.hour + n.minute / 60;
+  if (h < 3) return HeroScene.deepNight;
+  if (h < 5) return HeroScene.sahar;
+  if (h < 6.5) return HeroScene.dawn;
+  if (h < 9.5) return HeroScene.morning;
+  if (h < 13) return HeroScene.noon;
+  if (h < 15) return HeroScene.afternoon;
+  if (h < 17.5) return HeroScene.asr;
+  if (h < 19) return HeroScene.maghrib;
+  if (h < 21) return HeroScene.dusk;
   return HeroScene.night;
 }
 
@@ -30,6 +48,30 @@ class HeroPalette {
 
   static HeroPalette of(HeroScene s) {
     switch (s) {
+      case HeroScene.deepNight:
+        return const HeroPalette(
+          sky: [Color(0xFF050816), Color(0xFF0B1B3A), Color(0xFF16305A)],
+          ink: Color(0xFFF1EEE2),
+          sub: Color(0xFFC3D3E4),
+          accent: Color(0xFFF0D58A),
+          silhouette: Color(0xFF050A18),
+          hill: Color(0xFF0A1830),
+          pill: Color(0x26FFFFFF),
+          track: Color(0x33FFFFFF),
+          fill: Color(0xFFF0D58A),
+        );
+      case HeroScene.sahar:
+        return const HeroPalette(
+          sky: [Color(0xFF0A1530), Color(0xFF1B2F5E), Color(0xFF4B4A7C)],
+          ink: Color(0xFFFFF4E0),
+          sub: Color(0xFFE6D8EC),
+          accent: Color(0xFFF6D58F),
+          silhouette: Color(0xFF0A1226),
+          hill: Color(0xFF121F42),
+          pill: Color(0x2EFFFFFF),
+          track: Color(0x38FFFFFF),
+          fill: Color(0xFFF6D58F),
+        );
       case HeroScene.dawn:
         return const HeroPalette(
           sky: [Color(0xFF0C2B3D), Color(0xFF2F6A78), Color(0xFFE9B98A)],
@@ -42,19 +84,43 @@ class HeroPalette {
           track: Color(0x40FFFFFF),
           fill: Color(0xFFF2CB78),
         );
-      case HeroScene.day:
+      case HeroScene.morning:
         return const HeroPalette(
-          sky: [Color(0xFF8FD0EC), Color(0xFFCDEBEF), Color(0xFFF1F6DC)],
-          ink: Color(0xFF14432A),
-          sub: Color(0xFF2E5E3F),
-          accent: Color(0xFFB8801F),
-          silhouette: Color(0xFF3F7D55),
-          hill: Color(0xFF9CCB92),
-          pill: Color(0x66FFFFFF),
-          track: Color(0x40144A2A),
-          fill: Color(0xFF3E9A55),
+          sky: [Color(0xFF1F5F73), Color(0xFF59A3A0), Color(0xFFF3D28B)],
+          ink: Color(0xFFFFF8E6),
+          sub: Color(0xFFFFEBC8),
+          accent: Color(0xFFFFE08A),
+          silhouette: Color(0xFF0F3B3F),
+          hill: Color(0xFF1C5C57),
+          pill: Color(0x33FFFFFF),
+          track: Color(0x40FFFFFF),
+          fill: Color(0xFFFFE08A),
         );
-      case HeroScene.sunset:
+      case HeroScene.noon:
+        return const HeroPalette(
+          sky: [Color(0xFF0F4C75), Color(0xFF2D86A8), Color(0xFF9AD3CF)],
+          ink: Color(0xFFFFF9EA),
+          sub: Color(0xFFE3F4EE),
+          accent: Color(0xFFFFE9A0),
+          silhouette: Color(0xFF0C3B4A),
+          hill: Color(0xFF17566A),
+          pill: Color(0x33FFFFFF),
+          track: Color(0x40FFFFFF),
+          fill: Color(0xFFFFE9A0),
+        );
+      case HeroScene.afternoon:
+        return const HeroPalette(
+          sky: [Color(0xFF2B4F5E), Color(0xFFD39A4A), Color(0xFFF6D88F)],
+          ink: Color(0xFFFFF6E0),
+          sub: Color(0xFFFFE9C2),
+          accent: Color(0xFFFFE3A0),
+          silhouette: Color(0xFF26352C),
+          hill: Color(0xFF3A4A3A),
+          pill: Color(0x33FFFFFF),
+          track: Color(0x40FFFFFF),
+          fill: Color(0xFFFFE3A0),
+        );
+      case HeroScene.asr:
         return const HeroPalette(
           sky: [Color(0xFF3A2B5C), Color(0xFFD9683A), Color(0xFFF8C970)],
           ink: Color(0xFFFFF4E0),
@@ -65,6 +131,30 @@ class HeroPalette {
           pill: Color(0x33FFFFFF),
           track: Color(0x40FFFFFF),
           fill: Color(0xFFFFD98A),
+        );
+      case HeroScene.maghrib:
+        return const HeroPalette(
+          sky: [Color(0xFF2B1B4A), Color(0xFFB5384A), Color(0xFFF08A4B)],
+          ink: Color(0xFFFFF1DC),
+          sub: Color(0xFFFFD9B8),
+          accent: Color(0xFFFFC27A),
+          silhouette: Color(0xFF241233),
+          hill: Color(0xFF3A1B3F),
+          pill: Color(0x33FFFFFF),
+          track: Color(0x40FFFFFF),
+          fill: Color(0xFFFFC27A),
+        );
+      case HeroScene.dusk:
+        return const HeroPalette(
+          sky: [Color(0xFF120F33), Color(0xFF3B2A63), Color(0xFF9B4F6E)],
+          ink: Color(0xFFF6EBDD),
+          sub: Color(0xFFE3CFE0),
+          accent: Color(0xFFF2C27A),
+          silhouette: Color(0xFF0E0A22),
+          hill: Color(0xFF1C1238),
+          pill: Color(0x2EFFFFFF),
+          track: Color(0x38FFFFFF),
+          fill: Color(0xFFF2C27A),
         );
       case HeroScene.night:
         return const HeroPalette(
@@ -91,9 +181,11 @@ class HeroBackdrop extends StatefulWidget {
   State<HeroBackdrop> createState() => _HeroBackdropState();
 }
 
-class _HeroBackdropState extends State<HeroBackdrop> with SingleTickerProviderStateMixin {
+class _HeroBackdropState extends State<HeroBackdrop>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 24))..repeat();
+      AnimationController(vsync: this, duration: const Duration(seconds: 24))
+        ..repeat();
 
   @override
   void dispose() {
@@ -140,36 +232,80 @@ class _ScenePainter extends CustomPainter {
           ).createShader(rect));
 
     // نقش النجمة الإسلامية خفيف جدًا فوق السماء.
-    _pattern(canvas, size, pal.accent.withValues(alpha: scene == HeroScene.day ? .16 : .1));
+    _pattern(canvas, size, pal.accent.withValues(alpha: .1));
 
-    final sunC = Offset(w * .24, h * .5);
     switch (scene) {
+      case HeroScene.deepNight:
+        _stars(canvas, size, t, 1);
+        _glow(canvas, Offset(w * .8, h * .26), h * .5, const Color(0xFFFFF0B8),
+            .2);
+        _crescent(canvas, Offset(w * .8, h * .26), h * .13,
+            const Color(0xFFFFF0B8), 1);
+        break;
+      case HeroScene.sahar:
+        _stars(canvas, size, t, .6);
+        _glow(canvas, Offset(w * .24, h * .98), h * .85,
+            const Color(0xFF9B7BC0), .4);
+        _crescent(canvas, Offset(w * .12, h * .22), h * .08,
+            const Color(0xFFFFF2CF), .85);
+        break;
       case HeroScene.dawn:
         _stars(canvas, size, t, .55);
-        _glow(canvas, Offset(w * .24, h * .86), h * .75, const Color(0xFFFFC98A), .55);
-        _crescent(canvas, Offset(w * .1, h * .2), h * .08, const Color(0xFFFFF2CF), .85);
+        _glow(canvas, Offset(w * .24, h * .86), h * .75,
+            const Color(0xFFFFC98A), .55);
+        _crescent(canvas, Offset(w * .1, h * .2), h * .08,
+            const Color(0xFFFFF2CF), .85);
         break;
-      case HeroScene.day:
-        _glow(canvas, sunC, h * .62, const Color(0xFFFFF3B0), .8);
-        _rays(canvas, sunC, h * .2, h * .46, t, const Color(0xFFFFE27A));
-        canvas.drawCircle(sunC, h * .15, Paint()..color = const Color(0xFFFFD34D));
-        canvas.drawCircle(sunC, h * .15,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2
-              ..color = const Color(0xFFFFF1A8));
-        _cloud(canvas, size, t, .14, h * .2, 1.0);
-        _cloud(canvas, size, t, .62, h * .34, .7);
+      case HeroScene.morning:
+        _glow(canvas, Offset(w * .24, h * .66), h * .9, const Color(0xFFFFD98A),
+            .6);
+        canvas.drawCircle(Offset(w * .24, h * .62), h * .14,
+            Paint()..color = const Color(0xFFFFE7A3));
+        _cloud(canvas, size, t, .2, h * .22, .9, .3);
+        _cloud(canvas, size, t, .68, h * .36, .6, .22);
         break;
-      case HeroScene.sunset:
-        _glow(canvas, Offset(w * .24, h * .78), h * .9, const Color(0xFFFFB347), .7);
-        canvas.drawCircle(Offset(w * .24, h * .74), h * .2, Paint()..color = const Color(0xFFFFE1A0));
+      case HeroScene.noon:
+        _glow(canvas, Offset(w * .3, h * .32), h * .7, const Color(0xFFFFF1B8),
+            .45);
+        canvas.drawCircle(Offset(w * .3, h * .3), h * .12,
+            Paint()..color = const Color(0xFFFFF1B8));
+        _cloud(canvas, size, t, .12, h * .2, 1.0, .3);
+        _cloud(canvas, size, t, .6, h * .42, .7, .24);
+        break;
+      case HeroScene.afternoon:
+        _glow(canvas, Offset(w * .24, h * .55), h * .8, const Color(0xFFFFD27A),
+            .55);
+        canvas.drawCircle(Offset(w * .24, h * .52), h * .14,
+            Paint()..color = const Color(0xFFFFE6A8));
+        _cloud(canvas, size, t, .5, h * .26, .8, .25);
+        break;
+      case HeroScene.asr:
+        _glow(canvas, Offset(w * .24, h * .78), h * .9, const Color(0xFFFFB347),
+            .7);
+        canvas.drawCircle(Offset(w * .24, h * .74), h * .2,
+            Paint()..color = const Color(0xFFFFE1A0));
         _birds(canvas, size, t);
+        break;
+      case HeroScene.maghrib:
+        _glow(canvas, Offset(w * .24, h * .88), h * 1.0,
+            const Color(0xFFFF8A4A), .75);
+        canvas.drawCircle(Offset(w * .24, h * .9), h * .2,
+            Paint()..color = const Color(0xFFFFB36B));
+        _birds(canvas, size, t);
+        break;
+      case HeroScene.dusk:
+        _stars(canvas, size, t, .45);
+        _glow(canvas, Offset(w * .24, h * .98), h * .9, const Color(0xFFFF9A5A),
+            .35);
+        _crescent(canvas, Offset(w * .8, h * .24), h * .1,
+            const Color(0xFFFFEBC4), .9);
         break;
       case HeroScene.night:
         _stars(canvas, size, t, 1);
-        _glow(canvas, Offset(w * .2, h * .3), h * .5, const Color(0xFFFFF0B8), .22);
-        _crescent(canvas, Offset(w * .2, h * .3), h * .15, const Color(0xFFFFF0B8), 1);
+        _glow(canvas, Offset(w * .2, h * .3), h * .5, const Color(0xFFFFF0B8),
+            .22);
+        _crescent(canvas, Offset(w * .2, h * .3), h * .15,
+            const Color(0xFFFFF0B8), 1);
         break;
     }
 
@@ -185,9 +321,11 @@ class _ScenePainter extends CustomPainter {
 
     final mw = math.min(w * .5, h * 1.25);
     _mosque(canvas, Offset(w * .02, h + 1), mw, pal.silhouette,
-        lit: scene == HeroScene.night || scene == HeroScene.dawn || scene == HeroScene.sunset
-            ? pal.accent
-            : null);
+        lit: (scene == HeroScene.morning ||
+                scene == HeroScene.noon ||
+                scene == HeroScene.afternoon)
+            ? null
+            : pal.accent);
   }
 
   void _pattern(Canvas canvas, Size size, Color color) {
@@ -195,7 +333,8 @@ class _ScenePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = .8
       ..color = color;
-    final star = Path()..moveTo(kIslamicStarPoints.first.dx, kIslamicStarPoints.first.dy);
+    final star = Path()
+      ..moveTo(kIslamicStarPoints.first.dx, kIslamicStarPoints.first.dy);
     for (final o in kIslamicStarPoints.skip(1)) {
       star.lineTo(o.dx, o.dy);
     }
@@ -218,7 +357,8 @@ class _ScenePainter extends CustomPainter {
           ]).createShader(Rect.fromCircle(center: c, radius: r)));
   }
 
-  void _rays(Canvas canvas, Offset c, double r0, double r1, double t, Color color) {
+  void _rays(
+      Canvas canvas, Offset c, double r0, double r1, double t, Color color) {
     final p = Paint()
       ..color = color.withValues(alpha: .75)
       ..strokeWidth = 3
@@ -232,12 +372,16 @@ class _ScenePainter extends CustomPainter {
     }
   }
 
-  void _cloud(Canvas canvas, Size size, double t, double phase, double y, double s) {
+  void _cloud(
+      Canvas canvas, Size size, double t, double phase, double y, double s,
+      [double alpha = .85]) {
     final span = size.width + 140;
     final x = ((phase * span + t * span) % span) - 70;
-    final p = Paint()..color = Colors.white.withValues(alpha: .85);
+    final p = Paint()..color = Colors.white.withValues(alpha: alpha);
     final u = size.height * .09 * s;
-    canvas.drawOval(Rect.fromCenter(center: Offset(x, y), width: u * 4.4, height: u * 1.5), p);
+    canvas.drawOval(
+        Rect.fromCenter(center: Offset(x, y), width: u * 4.4, height: u * 1.5),
+        p);
     canvas.drawCircle(Offset(x - u * .7, y - u * .5), u * .9, p);
     canvas.drawCircle(Offset(x + u * .5, y - u * .7), u * 1.1, p);
   }
@@ -247,7 +391,8 @@ class _ScenePainter extends CustomPainter {
     for (var i = 0; i < 26; i++) {
       final x = _frac(math.sin(i * 12.9898) * 43758.5453) * size.width;
       final y = _frac(math.sin(i * 78.233) * 12345.6789) * size.height * .62;
-      final tw = .35 + .65 * (.5 + .5 * math.sin(2 * math.pi * (t * 3 + i * .137)));
+      final tw =
+          .35 + .65 * (.5 + .5 * math.sin(2 * math.pi * (t * 3 + i * .137)));
       final r = .8 + _frac(i * .37) * 1.3;
       p.color = const Color(0xFFFFF6D8).withValues(alpha: tw * strength);
       canvas.drawCircle(Offset(x, y), r, p);
@@ -258,7 +403,9 @@ class _ScenePainter extends CustomPainter {
     final p = Path.combine(
       PathOperation.difference,
       Path()..addOval(Rect.fromCircle(center: c, radius: r)),
-      Path()..addOval(Rect.fromCircle(center: c + Offset(r * .45, -r * .12), radius: r * .88)),
+      Path()
+        ..addOval(Rect.fromCircle(
+            center: c + Offset(r * .45, -r * .12), radius: r * .88)),
     );
     canvas.drawPath(p, Paint()..color = color.withValues(alpha: a));
   }
@@ -272,7 +419,8 @@ class _ScenePainter extends CustomPainter {
     final span = size.width + 60;
     for (var i = 0; i < 3; i++) {
       final x = ((i * .09 + t) % 1) * span - 30;
-      final y = size.height * (.28 + i * .07) + math.sin((t + i) * 2 * math.pi) * 3;
+      final y =
+          size.height * (.28 + i * .07) + math.sin((t + i) * 2 * math.pi) * 3;
       final b = Path()
         ..moveTo(x - 7, y)
         ..quadraticBezierTo(x - 3.5, y - 5, x, y)
@@ -315,9 +463,13 @@ class _ScenePainter extends CustomPainter {
       final l = Paint()..color = lit.withValues(alpha: .9);
       for (final x in [13.0, 135.0]) {
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromLTWH(x, 64, 2, 8), const Radius.circular(1)), l);
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(x, 64, 2, 8), const Radius.circular(1)),
+            l);
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromLTWH(x, 80, 2, 8), const Radius.circular(1)), l);
+            RRect.fromRectAndRadius(
+                Rect.fromLTWH(x, 80, 2, 8), const Radius.circular(1)),
+            l);
       }
       for (final x in [46.0, 86.0]) {
         canvas.drawPath(

@@ -15,9 +15,10 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100));
   bool _started = false;
 
   @override
@@ -31,14 +32,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     } else {
       _c.forward();
     }
-    _go(reduce ? 400 : 2500);
+    _go(reduce ? 300 : 1300);
   }
 
   Future<void> _go(int minMs) async {
     var done = false;
     try {
       final results = await Future.wait<Object?>([
-        SharedPreferences.getInstance().then((p) => p.getBool('onboarding_completed') ?? false),
+        SharedPreferences.getInstance()
+            .then((p) => p.getBool('onboarding_completed') ?? false),
         Future<void>.delayed(Duration(milliseconds: minMs)),
       ]);
       done = results.first == true;
@@ -46,8 +48,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (_, __, ___) => done ? const HomeScreen() : const OnboardingScreen(),
-      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+      pageBuilder: (_, __, ___) =>
+          done ? const HomeScreen() : const OnboardingScreen(),
+      transitionsBuilder: (_, a, __, child) =>
+          FadeTransition(opacity: a, child: child),
     ));
   }
 
@@ -57,7 +61,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
-  Animation<double> _iv(double a, double b, [Curve curve = Curves.easeOutCubic]) =>
+  Animation<double> _iv(double a, double b,
+          [Curve curve = Curves.easeOutCubic]) =>
       CurvedAnimation(parent: _c, curve: Interval(a, b, curve: curve));
 
   // ألوان الهوية من أيقونة التطبيق: أخضر عميق + كريمي.
@@ -93,17 +98,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Positioned.fill(
           child: FadeTransition(
             opacity: bg,
-            child: const CustomPaint(painter: IslamicPatternPainter(opacity: .06)),
+            child:
+                const CustomPaint(painter: IslamicPatternPainter(opacity: .06)),
           ),
         ),
-        Center(
+        Align(
+          alignment: const Alignment(0, -.38),
           child: SingleChildScrollView(
             physics: const NeverScrollableScrollPhysics(),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               FadeTransition(
                 opacity: logo,
                 child: SlideTransition(
-                  position: Tween(begin: const Offset(0, .06), end: Offset.zero).animate(logo),
+                  position: Tween(begin: const Offset(0, .06), end: Offset.zero)
+                      .animate(logo),
                   child: ScaleTransition(
                     scale: Tween(begin: .88, end: 1.0).animate(logo),
                     child: Image.asset('assets/brand/logo_mark.png',
@@ -127,7 +135,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               FadeTransition(
                 opacity: verse,
                 child: SlideTransition(
-                  position: Tween(begin: const Offset(0, .25), end: Offset.zero).animate(verse),
+                  position: Tween(begin: const Offset(0, .25), end: Offset.zero)
+                      .animate(verse),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 36),
                     child: Column(children: [
@@ -137,7 +146,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           style: amiriStyle(21, color: _cream, height: 1.7)),
                       const SizedBox(height: 4),
                       Text('سورة الرعد · ${toArabicDigits(28)}',
-                          style: cairoStyle(12.5, color: _cream.withValues(alpha: .6))),
+                          style: cairoStyle(12.5,
+                              color: _cream.withValues(alpha: .6))),
                     ]),
                   ),
                 ),
@@ -160,9 +170,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         width: 4,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: _cream.withValues(alpha: .6), shape: BoxShape.circle)),
+                            color: _cream.withValues(alpha: .6),
+                            shape: BoxShape.circle)),
                   ),
-                Text(w, style: cairoStyle(13, weight: 600, color: _cream.withValues(alpha: .7))),
+                Text(w,
+                    style: cairoStyle(13,
+                        weight: 600, color: _cream.withValues(alpha: .7))),
               ],
             ]),
           ),

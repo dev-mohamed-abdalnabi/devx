@@ -27,13 +27,19 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _controller;
-  final ScrollController _sc = ScrollController();
-  final Map<int, GlobalKey> _keys = <int, GlobalKey>{};
+  ScrollController _sc = ScrollController();
+  // الصفحات المبنية حاليًا فقط (تسجّل نفسها وتحذف نفسها)، بدل GlobalKey لكل الـ604 صفحة.
+  final Map<int, BuildContext> _reg = <int, BuildContext>{};
+  late final QuranProvider _q;
   late String _mode;
-  bool _jumping = false;
+  // في وضع التمرير: الصفحة التي تُبنى القائمة منها (مرساة)؛ القفز لأي صفحة = إعادة ترسيخ فورية
+  // بدل قفزات متكررة تبني عشرات الصفحات الثقيلة (كانت سبب البطء والكراش).
+  late int _contAnchor;
   late int _page;
   String? _flash;
   Timer? _readTimer;
+  Timer? _lastTimer;
+  int? _pendingLast;
   bool _chrome = true;
   final Set<String> _sel = <String>{};
   String? _anchor;
@@ -43,51 +49,33 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void initState() {
     super.initState();
+    _q = context.read<QuranProvider>();
     _page = widget.page.clamp(1, 604);
+    _contAnchor = _page;
     _flash = widget.highlight;
     _controller = PageController(initialPage: _page - 1);
-    _mode = context.read<QuranProvider>().pageMode;
+    _mode = _q.pageMode;
     _sc.addListener(_onScroll);
-    if (_mode == 'continuous') {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _contJump(_page));
-    }
     _onPage(_page);
   }
 
-  GlobalKey _keyFor(int page) => _keys.putIfAbsent(page, () => GlobalKey());
-
   /// الصفحة التي يقع عندها خط القراءة (أعلى الشاشة تقريبًا) في وضع التمرير.
+  /// تفحص فقط الصفحات المبنية حاليًا (عادةً ٣–٥).
   int? _pageAtLine() {
     final line = MediaQuery.of(context).padding.top + 90;
-    int? best;
-    for (final e in _keys.entries) {
-      final ctx = e.value.currentContext;
-      if (ctx == null) continue;
+    for (final e in _reg.entries) {
+      final ctx = e.value;
+      if (!ctx.mounted) continue;
       final ro = ctx.findRenderObject();
-      if (ro is! RenderBox || !ro.attached) continue;
+      if (ro is! RenderBox || !ro.attached || !ro.hasSize) continue;
       final top = ro.localToGlobal(Offset.zero).dy;
-      if (top <= line && top + ro.size.height > line) {
-        best = e.key;
-        break;
-      }
+      if (top <= line && top + ro.size.height > line) return e.key;
     }
-    return best;
-  }
-
-  double _avgPageHeight() {
-    var sum = 0.0, n = 0;
-    for (final e in _keys.entries) {
-      final ro = e.value.currentContext?.findRenderObject();
-      if (ro is RenderBox && ro.attached) {
-        sum += ro.size.height;
-        n++;
-      }
-    }
-    return n == 0 ? 900 : sum / n;
+    return null;
   }
 
   void _onScroll() {
-    if (_jumping || !mounted) return;
+    if (!mounted) return;
     final p = _pageAtLine();
     if (p != null && p != _page) {
       setState(() => _page = p);
@@ -95,34 +83,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
-  Future<void> _contJump(int page) async {
-    if (!mounted) return;
-    _jumping = true;
-    try {
-      for (var i = 0; i < 12; i++) {
-        if (!_sc.hasClients || !mounted) return;
-        final ctx = _keys[page]?.currentContext;
-        if (ctx != null) {
-          if (!ctx.mounted) return;
-          await Scrollable.ensureVisible(ctx, alignment: 0, duration: Duration.zero);
-          break;
-        }
-        final cur = _pageAtLine();
-        final avg = _avgPageHeight();
-        final pos = _sc.position;
-        final target = cur == null
-            ? (page - 1) * avg
-            : pos.pixels + (page - cur) * avg;
-        pos.jumpTo(target.clamp(0.0, pos.maxScrollExtent));
-        await WidgetsBinding.instance.endOfFrame;
-      }
-    } finally {
-      _jumping = false;
-    }
-    if (mounted) {
-      setState(() => _page = page);
-      _onPage(page);
-    }
+  /// يعيد بناء قائمة التمرير بحيث تبدأ من [page] مباشرة (بدون أي قفز/تمرير).
+  void _reanchor(int page) {
+    final old = _sc;
+    _sc = ScrollController()..addListener(_onScroll);
+    _contAnchor = page;
+    _page = page;
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
   void _syncMode(String mode) {
@@ -130,16 +97,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _mode = mode;
     final old = _controller;
     _controller = PageController(initialPage: _page - 1);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      old.dispose();
-      if (mode == 'continuous') _contJump(_page);
-    });
+    if (mode == 'continuous') _reanchor(_page);
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
   void _goPage(int p) {
     if (_mode == 'continuous') {
-      setState(() => _page = p);
-      _contJump(p);
+      setState(() => _reanchor(p));
+      _onPage(p);
     } else {
       _controller.jumpToPage(p - 1);
     }
@@ -148,6 +113,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void dispose() {
     _readTimer?.cancel();
+    _lastTimer?.cancel();
+    // لو خرج المستخدم قبل انتهاء مهلة الحفظ نحفظ آخر صفحة بعد انتهاء الفريم.
+    final pending = _pendingLast;
+    if (pending != null) {
+      final q = _q;
+      Future.microtask(() => q.setLastPage(pending));
+    }
     _controller.dispose();
     _sc.dispose();
     super.dispose();
@@ -155,9 +127,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   void _onPage(int page) {
     _readTimer?.cancel();
-    final q = context.read<QuranProvider>();
+    _lastTimer?.cancel();
+    final q = _q;
     final act = context.read<ActivityProvider>();
-    q.setLastPage(page);
+    // حفظ آخر صفحة يُعمل notifyListeners ويعيد بناء الشاشات؛ نؤجله لحين توقف التمرير.
+    _pendingLast = page;
+    _lastTimer = Timer(const Duration(milliseconds: 500), () {
+      _pendingLast = null;
+      if (mounted) q.setLastPage(page);
+    });
     // تُحتسب الصفحة مقروءة بعد بقائها 6 ثوانٍ لتفادي احتساب التصفح السريع.
     _readTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) {
@@ -167,8 +145,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     });
   }
 
-  HomeTokens get _tk =>
-      readerTokens(context.read<QuranProvider>().readerTheme, Theme.of(context).brightness);
+  HomeTokens get _tk => readerTokens(
+      context.read<QuranProvider>().readerTheme, Theme.of(context).brightness);
 
   void _clearSel() => setState(() {
         _sel.clear();
@@ -239,7 +217,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     await Clipboard.setData(ClipboardData(text: copyText(l)));
     if (!mounted) return;
     _clearSel();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم النسخ')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('تم النسخ')));
   }
 
   Future<void> _shareSelected() async {
@@ -288,12 +267,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: tk.line, borderRadius: BorderRadius.circular(2))),
+                            color: tk.line,
+                            borderRadius: BorderRadius.circular(2))),
                   ),
                   const SizedBox(height: 12),
-                  Text('إعدادات القراءة', style: amiriStyle(24, bold: true, color: tk.ink)),
+                  Text('إعدادات القراءة',
+                      style: amiriStyle(24, bold: true, color: tk.ink)),
                   const SizedBox(height: 14),
-                  Text('نمط القراءة', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                  Text('نمط القراءة',
+                      style: cairoStyle(12.5, weight: 700, color: tk.gold)),
                   const SizedBox(height: 8),
                   Row(children: [
                     QPill(
@@ -309,7 +291,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         onTap: () => q.setPageMode('continuous')),
                   ]),
                   const SizedBox(height: 14),
-                  Text('حجم الخط', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                  Text('حجم الخط',
+                      style: cairoStyle(12.5, weight: 700, color: tk.gold)),
                   SliderTheme(
                     data: SliderTheme.of(ctx).copyWith(
                         activeTrackColor: tk.gold,
@@ -326,7 +309,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text('لون الصفحة', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                  Text('لون الصفحة',
+                      style: cairoStyle(12.5, weight: 700, color: tk.gold)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     for (final e in const {
@@ -375,6 +359,50 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
   }
 
+  Widget _contList(QuranData data, QuranProvider q, HomeTokens tk) {
+    final anchor = _contAnchor.clamp(1, data.pageCount);
+    Widget item(int page) => RepaintBoundary(
+          child: _Tracked(
+            page: page,
+            reg: _reg,
+            child: _MushafPage(
+              q: q,
+              page: page,
+              tk: tk,
+              flash: _flash,
+              selected: _sel,
+              onAyahTap: _onAyah,
+              onAyahLong: _openAyahMenu,
+              onBlankTap: _toggleChrome,
+            ),
+          ),
+        );
+    final fwdKey = ValueKey('fwd$anchor');
+    return CustomScrollView(
+      key: ValueKey('cont$anchor'),
+      controller: _sc,
+      center: fwdKey,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(800),
+      slivers: [
+        // الصفحات السابقة للمرساة (تتجه للأعلى).
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => item(anchor - 1 - i),
+            childCount: anchor - 1,
+          ),
+        ),
+        // المرساة وما بعدها.
+        SliverList(
+          key: fwdKey,
+          delegate: SliverChildBuilderDelegate(
+            (ctx, i) => item(anchor + i),
+            childCount: data.pageCount - anchor + 1,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final q = context.watch<QuranProvider>();
@@ -406,30 +434,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
         body: Stack(
           children: [
             const Positioned.fill(
-                child: CustomPaint(painter: IslamicPatternPainter(opacity: .06))),
+                child:
+                    CustomPaint(painter: IslamicPatternPainter(opacity: .06))),
             Positioned.fill(
               child: Padding(
-                padding: EdgeInsets.only(top: mq.padding.top + 4, bottom: mq.padding.bottom + 4),
+                padding: EdgeInsets.only(
+                    top: mq.padding.top + 4, bottom: mq.padding.bottom + 4),
                 child: continuous
-                    ? ListView.builder(
-                        key: const ValueKey('cont'),
-                        controller: _sc,
-                        scrollCacheExtent: const ScrollCacheExtent.pixels(1500),
-                        itemCount: data.pageCount,
-                        itemBuilder: (ctx, i) => KeyedSubtree(
-                          key: _keyFor(i + 1),
-                          child: _MushafPage(
-                            q: q,
-                            page: i + 1,
-                            tk: tk,
-                            flash: _flash,
-                            selected: _sel,
-                            onAyahTap: _onAyah,
-                            onAyahLong: _openAyahMenu,
-                            onBlankTap: _toggleChrome,
-                          ),
-                        ),
-                      )
+                    ? _contList(data, q, tk)
                     : PageView.builder(
                         key: const ValueKey('pages'),
                         controller: _controller,
@@ -469,18 +481,22 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           QCircleBtn(tk: tk, icon: kIcClose, onTap: _clearSel),
                           const SizedBox(width: 12),
                           Text(_countLabel(_sel.length),
-                              style: cairoStyle(16, weight: 700, color: tk.ink)),
+                              style:
+                                  cairoStyle(16, weight: 700, color: tk.ink)),
                           const Spacer(),
                           Text('اضغط آيات أخرى لتوسيع التحديد',
                               style: cairoStyle(11.5, color: tk.muted)),
                         ])
                       : Row(children: [
                           QCircleBtn(
-                              tk: tk, icon: kIcBack, onTap: () => Navigator.of(context).maybePop()),
+                              tk: tk,
+                              icon: kIcBack,
+                              onTap: () => Navigator.of(context).maybePop()),
                           const Spacer(),
                           QCircleBtn(tk: tk, icon: kIcList, onTap: _openGoto),
                           const SizedBox(width: 10),
-                          QCircleBtn(tk: tk, icon: kIcTune, onTap: _showSettings),
+                          QCircleBtn(
+                              tk: tk, icon: kIcTune, onTap: _showSettings),
                         ]),
                 ),
               ),
@@ -493,7 +509,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 top: false,
                 show: showBars,
                 child: Container(
-                  padding: EdgeInsets.fromLTRB(14, 8, 14, mq.padding.bottom + 8),
+                  padding:
+                      EdgeInsets.fromLTRB(14, 8, 14, mq.padding.bottom + 8),
                   decoration: BoxDecoration(
                     color: tk.bg.withValues(alpha: .97),
                     border: Border(top: BorderSide(color: tk.line)),
@@ -502,22 +519,32 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       ? Row(children: [
                           Expanded(
                               child: QTile(
-                                  tk: tk, icon: kIcCopy, label: 'نسخ', onTap: _copySelected)),
+                                  tk: tk,
+                                  icon: kIcCopy,
+                                  label: 'نسخ',
+                                  onTap: _copySelected)),
                           const SizedBox(width: 8),
                           Expanded(
                               child: QTile(
-                                  tk: tk, icon: kIcShare, label: 'مشاركة', onTap: _shareSelected)),
+                                  tk: tk,
+                                  icon: kIcShare,
+                                  label: 'مشاركة',
+                                  onTap: _shareSelected)),
                           const SizedBox(width: 8),
                           Expanded(
                               child: QTile(
-                                  tk: tk, icon: kIcMark, label: 'علامة', onTap: _markSelected)),
+                                  tk: tk,
+                                  icon: kIcMark,
+                                  label: 'علامة',
+                                  onTap: _markSelected)),
                         ])
                       : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Row(children: [
                               Text('صفحة ${toArabicDigits(_page)}',
-                                  style: cairoStyle(13, weight: 700, color: tk.ink)),
+                                  style: cairoStyle(13,
+                                      weight: 700, color: tk.ink)),
                               const Spacer(),
                               Text('الجزء ${toArabicDigits(juz)}',
                                   style: cairoStyle(12.5, color: tk.muted)),
@@ -550,6 +577,35 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
     );
   }
+}
+
+/// يسجّل سياق الصفحة أثناء بنائها فقط، لحساب «الصفحة الحالية» بدون GlobalKeys.
+class _Tracked extends StatefulWidget {
+  final int page;
+  final Map<int, BuildContext> reg;
+  final Widget child;
+  const _Tracked({required this.page, required this.reg, required this.child});
+
+  @override
+  State<_Tracked> createState() => _TrackedState();
+}
+
+class _TrackedState extends State<_Tracked> {
+  @override
+  void initState() {
+    super.initState();
+    widget.reg[widget.page] = context;
+  }
+
+  @override
+  void dispose() {
+    if (identical(widget.reg[widget.page], context))
+      widget.reg.remove(widget.page);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 enum _K { banner, basmala, para }
@@ -654,11 +710,14 @@ class _MushafPageState extends State<_MushafPage> {
         final isHizb = (a.hizbQuarter - 1) % 4 == 0;
         out.add(TextSpan(
             text: '\u06DE ',
-            style: TextStyle(color: tk.gold, fontSize: fs * (isHizb ? 1.0 : .72))));
+            style: TextStyle(
+                color: tk.gold, fontSize: fs * (isHizb ? 1.0 : .72))));
       }
       Color? bg;
       final mark = q.markOf(a.key);
-      if (mark != null) bg = kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
+      if (mark != null)
+        bg =
+            kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
       if (widget.flash == a.key) bg = tk.gold.withValues(alpha: .28);
       if (widget.selected.contains(a.key)) bg = tk.leaf.withValues(alpha: .34);
       // الضغطة العادية تمرّ إلى إظهار/إخفاء الأزرار؛ الضغطة المطوّلة تفتح قائمة الآية.
@@ -667,7 +726,8 @@ class _MushafPageState extends State<_MushafPage> {
       if (selecting) {
         rec = TapGestureRecognizer()..onTap = () => widget.onAyahTap(a);
       } else {
-        rec = LongPressGestureRecognizer()..onLongPress = () => widget.onAyahLong(a);
+        rec = LongPressGestureRecognizer()
+          ..onLongPress = () => widget.onAyahLong(a);
       }
       _recs.add(rec);
       out.add(TextSpan(
@@ -676,7 +736,8 @@ class _MushafPageState extends State<_MushafPage> {
         style: bg == null ? null : TextStyle(backgroundColor: bg),
       ));
       out.add(TextSpan(
-        text: ' \uFD3F${toArabicDigits(a.number)}\uFD3E${a.sajda ? ' \u06E9' : ''} ',
+        text:
+            ' \uFD3F${toArabicDigits(a.number)}\uFD3E${a.sajda ? ' \u06E9' : ''} ',
         style: TextStyle(color: tk.gold, fontSize: fs * .78),
       ));
     }
@@ -764,7 +825,8 @@ class _SurahBanner extends StatelessWidget {
         children: [
           IslamicStar(size: 14, color: tk.gold),
           const SizedBox(width: 10),
-          Text(surahTitle(surah), style: amiriStyle(21, bold: true, color: tk.mintInk)),
+          Text(surahTitle(surah),
+              style: amiriStyle(21, bold: true, color: tk.mintInk)),
           const SizedBox(width: 10),
           IslamicStar(size: 14, color: tk.gold),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/home_tokens.dart';
+import '../core/page_background.dart';
 import '../features/home/home_art.dart';
 import '../features/home/home_screen.dart';
 import '../features/more/more_screen.dart';
@@ -22,17 +23,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tk = HomeTokens.of(context);
     final pages = <Widget>[
       HomeDashboard(onSwitchTab: _go),
       const QuranHomeScreen(),
       const ForumScreen(),
       const MoreScreen(),
     ];
-    return Scaffold(
-      backgroundColor: tk.bg,
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: HomeBottomNav(index: _index, onTap: _go),
+    return PatternedBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: IndexedStack(index: _index, children: pages),
+        bottomNavigationBar: HomeBottomNav(index: _index, onTap: _go),
+      ),
     );
   }
 }
@@ -54,7 +56,7 @@ class HomeBottomNav extends StatelessWidget {
     ];
     final scale = MediaQuery.of(context).textScaler.clamp(maxScaleFactor: 1.15);
     return Container(
-      color: tk.bg,
+      color: Colors.transparent,
       padding: EdgeInsets.only(
         left: 14,
         right: 14,
