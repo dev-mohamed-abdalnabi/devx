@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
     final pages = <Widget>[
       HomeDashboard(onSwitchTab: _go),
       const QuranHomeScreen(),
@@ -29,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const MoreScreen(),
     ];
     return Scaffold(
+      backgroundColor: tk.bg,
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: HomeBottomNav(index: _index, onTap: _go),
     );
