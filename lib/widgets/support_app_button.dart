@@ -35,7 +35,7 @@ class SupportTopBar extends StatelessWidget {
           children: [
             if (show)
               Container(
-                color: theme.scaffoldBackgroundColor,
+                color: Colors.transparent,
                 padding: EdgeInsets.only(top: mq.padding.top),
                 height: mq.padding.top + _barHeight,
                 alignment: AlignmentDirectional.centerStart,

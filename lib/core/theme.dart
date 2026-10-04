@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'page_background.dart';
 
 class AppColors {
   static const ivory = Color(0xFFF7F3EA);
@@ -26,7 +27,7 @@ class AppTheme {
     ).copyWith(
       primary: AppColors.green,
       secondary: AppColors.gold,
-      surface: AppColors.paper,
+      surface: const Color(0xFFFFFFFF),
       onSurface: AppColors.ink,
       primaryContainer: AppColors.greenSoft,
     );
@@ -40,7 +41,7 @@ class AppTheme {
     ).copyWith(
       primary: AppColors.nightGreen,
       secondary: AppColors.nightGold,
-      surface: AppColors.nightSurface,
+      surface: const Color(0xFF1C231B),
       onSurface: const Color(0xFFE6ECE8),
       primaryContainer: const Color(0xFF244036),
     );
@@ -52,17 +53,19 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: fontFamily,
       colorScheme: scheme,
-      scaffoldBackgroundColor: bg,
+      scaffoldBackgroundColor: Colors.transparent,
       visualDensity: VisualDensity.standard,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: PatternedPageTransitions(),
+          TargetPlatform.iOS: PatternedPageTransitions(),
+          TargetPlatform.macOS: PatternedPageTransitions(),
         },
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: bg,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         foregroundColor: scheme.onSurface,
         elevation: 0,
         centerTitle: false,

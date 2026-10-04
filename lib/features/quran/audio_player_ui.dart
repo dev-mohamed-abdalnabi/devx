@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../providers/quran_audio_provider.dart';
@@ -29,7 +30,7 @@ class StarBadge extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _StarPainter(fill),
+        painter: IslamicStarPainter(fill),
         child: Center(
           child: Text(
             toArabicDigits(number),
@@ -44,34 +45,6 @@ class StarBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StarPainter extends CustomPainter {
-  final Color color;
-  _StarPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.width / 2;
-    final path = Path();
-    for (var i = 0; i < 16; i++) {
-      final radius = i.isEven ? r : r * 0.46;
-      final a = -math.pi / 2 + i * math.pi / 8;
-      final p =
-          Offset(c.dx + radius * math.cos(a), c.dy + radius * math.sin(a));
-      i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-    }
-    path.close();
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill);
-  }
-
-  @override
-  bool shouldRepaint(_StarPainter old) => old.color != color;
 }
 
 /// أعمدة موجية صغيرة تدل على أن السورة تعمل الآن.

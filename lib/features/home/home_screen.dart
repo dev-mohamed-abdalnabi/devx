@@ -16,6 +16,8 @@ import '../../screens/zikr_list_screen.dart';
 import '../challenges/challenges_screen.dart';
 import '../more/support_screen.dart';
 import '../prayer/prayer_screen.dart';
+import '../prayer/qibla_screen.dart';
+import '../prayer/qibla_screen.dart';
 import '../quran/quran_audio_screen.dart';
 import '../quran/quran_home_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
@@ -166,15 +168,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
     return MediaQuery(
       data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
-      child: Container(
-        color: tk.bg,
-        child: Stack(
+      child: Stack(
           children: [
-            const Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(painter: IslamicPatternPainter(opacity: .10)),
-              ),
-            ),
             SafeArea(
               bottom: false,
               child: Padding(
@@ -232,36 +227,32 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                   span: 2,
                                   colW: colW,
                                   fullW: fullW,
-                                  child: HomeTile(
-                                    tk: tk,
-                                    compact: compact,
-                                    icon: HomeIcons.clock,
-                                    title: 'الصلاة القادمة',
-                                    subtitle: next == null
-                                        ? 'حدّد موقعك لعرض المواقيت'
-                                        : '${next.name} · ${formatClock(next.time)}',
-                                    onTap: () => _push(const PrayerScreen()),
+                                  child: ValueListenableBuilder<DateTime>(
+                                    valueListenable: _now,
+                                    builder: (context, n, _) => HomeTile(
+                                      tk: tk,
+                                      compact: compact,
+                                      icon: HomeIcons.clock,
+                                      title: 'الصلاة القادمة',
+                                      subtitle: next == null
+                                          ? 'حدّد موقعك لعرض المواقيت'
+                                          : '${next.name} · ${formatClock(next.time)}   |   '
+                                              'متبقي \u2066${formatCountdown(next.time.difference(n))}\u2069',
+                                      alwaysShowSubtitle: true,
+                                      onTap: () => _push(const PrayerScreen()),
+                                    ),
                                   ),
                                 ),
                                 slotTile(
                                   span: 1,
                                   colW: colW,
                                   fullW: fullW,
-                                  child: ValueListenableBuilder<DateTime>(
-                                    valueListenable: _now,
-                                    builder: (context, n, _) => HomeTile(
-                                      tk: tk,
-                                      compact: compact,
-                                      icon: HomeIcons.hourglass,
-                                      title: 'المتبقي',
-                                      subtitle: next == null
-                                          ? '--:--:--'
-                                          : formatCountdown(
-                                              next.time.difference(n)),
-                                      subtitleIsClock: true,
-                                      alwaysShowSubtitle: true,
-                                      onTap: () => _push(const PrayerScreen()),
-                                    ),
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.compass,
+                                    title: 'القبلة',
+                                    onTap: () => _push(const QiblaScreen()),
                                   ),
                                 ),
                               ]),
@@ -392,7 +383,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -475,6 +465,7 @@ class HomeTile extends StatelessWidget {
   final double? progress;
   final bool subtitleIsClock;
   final bool alwaysShowSubtitle;
+  final Widget? extra;
   final VoidCallback onTap;
   const HomeTile({
     super.key,
@@ -487,6 +478,7 @@ class HomeTile extends StatelessWidget {
     this.progress,
     this.subtitleIsClock = false,
     this.alwaysShowSubtitle = false,
+    this.extra,
   });
 
   @override
@@ -541,6 +533,10 @@ class HomeTile extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: cairoStyle(11.5, color: tk.muted)),
                           ),
+                        if (extra != null)
+                          Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: extra!),
                         if (progress != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
@@ -627,10 +623,13 @@ class _AzkarTimeCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('حان وقت',
-                                      style: cairoStyle(11.5,
-                                          color: tk.mintInk
-                                              .withValues(alpha: .75))),
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 7),
+                                    child: Text('حان وقت',
+                                        style: cairoStyle(11.5,
+                                            color: tk.mintInk
+                                                .withValues(alpha: .75))),
+                                  ),
                                   Text(title,
                                       maxLines: 1,
                                       style: amiriStyle(22,

@@ -1,3 +1,4 @@
+import '../core/star_shape.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/azkar_provider.dart';
@@ -127,13 +128,10 @@ class _CategoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: scheme.onPrimaryContainer),
+              IslamicStar(
+                size: 54,
+                color: scheme.primaryContainer,
+                child: Icon(icon, size: 22, color: scheme.onPrimaryContainer),
               ),
               const SizedBox(width: 16),
               Expanded(

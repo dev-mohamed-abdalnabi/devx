@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/home_tokens.dart';
+import '../../core/star_shape.dart';
 
 /// أيقونات الشاشة الرئيسية: paths منقولة حرفيًا من zikr-home-v11.html
 /// (viewBox 24×24، stroke 1.7، round، بدون تعبئة).
@@ -17,6 +18,10 @@ class HomeIcons {
       '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
   static const hourglass =
       '<path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/>';
+  static const qibla =
+      '<path d="M5 8l7-3 7 3v9l-7 3-7-3z"/><path d="M5 8l7 3 7-3M12 11v9"/>';
+  static const compass =
+      '<circle cx="12" cy="12" r="9"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/>';
   static const hand =
       '<path d="M8 11V6a1.500 1.500 0 0 1 3 0v4M11 10V4.500a1.500 1.500 0 0 1 3 0V10M14 10V6a1.500 1.500 0 0 1 3 0v6c0 4-2 7-6 7-3 0-4-2-6-5l-1-2a1.500 1.500 0 0 1 2.500-1.500L8 13"/>';
   static const quran =
@@ -95,16 +100,10 @@ class IslamicPatternPainter extends CustomPainter {
   final double opacity;
   const IslamicPatternPainter({required this.opacity});
 
-  static const _pts = <Offset>[
-    Offset(22, 3), Offset(26.5, 13.5), Offset(37, 9), Offset(32.5, 19.5),
-    Offset(41, 22), Offset(32.5, 24.5), Offset(37, 35), Offset(26.5, 30.5),
-    Offset(22, 41), Offset(17.5, 30.5), Offset(7, 35), Offset(11.5, 24.5),
-    Offset(3, 22), Offset(11.5, 19.5), Offset(7, 9), Offset(17.5, 13.5),
-  ];
-
   static final Path _star = () {
-    final p = Path()..moveTo(_pts.first.dx, _pts.first.dy);
-    for (final o in _pts.skip(1)) {
+    final p = Path()
+      ..moveTo(kIslamicStarPoints.first.dx, kIslamicStarPoints.first.dy);
+    for (final o in kIslamicStarPoints.skip(1)) {
       p.lineTo(o.dx, o.dy);
     }
     p.close();
