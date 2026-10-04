@@ -61,10 +61,24 @@ class AzkarApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            builder: (context, child) => Directionality(
-              textDirection: TextDirection.rtl,
-              child: child!,
-            ),
+            // تجربة موحّدة على كل الأجهزة: نتجاهل مقياس الخط وحجم العرض في النظام
+            // (وهما سبب الخط الصغير/الكبير جدًا) ونضبط الحجم حسب عرض الشاشة نفسه.
+            builder: (context, child) {
+              final mq = MediaQuery.of(context);
+              final scale = (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
+              return MediaQuery(
+                data: mq.copyWith(textScaler: TextScaler.linear(scale)),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      child: child!,
+                    ),
+                  ),
+                ),
+              );
+            },
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: provider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

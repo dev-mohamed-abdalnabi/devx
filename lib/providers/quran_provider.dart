@@ -22,7 +22,7 @@ class QuranProvider extends ChangeNotifier {
   int lastPage = 1;
   String? lastAyahKey;
   String readerTheme = 'auto'; // auto | light | dark | sepia
-  String pageMode = 'mushaf'; // mushaf (صفحة كاملة) | scroll (تمرير بحجم خط حر)
+  String pageMode = 'page'; // page (مصحف: صفحة بصفحة) | continuous (تمرير مستمر)
   double fontSize = 28;
   final Set<String> bookmarks = <String>{};
   final Map<String, AyahMark> marks = <String, AyahMark>{};
@@ -53,7 +53,7 @@ class QuranProvider extends ChangeNotifier {
     final savedPage = p.getInt(_kLastPage) ?? 1;
     lastAyahKey = p.getString(_kLastAyah);
     readerTheme = p.getString(_kTheme) ?? 'auto';
-    pageMode = p.getString(_kMode) ?? 'mushaf';
+    pageMode = p.getString(_kMode) == 'continuous' ? 'continuous' : 'page';
     fontSize = p.getDouble(_kFont) ?? 28;
     bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
     final rawMarks = p.getString(_kMarks);

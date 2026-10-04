@@ -183,9 +183,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         child: LayoutBuilder(builder: (context, box) {
                           final fullW = box.maxWidth;
                           final colW = (fullW - 20) / 3;
-                          Widget row(int flex, List<Widget> kids) => Expanded(
-                                flex: flex,
-                                child: Row(
+                          // لو الشاشة/النافذة أقصر من التصميم الكامل نستخدم ارتفاعات ثابتة
+                          // مع تمرير، بدل ضغط الكروت (وهو ما كان يصغّر الخط جدًا).
+                          final fixed = box.maxHeight < 735;
+                          Widget row(int flex, List<Widget> kids) {
+                            final r = Row(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     for (var i = 0; i < kids.length; i++) ...[
@@ -193,10 +195,13 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                       kids[i],
                                     ],
                                   ],
-                                ),
-                              );
+                                );
+                            return fixed
+                                ? SizedBox(height: flex.toDouble(), child: r)
+                                : Expanded(flex: flex, child: r);
+                          }
                           const gap = SizedBox(height: 10);
-                          return Column(
+                          final grid = Column(
                             children: [
                               row(165, [
                                 slotTile(
@@ -366,6 +371,11 @@ class _HomeDashboardState extends State<HomeDashboard> {
                               ]),
                             ],
                           );
+                          return fixed
+                              ? SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: grid)
+                              : grid;
                         }),
                       ),
                     ),

@@ -26,7 +26,11 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
-  late final PageController _controller;
+  late PageController _controller;
+  final ScrollController _sc = ScrollController();
+  final Map<int, GlobalKey> _keys = <int, GlobalKey>{};
+  late String _mode;
+  bool _jumping = false;
   late int _page;
   String? _flash;
   Timer? _readTimer;
@@ -42,13 +46,109 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _page = widget.page.clamp(1, 604);
     _flash = widget.highlight;
     _controller = PageController(initialPage: _page - 1);
+    _mode = context.read<QuranProvider>().pageMode;
+    _sc.addListener(_onScroll);
+    if (_mode == 'continuous') {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _contJump(_page));
+    }
     _onPage(_page);
+  }
+
+  GlobalKey _keyFor(int page) => _keys.putIfAbsent(page, () => GlobalKey());
+
+  /// الصفحة التي يقع عندها خط القراءة (أعلى الشاشة تقريبًا) في وضع التمرير.
+  int? _pageAtLine() {
+    final line = MediaQuery.of(context).padding.top + 90;
+    int? best;
+    for (final e in _keys.entries) {
+      final ctx = e.value.currentContext;
+      if (ctx == null) continue;
+      final ro = ctx.findRenderObject();
+      if (ro is! RenderBox || !ro.attached) continue;
+      final top = ro.localToGlobal(Offset.zero).dy;
+      if (top <= line && top + ro.size.height > line) {
+        best = e.key;
+        break;
+      }
+    }
+    return best;
+  }
+
+  double _avgPageHeight() {
+    var sum = 0.0, n = 0;
+    for (final e in _keys.entries) {
+      final ro = e.value.currentContext?.findRenderObject();
+      if (ro is RenderBox && ro.attached) {
+        sum += ro.size.height;
+        n++;
+      }
+    }
+    return n == 0 ? 900 : sum / n;
+  }
+
+  void _onScroll() {
+    if (_jumping || !mounted) return;
+    final p = _pageAtLine();
+    if (p != null && p != _page) {
+      setState(() => _page = p);
+      _onPage(p);
+    }
+  }
+
+  Future<void> _contJump(int page) async {
+    if (!mounted) return;
+    _jumping = true;
+    try {
+      for (var i = 0; i < 12; i++) {
+        if (!_sc.hasClients || !mounted) return;
+        final ctx = _keys[page]?.currentContext;
+        if (ctx != null) {
+          await Scrollable.ensureVisible(ctx, alignment: 0, duration: Duration.zero);
+          break;
+        }
+        final cur = _pageAtLine();
+        final avg = _avgPageHeight();
+        final pos = _sc.position;
+        final target = cur == null
+            ? (page - 1) * avg
+            : pos.pixels + (page - cur) * avg;
+        pos.jumpTo(target.clamp(0.0, pos.maxScrollExtent));
+        await WidgetsBinding.instance.endOfFrame;
+      }
+    } finally {
+      _jumping = false;
+    }
+    if (mounted) {
+      setState(() => _page = page);
+      _onPage(page);
+    }
+  }
+
+  void _syncMode(String mode) {
+    if (mode == _mode) return;
+    _mode = mode;
+    final old = _controller;
+    _controller = PageController(initialPage: _page - 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      old.dispose();
+      if (mode == 'continuous') _contJump(_page);
+    });
+  }
+
+  void _goPage(int p) {
+    if (_mode == 'continuous') {
+      setState(() => _page = p);
+      _contJump(p);
+    } else {
+      _controller.jumpToPage(p - 1);
+    }
   }
 
   @override
   void dispose() {
     _readTimer?.cancel();
     _controller.dispose();
+    _sc.dispose();
     super.dispose();
   }
 
@@ -75,6 +175,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
       });
 
   void _onAyah(Ayah a) {
+    // الضغطة العادية تُستخدم للتحديد المتعدد فقط؛ القائمة تُفتح بالضغطة المطوّلة.
+    if (_selecting) {
+      _toggleSelect(a);
+      return;
+    }
+    _openAyahMenu(a);
+  }
+
+  void _openAyahMenu(Ayah a) {
     if (_selecting) {
       _toggleSelect(a);
       return;
@@ -150,7 +259,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final r = await showGotoSheet(context, _tk, currentPage: _page);
     if (r == null || !mounted) return;
     setState(() => _flash = r.ayahKey);
-    _controller.jumpToPage(r.page - 1);
+    _goPage(r.page);
   }
 
   void _showSettings() {
@@ -183,40 +292,38 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   const SizedBox(height: 12),
                   Text('إعدادات القراءة', style: amiriStyle(24, bold: true, color: tk.ink)),
                   const SizedBox(height: 14),
-                  Text('نمط الصفحة', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                  Text('نمط القراءة', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
                   const SizedBox(height: 8),
                   Row(children: [
                     QPill(
                         tk: tk,
                         label: 'مصحف',
-                        selected: q.pageMode == 'mushaf',
-                        onTap: () => q.setPageMode('mushaf')),
+                        selected: q.pageMode != 'continuous',
+                        onTap: () => q.setPageMode('page')),
                     const SizedBox(width: 8),
                     QPill(
                         tk: tk,
                         label: 'تمرير',
-                        selected: q.pageMode == 'scroll',
-                        onTap: () => q.setPageMode('scroll')),
+                        selected: q.pageMode == 'continuous',
+                        onTap: () => q.setPageMode('continuous')),
                   ]),
-                  if (q.pageMode == 'scroll') ...[
-                    const SizedBox(height: 14),
-                    Text('حجم الخط', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
-                    SliderTheme(
-                      data: SliderTheme.of(ctx).copyWith(
-                          activeTrackColor: tk.gold,
-                          inactiveTrackColor: tk.line,
-                          thumbColor: tk.gold,
-                          trackHeight: 3),
-                      child: Slider(
-                        value: q.fontSize,
-                        min: 20,
-                        max: 44,
-                        divisions: 12,
-                        label: toArabicDigits(q.fontSize.round()),
-                        onChanged: q.setFontSize,
-                      ),
+                  const SizedBox(height: 14),
+                  Text('حجم الخط', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                  SliderTheme(
+                    data: SliderTheme.of(ctx).copyWith(
+                        activeTrackColor: tk.gold,
+                        inactiveTrackColor: tk.line,
+                        thumbColor: tk.gold,
+                        trackHeight: 3),
+                    child: Slider(
+                      value: q.fontSize,
+                      min: 20,
+                      max: 44,
+                      divisions: 12,
+                      label: toArabicDigits(q.fontSize.round()),
+                      onChanged: q.setFontSize,
                     ),
-                  ],
+                  ),
                   const SizedBox(height: 14),
                   Text('لون الصفحة', style: cairoStyle(12.5, weight: 700, color: tk.gold)),
                   const SizedBox(height: 8),
@@ -249,6 +356,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return '${toArabicDigits(n)} آية';
   }
 
+  void _toggleChrome() => setState(() {
+        _flash = null;
+        _chrome = !_chrome;
+      });
+
   Widget _bar({required bool top, required bool show, required Widget child}) {
     return AnimatedSlide(
       offset: show ? Offset.zero : Offset(0, top ? -1 : 1),
@@ -280,7 +392,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final pageAyahs = data.byPage[_page] ?? const <Ayah>[];
     final juz = pageAyahs.isNotEmpty ? pageAyahs.first.juz : 1;
     final showBars = _chrome || _selecting;
-    final fit = q.pageMode == 'mushaf';
+    _syncMode(q.pageMode);
+    final continuous = _mode == 'continuous';
 
     return PopScope(
       canPop: !_selecting,
@@ -296,27 +409,45 @@ class _ReaderScreenState extends State<ReaderScreen> {
             Positioned.fill(
               child: Padding(
                 padding: EdgeInsets.only(top: mq.padding.top + 4, bottom: mq.padding.bottom + 4),
-                child: PageView.builder(
-                  controller: _controller,
-                  itemCount: data.pageCount,
-                  onPageChanged: (i) {
-                    setState(() => _page = i + 1);
-                    _onPage(i + 1);
-                  },
-                  itemBuilder: (ctx, i) => _MushafPage(
-                    q: q,
-                    page: i + 1,
-                    tk: tk,
-                    fit: fit,
-                    flash: _flash,
-                    selected: _sel,
-                    onAyahTap: _onAyah,
-                    onBlankTap: () => setState(() {
-                      _flash = null;
-                      _chrome = !_chrome;
-                    }),
-                  ),
-                ),
+                child: continuous
+                    ? ListView.builder(
+                        key: const ValueKey('cont'),
+                        controller: _sc,
+                        cacheExtent: 1500,
+                        itemCount: data.pageCount,
+                        itemBuilder: (ctx, i) => KeyedSubtree(
+                          key: _keyFor(i + 1),
+                          child: _MushafPage(
+                            q: q,
+                            page: i + 1,
+                            tk: tk,
+                            flash: _flash,
+                            selected: _sel,
+                            onAyahTap: _onAyah,
+                            onAyahLong: _openAyahMenu,
+                            onBlankTap: _toggleChrome,
+                          ),
+                        ),
+                      )
+                    : PageView.builder(
+                        key: const ValueKey('pages'),
+                        controller: _controller,
+                        itemCount: data.pageCount,
+                        onPageChanged: (i) {
+                          setState(() => _page = i + 1);
+                          _onPage(i + 1);
+                        },
+                        itemBuilder: (ctx, i) => _MushafPage(
+                          q: q,
+                          page: i + 1,
+                          tk: tk,
+                          flash: _flash,
+                          selected: _sel,
+                          onAyahTap: _onAyah,
+                          onAyahLong: _openAyahMenu,
+                          onBlankTap: _toggleChrome,
+                        ),
+                      ),
               ),
             ),
             Positioned(
@@ -404,7 +535,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                                 max: data.pageCount.toDouble(),
                                 onChanged: (v) {
                                   final p = v.round();
-                                  if (p != _page) _controller.jumpToPage(p - 1);
+                                  if (p != _page) _goPage(p);
                                 },
                               ),
                             ),
@@ -440,25 +571,25 @@ class _Seg {
 
 const double _bannerH = 52; // 44 + هامش 4 فوق وتحت
 
-/// صفحة المصحف. في نمط «مصحف» يُضبط حجم الخط تلقائيًا ليملأ الصفحة كاملة بلا تمرير.
+/// صفحة من المصحف بنص حر الحجم (يتحكم فيه حجم الخط من الإعدادات).
 class _MushafPage extends StatefulWidget {
   final QuranProvider q;
   final int page;
   final HomeTokens tk;
-  final bool fit;
   final String? flash;
   final Set<String> selected;
   final void Function(Ayah) onAyahTap;
+  final void Function(Ayah) onAyahLong;
   final VoidCallback onBlankTap;
 
   const _MushafPage({
     required this.q,
     required this.page,
     required this.tk,
-    required this.fit,
     required this.flash,
     required this.selected,
     required this.onAyahTap,
+    required this.onAyahLong,
     required this.onBlankTap,
   });
 
@@ -467,9 +598,7 @@ class _MushafPage extends StatefulWidget {
 }
 
 class _MushafPageState extends State<_MushafPage> {
-  final List<TapGestureRecognizer> _recs = [];
-  double? _fs;
-  Size? _fsFor;
+  final List<GestureRecognizer> _recs = [];
 
   void _disposeRecs() {
     for (final r in _recs) {
@@ -513,10 +642,11 @@ class _MushafPageState extends State<_MushafPage> {
     return out;
   }
 
-  List<InlineSpan> _spans(List<Ayah> list, double fs, bool interactive) {
+  List<InlineSpan> _spans(List<Ayah> list, double fs) {
     final tk = widget.tk;
     final q = widget.q;
     final data = q.data!;
+    final selecting = widget.selected.isNotEmpty;
     final out = <InlineSpan>[];
     for (final a in list) {
       final idx = q.ayahIndex(a);
@@ -532,11 +662,15 @@ class _MushafPageState extends State<_MushafPage> {
       if (mark != null) bg = kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
       if (widget.flash == a.key) bg = tk.gold.withValues(alpha: .28);
       if (widget.selected.contains(a.key)) bg = tk.leaf.withValues(alpha: .34);
-      TapGestureRecognizer? rec;
-      if (interactive) {
+      // الضغطة العادية تمرّ إلى إظهار/إخفاء الأزرار؛ الضغطة المطوّلة تفتح قائمة الآية.
+      // أثناء التحديد المتعدد تصبح الضغطة العادية لتبديل التحديد.
+      final GestureRecognizer rec;
+      if (selecting) {
         rec = TapGestureRecognizer()..onTap = () => widget.onAyahTap(a);
-        _recs.add(rec);
+      } else {
+        rec = LongPressGestureRecognizer()..onLongPress = () => widget.onAyahLong(a);
       }
+      _recs.add(rec);
       out.add(TextSpan(
         text: a.text,
         recognizer: rec,
@@ -548,56 +682,6 @@ class _MushafPageState extends State<_MushafPage> {
       ));
     }
     return out;
-  }
-
-  double _h(TextSpan span, double w, TextAlign al) {
-    final tp = TextPainter(text: span, textDirection: TextDirection.rtl, textAlign: al)
-      ..layout(maxWidth: w);
-    final h = tp.height;
-    tp.dispose();
-    return h;
-  }
-
-  double _measure(List<_Seg> segs, double fs, double w) {
-    final data = widget.q.data!;
-    var h = 0.0;
-    for (final s in segs) {
-      switch (s.kind) {
-        case _K.banner:
-          h += _bannerH;
-          break;
-        case _K.basmala:
-          h += _h(TextSpan(text: data.basmala, style: _base(fs * .95)), w, TextAlign.center) + 6;
-          break;
-        case _K.para:
-          h += _h(TextSpan(children: _spans(s.ayahs, fs, false), style: _base(fs)), w,
-              TextAlign.start);
-          break;
-      }
-    }
-    return h;
-  }
-
-  double _fit(List<_Seg> segs, double w, double h) {
-    final key = Size(w, h);
-    if (_fs != null && _fsFor == key) return _fs!;
-    double lo = 14, hi = 30;
-    if (_measure(segs, lo, w) > h) {
-      _fs = lo;
-      _fsFor = key;
-      return lo;
-    }
-    for (var i = 0; i < 11; i++) {
-      final mid = (lo + hi) / 2;
-      if (_measure(segs, mid, w) <= h) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-    _fs = lo;
-    _fsFor = key;
-    return lo;
   }
 
   List<Widget> _content(List<_Seg> segs, double fs) {
@@ -615,7 +699,7 @@ class _MushafPageState extends State<_MushafPage> {
                   style: _base(fs * .95)),
             ),
           _K.para => Text.rich(
-              TextSpan(children: _spans(s.ayahs, fs, true), style: _base(fs)),
+              TextSpan(children: _spans(s.ayahs, fs), style: _base(fs)),
               textAlign: TextAlign.justify,
               textDirection: TextDirection.rtl,
             ),
@@ -630,7 +714,7 @@ class _MushafPageState extends State<_MushafPage> {
     final data = widget.q.data!;
     final ayahs = data.byPage[widget.page] ?? const <Ayah>[];
     final segs = _segments(ayahs);
-    final first = ayahs.isNotEmpty ? ayahs.first : null;
+    final continuous = widget.q.pageMode == 'continuous';
 
     final footer = Center(
       child: IslamicStar(
@@ -641,73 +725,22 @@ class _MushafPageState extends State<_MushafPage> {
       ),
     );
 
-    // نمط التمرير: حجم الخط من الإعدادات، بدون إطار.
-    if (!widget.fit) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onBlankTap,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ..._content(segs, widget.q.fontSize),
-              const SizedBox(height: 12),
-              footer,
-            ],
-          ),
-        ),
-      );
-    }
+    final col = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ..._content(segs, widget.q.fontSize),
+        const SizedBox(height: 12),
+        footer,
+      ],
+    );
+    const pad = EdgeInsets.fromLTRB(22, 8, 22, 28);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onBlankTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
-        child: Container(
-          decoration: BoxDecoration(
-            color: tk.card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: tk.line),
-          ),
-          child: CustomPaint(
-            foregroundPainter: _FramePainter(tk),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 10),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 24,
-                    child: Row(children: [
-                      Text('الجزء ${toArabicDigits(first?.juz ?? 1)}',
-                          style: amiriStyle(15, color: tk.muted)),
-                      const Spacer(),
-                      Text(first == null ? '' : surahTitle(first.surah),
-                          style: amiriStyle(15, bold: true, color: tk.gold)),
-                    ]),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: LayoutBuilder(builder: (context, box) {
-                      final fs = _fit(segs, box.maxWidth, box.maxHeight);
-                      final h = _measure(segs, fs, box.maxWidth);
-                      final col = Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: _content(segs, fs),
-                      );
-                      return h > box.maxHeight + .5 ? SingleChildScrollView(child: col) : col;
-                    }),
-                  ),
-                  const SizedBox(height: 4),
-                  footer,
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: continuous
+          ? Padding(padding: pad, child: col)
+          : SingleChildScrollView(padding: pad, child: col),
     );
   }
 }
@@ -739,40 +772,4 @@ class _SurahBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-/// إطار الصفحة: خطّان ذهبيان رفيعان ونجمة في كل ركن.
-class _FramePainter extends CustomPainter {
-  final HomeTokens tk;
-  const _FramePainter(this.tk);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final p1 = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = tk.gold.withValues(alpha: .8);
-    final p2 = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = .7
-      ..color = tk.gold.withValues(alpha: .4);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(9, 9, w - 18, h - 18), const Radius.circular(10)), p1);
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(13, 13, w - 26, h - 26), const Radius.circular(7)), p2);
-    for (final c in [Offset(9, 9), Offset(w - 9, 9), Offset(9, h - 9), Offset(w - 9, h - 9)]) {
-      final path = islamicStarPath(const Size(14, 14)).shift(c - const Offset(7, 7));
-      canvas.drawPath(path, Paint()..color = tk.card);
-      canvas.drawPath(
-          path,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = tk.gold);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_FramePainter old) => old.tk != tk;
 }
