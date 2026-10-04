@@ -517,7 +517,6 @@ Future<T?> showHomeSheet<T>(BuildContext context,
   return showModalBottomSheet<T>(
     context: context,
     backgroundColor: tk.card,
-    surfaceTintColor: Colors.transparent,
     elevation: 0,
     isScrollControlled: true,
     showDragHandle: false,

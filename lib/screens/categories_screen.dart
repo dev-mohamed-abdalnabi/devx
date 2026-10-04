@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/category_groups.dart';
 import '../core/home_tokens.dart';
-import '../core/short_titles.dart';
+import '../core/short_titles.dart' hide normalizeArabic;
 import '../core/text_utils.dart';
 import '../features/home/home_art.dart';
 import '../features/home/home_screen.dart' show HomeTile;
