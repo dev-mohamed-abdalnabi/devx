@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/zikr.dart';
 import '../providers/activity_provider.dart';
 import '../providers/azkar_provider.dart';
@@ -9,6 +10,77 @@ class ZikrCard extends StatelessWidget {
   final Zikr zikr;
   final VoidCallback? onCompleted;
   const ZikrCard({super.key, required this.zikr, this.onCompleted});
+
+  String get _full => '${zikr.text}\n\n${zikr.source}';
+
+  Future<void> _run(BuildContext context, String action) async {
+    if (action == 'copy') {
+      await Clipboard.setData(ClipboardData(text: _full));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+              content: Text('تم النسخ'), duration: Duration(seconds: 1)));
+      }
+    } else if (action == 'share') {
+      await Share.share(_full);
+    } else if (action == 'fav') {
+      context.read<AzkarProvider>().toggleFavorite(zikr);
+    }
+  }
+
+  void _longPressMenu(BuildContext context) {
+    HapticFeedback.selectionClick();
+    final p = context.read<AzkarProvider>();
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('نسخ'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _run(context, 'copy');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_outlined),
+              title: const Text('مشاركة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _run(context, 'share');
+              },
+            ),
+            ListTile(
+              leading: Icon(p.isFavorite(zikr)
+                  ? Icons.favorite
+                  : Icons.favorite_border),
+              title: Text(p.isFavorite(zikr)
+                  ? 'إزالة من المفضلة'
+                  : 'إضافة للمفضلة'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _run(context, 'fav');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "حصن المسلم · أذكار الصباح والمساء · رقم 76" ← "حصن المسلم · رقم 76"
+  String get _shortSource {
+    final parts = zikr.source.split('·').map((e) => e.trim()).toList();
+    if (parts.length >= 3 && parts.last.startsWith('رقم')) {
+      return '${parts.first} · ${parts.last}';
+    }
+    return zikr.source;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +98,7 @@ class ZikrCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
+        onLongPress: () => _longPressMenu(context),
         onTap: () {
           if (!done) {
             HapticFeedback.lightImpact();
@@ -45,29 +118,21 @@ class ZikrCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 280),
-                child: Scrollbar(
-                  thumbVisibility: true,
-                  child: SingleChildScrollView(
-                    child: Text(
-                      zikr.text,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 19 * provider.fontScale,
-                        height: 1.9,
-                        fontWeight: FontWeight.w500,
-                        color: done
-                            ? scheme.onSurface.withOpacity(0.6)
-                            : scheme.onSurface,
-                      ),
-                    ),
-                  ),
+              Text(
+                zikr.text,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 19 * provider.fontScale,
+                  height: 1.9,
+                  fontWeight: FontWeight.w500,
+                  color: done
+                      ? scheme.onSurface.withOpacity(0.6)
+                      : scheme.onSurface,
                 ),
               ),
               if (provider.showSources) ...[
                 const SizedBox(height: 14),
-                Text(zikr.source,
+                Text(_shortSource,
                     style: Theme.of(context)
                         .textTheme
                         .bodySmall
@@ -75,6 +140,27 @@ class ZikrCard extends StatelessWidget {
               ],
               Row(
                 children: [
+                  PopupMenuButton<String>(
+                    tooltip: 'المزيد',
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.more_horiz_rounded,
+                        color: Colors.grey),
+                    onSelected: (v) => _run(context, v),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                          value: 'copy',
+                          child: ListTile(
+                              dense: true,
+                              leading: Icon(Icons.copy_rounded),
+                              title: Text('نسخ'))),
+                      PopupMenuItem(
+                          value: 'share',
+                          child: ListTile(
+                              dense: true,
+                              leading: Icon(Icons.share_outlined),
+                              title: Text('مشاركة'))),
+                    ],
+                  ),
                   const Spacer(),
                   if (zikr.remaining < zikr.count)
                     IconButton(

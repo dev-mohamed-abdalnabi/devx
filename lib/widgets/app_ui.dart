@@ -270,9 +270,11 @@ class AppGridTile extends StatelessWidget {
   final String? subtitle;
   final Widget? footer;
   final VoidCallback? onTap;
+  final int titleMaxLines;
 
   const AppGridTile({
     super.key,
+    this.titleMaxLines = 1,
     required this.leading,
     required this.title,
     this.subtitle,
@@ -293,10 +295,7 @@ class AppGridTile extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        child: PatternBackground(
-          opacity: 0.06,
-          cell: 36,
-          child: Padding(
+        child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Row(
               children: [
@@ -308,10 +307,10 @@ class AppGridTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          maxLines: 1,
+                          maxLines: titleMaxLines,
                           overflow: TextOverflow.ellipsis,
-                          style: text.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w800)),
+                          style: text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800, height: 1.25)),
                       if (subtitle != null) ...[
                         const SizedBox(height: 3),
                         Text(subtitle!,
@@ -330,7 +329,6 @@ class AppGridTile extends StatelessWidget {
               ],
             ),
           ),
-        ),
       ),
     );
   }

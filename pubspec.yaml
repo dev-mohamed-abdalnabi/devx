@@ -26,6 +26,8 @@ dependencies:
   http: ^1.2.2
   archive: ^3.6.1
   flutter_svg: ^2.0.10+1
+  share_plus: ^10.1.4
+  wakelock_plus: ^1.2.10
   supabase_flutter: ^2.9.1
   google_mobile_ads: ^7.0.0
   azkari_native:
