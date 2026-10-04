@@ -22,6 +22,7 @@ import '../quran/quran_audio_screen.dart';
 import '../quran/quran_home_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
 import 'home_art.dart';
+import 'hero_scene.dart';
 
 enum _Slot { morning, evening, sleep }
 
@@ -185,7 +186,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           final colW = (fullW - 20) / 3;
                           // لو الشاشة/النافذة أقصر من التصميم الكامل نستخدم ارتفاعات ثابتة
                           // مع تمرير، بدل ضغط الكروت (وهو ما كان يصغّر الخط جدًا).
-                          final fixed = box.maxHeight < 735;
+                          final fixed = box.maxHeight < 750;
                           Widget row(int flex, List<Widget> kids) {
                             final r = Row(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -203,7 +204,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           const gap = SizedBox(height: 10);
                           final grid = Column(
                             children: [
-                              row(165, [
+                              row(180, [
                                 slotTile(
                                   span: 3,
                                   colW: colW,
@@ -213,6 +214,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
                                     slot: _slot,
                                     progress: progress,
                                     compact: compact,
+                                    now: _now,
+                                    next: next,
                                     onTap: () => cat == null
                                         ? _push(const CategoriesScreen())
                                         : _push(ZikrListScreen(
@@ -558,17 +561,54 @@ class HomeTile extends StatelessWidget {
 }
 
 /// كارت الأذكار المتغيّر حسب الوقت (الكارت الأول).
+class _Hint {
+  final String icon;
+  final String text;
+  const _Hint(this.icon, this.text);
+}
+
+/// ما المهم الآن؟ أولوية: اقتراب صلاة ← الجمعة ← صيام الاثنين/الخميس ← توجيه الوقت.
+_Hint _hintFor(DateTime n, NextPrayer? next) {
+  if (next != null) {
+    final m = next.time.difference(n).inMinutes;
+    if (m >= 0 && m <= 25) {
+      return _Hint(HomeIcons.clock,
+          m <= 1 ? 'حان وقت صلاة ${next.name} تقريبًا' : 'صلاة ${next.name} بعد ${toArabicDigits(m)} دقيقة');
+    }
+  }
+  final h = n.hour;
+  if (n.weekday == DateTime.friday && h >= 6 && h < 15) {
+    return _Hint(HomeIcons.quran, 'يوم الجمعة · سورة الكهف وكثرة الصلاة على النبي ﷺ');
+  }
+  if ((n.weekday == DateTime.monday || n.weekday == DateTime.thursday) && h >= 3 && h < 12) {
+    return _Hint(HomeIcons.sparkle,
+        'اليوم ${n.weekday == DateTime.monday ? 'الإثنين' : 'الخميس'} · يُستحب صيامه');
+  }
+  if (h >= 3 && h < 6) return _Hint(HomeIcons.sun, 'بعد الفجر · ابدأ يومك بالأذكار والقرآن');
+  if (h >= 6 && h < 9) return _Hint(HomeIcons.sun, 'بكّر بأذكار الصباح ثم اقرأ وردك');
+  if (h >= 9 && h < 12) return _Hint(HomeIcons.sun, 'وقت صلاة الضحى · ركعتان أو أكثر');
+  if (h >= 12 && h < 15) return _Hint(HomeIcons.quran, 'خذ لك وردًا من القرآن بعد الظهر');
+  if (h >= 15 && h < 19) return _Hint(HomeIcons.sunset, 'أذكار المساء بعد العصر');
+  if (h >= 19 && h < 21) return _Hint(HomeIcons.moon, 'أذكار المساء، وراجع وردك قبل النوم');
+  if (h >= 21 || h < 1) return _Hint(HomeIcons.moon, 'قبل النوم · آية الكرسي والمعوذات');
+  return _Hint(HomeIcons.moon, 'الثلث الأخير من الليل · وقت الدعاء والاستغفار');
+}
+
 class _AzkarTimeCard extends StatelessWidget {
   final HomeTokens tk;
   final _Slot slot;
   final double progress;
   final bool compact;
+  final ValueListenable<DateTime> now;
+  final NextPrayer? next;
   final VoidCallback onTap;
   const _AzkarTimeCard(
       {required this.tk,
       required this.slot,
       required this.progress,
       required this.compact,
+      required this.now,
+      required this.next,
       required this.onTap});
 
   @override
@@ -578,94 +618,98 @@ class _AzkarTimeCard extends StatelessWidget {
       _Slot.evening => 'أذكار المساء',
       _Slot.sleep => 'أذكار النوم',
     };
-    final icon = switch (slot) {
-      _Slot.morning => HomeIcons.sun,
-      _Slot.evening => HomeIcons.sunset,
-      _Slot.sleep => HomeIcons.moon,
-    };
     final pct = (progress * 100).round();
-    return PressableCard(
-      onTap: onTap,
-      builder: (context, pressed) => AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: tk.mint,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: pressed ? tk.gold : Colors.transparent),
-        ),
-        child: LayoutBuilder(builder: (context, box) {
-          return Stack(
-            children: [
-              const Positioned.fill(
-                child: CustomPaint(painter: IslamicPatternPainter(opacity: .22)),
-              ),
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: MosqueArt(width: box.maxWidth * .44, tokens: tk),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                  child: LayoutBuilder(builder: (context, c) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        HomeIcon(icon, size: 24, color: tk.gold),
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: AlignmentDirectional.centerStart,
-                            child: SizedBox(
-                              width: c.maxWidth * .62,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 7),
-                                    child: Text('حان وقت',
-                                        style: cairoStyle(11.5,
-                                            color: tk.mintInk
-                                                .withValues(alpha: .75))),
+    return ValueListenableBuilder<DateTime>(
+      valueListenable: now,
+      builder: (context, n, _) {
+        final scene = heroSceneFor(n);
+        final pal = HeroPalette.of(scene);
+        final hint = _hintFor(n, next);
+        final prefix = (slot == _Slot.morning && scene == HeroScene.dawn) ? 'بعد الفجر' : 'حان وقت';
+        return PressableCard(
+          onTap: onTap,
+          builder: (context, pressed) => AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: pressed ? tk.gold : pal.accent.withValues(alpha: .35)),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(child: HeroBackdrop(scene: scene)),
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    child: LayoutBuilder(builder: (context, c) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            HomeIcon(hint.icon, size: 22, color: pal.accent),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxWidth: c.maxWidth * .74),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: pal.pill,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  Text(title,
-                                      maxLines: 1,
-                                      style: amiriStyle(22,
-                                          bold: true,
-                                          color: tk.mintInk,
-                                          height: 1.2)),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: HomeProgressBar(
-                                        value: progress, tokens: tk),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                        'أنجزت ${toArabicDigits(pct)}٪ · اضغط للمتابعة',
-                                        maxLines: 1,
-                                        style: cairoStyle(11.5,
-                                            color: tk.mintInk
-                                                .withValues(alpha: .75))),
-                                  ),
-                                ],
+                                  child: Text(hint.text,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: cairoStyle(11.5,
+                                          weight: 600, color: pal.ink, height: 1.35)),
+                                ),
                               ),
                             ),
+                          ]),
+                          SizedBox(
+                            width: c.maxWidth * .62,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(prefix, style: cairoStyle(11.5, color: pal.sub)),
+                                Text(title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: amiriStyle(26, bold: true, color: pal.ink, height: 1.2)),
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: Container(
+                                    height: 6,
+                                    color: pal.track,
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: FractionallySizedBox(
+                                      widthFactor: progress.isNaN ? 0 : progress.clamp(0.0, 1.0),
+                                      heightFactor: 1,
+                                      child: ColoredBox(color: pal.fill),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text('أنجزت ${toArabicDigits(pct)}٪ · اضغط للمتابعة',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cairoStyle(11.5, color: pal.sub)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  }),
+                        ],
+                      );
+                    }),
+                  ),
                 ),
-              ),
-            ],
-          );
-        }),
-      ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

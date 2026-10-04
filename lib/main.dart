@@ -25,7 +25,7 @@ Future<void> main() async {
   // الإشعارات أولًا: تحدد هل أيقونة ic_stat_quran موجودة (غيابها يخفي إشعار الميديا بصمت).
   try {
     await NotificationService.init();
-    await NotificationService.requestPermission();
+    // طلب إذن الإشعارات انتقل لشاشة الترحيب (اختياري) بدل الطلب المباشر عند أول فتح.
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }
