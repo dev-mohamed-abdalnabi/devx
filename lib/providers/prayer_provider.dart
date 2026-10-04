@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/dates.dart';
 import '../core/hijri.dart';
 import '../core/prayer_times.dart';
 import '../data/cities.dart';
@@ -23,10 +24,17 @@ class PrayerProvider extends ChangeNotifier {
   bool hanafi = false;
   bool adhanEnabled = true;
   int hijriAdjust = 0;
+
+  /// نمط التنبيه لكل صلاة: 0 = أذان بصوت، 1 = إشعار بدون صوت، 2 = بدون تنبيه.
+  Map<String, int> prayerModes = {};
+  int modeOf(String id) => prayerModes[id] ?? 0;
   bool loading = true;
   bool locating = false;
 
   SharedPreferences? _prefs;
+  final Set<String> _done = {};
+  static const _doneKey = 'prayer_done_v1';
+  static const fivePrayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
   static const _key = 'prayer_v1';
 
   bool get hasLocation => lat != null && lng != null;
@@ -34,6 +42,7 @@ class PrayerProvider extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    _done.addAll(_prefs!.getStringList(_doneKey) ?? const []);
     final raw = _prefs!.getString(_key);
     if (raw != null) {
       try {
@@ -46,6 +55,13 @@ class PrayerProvider extends ChangeNotifier {
         hanafi = (j['hanafi'] as bool?) ?? false;
         adhanEnabled = (j['adhan'] as bool?) ?? true;
         hijriAdjust = (j['hijri'] as int?) ?? 0;
+        final m = j['modes'];
+        if (m is Map) {
+          prayerModes = {
+            for (final e in m.entries)
+              if (e.value is int) e.key.toString(): e.value as int,
+          };
+        }
       } catch (_) {
         await _prefs!.setString('${_key}_corrupt', raw);
       }
@@ -67,8 +83,36 @@ class PrayerProvider extends ChangeNotifier {
         'hanafi': hanafi,
         'adhan': adhanEnabled,
         'hijri': hijriAdjust,
+        'modes': prayerModes,
       }),
     );
+  }
+
+  // ===== تتبّع الصلوات (صليت / لم أصلِّ) =====
+  bool isDone(DateTime d, String id) => _done.contains('${dayKey(d)}:$id');
+
+  int doneCount(DateTime d) => fivePrayers.where((id) => isDone(d, id)).length;
+
+  Future<void> toggleDone(DateTime d, String id) async {
+    final k = '${dayKey(d)}:$id';
+    if (!_done.remove(k)) _done.add(k);
+    // نحتفظ بآخر ٩٠ يومًا فقط
+    final limit = dayKey(addDays(DateTime.now(), -90));
+    _done.removeWhere((e) => e.split(':').first.compareTo(limit) < 0);
+    notifyListeners();
+    await _prefs?.setStringList(_doneKey, _done.toList());
+  }
+
+  /// أيام متتالية أُكملت فيها الصلوات الخمس (اليوم يُحتسب إن اكتمل، وإلا نبدأ من أمس).
+  int fullDaysStreak(DateTime today) {
+    var d = DateTime(today.year, today.month, today.day);
+    if (doneCount(d) < 5) d = addDays(d, -1);
+    var n = 0;
+    while (doneCount(d) == 5) {
+      n++;
+      d = addDays(d, -1);
+    }
+    return n;
   }
 
   PrayerDay? timesFor(DateTime date) {
@@ -172,6 +216,13 @@ class PrayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setPrayerMode(String id, int mode) async {
+    prayerModes[id] = mode;
+    await _save();
+    if (adhanEnabled) await syncAdhan();
+    notifyListeners();
+  }
+
   Future<bool> setAdhanEnabled(bool value) async {
     if (value) {
       if (!await NotificationService.requestPermission()) return false;
@@ -199,7 +250,7 @@ class PrayerProvider extends ChangeNotifier {
         final day = timesFor(DateTime(today.year, today.month, today.day + i));
         if (day != null) entries.addAll(day.prayers);
       }
-      await NotificationService.scheduleAdhan(entries);
+      await NotificationService.scheduleAdhan(entries, modes: prayerModes);
     } catch (_) {
       // فشل الجدولة لا يجب أن يغلق التطبيق، ويمكن إعادة المحاولة عند تغيير المدينة.
     }

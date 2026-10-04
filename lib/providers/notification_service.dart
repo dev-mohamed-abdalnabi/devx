@@ -222,51 +222,64 @@ class NotificationService {
     }
   }
 
-  static Future<void> scheduleAdhan(Iterable<PrayerEntry> entries) async {
-    try {
+  /// [modes]: لكل صلاة (بالمعرّف) 0 = أذان بصوت، 1 = بدون صوت، 2 = بدون تنبيه.
+  static Future<void> scheduleAdhan(Iterable<PrayerEntry> entries,
+      {Map<String, int> modes = const {}}) async {
+    final list = entries
+        .where((e) =>
+            e.isPrayer &&
+            e.time.isAfter(DateTime.now()) &&
+            (modes[e.id] ?? 0) != 2)
+        .toList();
+
+    Future<void> run({required bool exact, required bool custom}) async {
       await cancelAdhan();
-      final exact = await canScheduleExact();
-      final mode = exact
-          ? AndroidScheduleMode.alarmClock
-          : AndroidScheduleMode.inexactAllowWhileIdle;
       var index = 0;
-      for (final entry in entries.where(
-          (e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
+      for (final entry in list) {
         if (index >= 42) break;
+        final silent = (modes[entry.id] ?? 0) == 1;
+        final body = silent
+            ? 'حافظ على صلاتك في وقتها، تقبّل الله منك'
+            : 'حان الآن وقت صلاة ${entry.name}';
         await _scheduleOne(
           70000 + index++,
-          'أذان ${entry.name}',
-          'حان الآن وقت صلاة ${entry.name}',
+          silent ? 'وقت صلاة ${entry.name}' : 'أذان ${entry.name}',
+          body,
           tz.TZDateTime.from(entry.time, tz.local),
-          _adhanDetails('حان الآن وقت صلاة ${entry.name}'),
-          mode: mode,
+          silent ? _silentDetails(body) : _adhanDetails(body, custom: custom ? null : false),
+          mode: exact
+              ? AndroidScheduleMode.alarmClock
+              : AndroidScheduleMode.inexactAllowWhileIdle,
           match: null,
-          payload: 'adhan:${entry.name}',
+          payload: silent ? 'prayer:${entry.name}' : 'adhan:${entry.name}',
         );
       }
+    }
+
+    try {
+      await run(exact: await canScheduleExact(), custom: true);
     } catch (_) {
       // لا يجوز أن ينهار التطبيق إذا رفض الجهاز صوت الأذان أو المنبه الدقيق.
       // نعيد المحاولة بإشعار عادي وصوت النظام.
       try {
-        await cancelAdhan();
-        var index = 0;
-        for (final entry in entries.where(
-            (e) => e.isPrayer && e.time.isAfter(DateTime.now()))) {
-          if (index >= 42) break;
-          await _scheduleOne(
-            70000 + index++,
-            'أذان ${entry.name}',
-            'حان الآن وقت صلاة ${entry.name}',
-            tz.TZDateTime.from(entry.time, tz.local),
-            _adhanDetails('حان الآن وقت صلاة ${entry.name}', custom: false),
-            mode: AndroidScheduleMode.inexactAllowWhileIdle,
-            match: null,
-            payload: 'adhan:${entry.name}',
-          );
-        }
+        await run(exact: false, custom: false);
       } catch (_) {}
     }
   }
+
+  /// إشعار الصلاة بدون صوت ولا اهتزاز.
+  static NotificationDetails _silentDetails(String body) => NotificationDetails(
+        android: AndroidNotificationDetails(
+          'prayer_silent_v1',
+          'تنبيه الصلاة (بدون صوت)',
+          channelDescription: 'إشعار هادئ عند دخول وقت الصلاة',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          playSound: false,
+          enableVibration: false,
+          styleInformation: BigTextStyleInformation(body),
+        ),
+      );
 
   /// كل تذكير يستخدم المعرفات id*10 … id*10+7 (0 لكل الأيام، و1..7 لأيام محددة).
   static Future<void> cancel(int reminderId) async {
