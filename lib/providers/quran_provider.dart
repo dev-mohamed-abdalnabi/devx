@@ -1,7 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/quran_data.dart';
+
+/// لون (فهرس 0–4) وملاحظة اختيارية على آية محفوظة.
+class AyahMark {
+  final int color;
+  final String note;
+  const AyahMark(this.color, this.note);
+}
+
+List<String> _parseStrings(String raw) =>
+    (json.decode(raw) as List).map((e) => e as String).toList();
 
 class QuranProvider extends ChangeNotifier {
   QuranData? data;
@@ -11,8 +22,10 @@ class QuranProvider extends ChangeNotifier {
   int lastPage = 1;
   String? lastAyahKey;
   String readerTheme = 'auto'; // auto | light | dark | sepia
+  String pageMode = 'mushaf'; // mushaf (صفحة كاملة) | scroll (تمرير بحجم خط حر)
   double fontSize = 28;
   final Set<String> bookmarks = <String>{};
+  final Map<String, AyahMark> marks = <String, AyahMark>{};
   final Set<int> readPages = <int>{};
 
   static const _kLastPage = 'quran_last_page';
@@ -20,9 +33,13 @@ class QuranProvider extends ChangeNotifier {
   static const _kTheme = 'quran_reader_theme';
   static const _kFont = 'quran_font_size';
   static const _kBookmarks = 'quran_bookmarks';
+  static const _kMarks = 'quran_marks_meta';
+  static const _kMode = 'quran_page_mode';
   static const _kRead = 'quran_read_pages';
 
   SharedPreferences? _prefs;
+  List<int>? _off;
+  Future<List<String>?>? _tafsirFuture;
 
   Future<void> init() async {
     try {
@@ -36,8 +53,20 @@ class QuranProvider extends ChangeNotifier {
     final savedPage = p.getInt(_kLastPage) ?? 1;
     lastAyahKey = p.getString(_kLastAyah);
     readerTheme = p.getString(_kTheme) ?? 'auto';
+    pageMode = p.getString(_kMode) ?? 'mushaf';
     fontSize = p.getDouble(_kFont) ?? 28;
     bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
+    final rawMarks = p.getString(_kMarks);
+    if (rawMarks != null) {
+      try {
+        final m = json.decode(rawMarks) as Map<String, dynamic>;
+        m.forEach((k, v) {
+          if (v is Map) {
+            marks[k] = AyahMark((v['c'] as num?)?.toInt() ?? 0, (v['n'] as String?) ?? '');
+          }
+        });
+      } catch (_) {}
+    }
     final savedRead = p.getStringList(_kRead) ?? const <String>[];
     readPages.addAll(savedRead.map(int.tryParse).whereType<int>().where((v) => v > 0));
     final maxPage = data?.pageCount ?? 604;
@@ -52,6 +81,21 @@ class QuranProvider extends ChangeNotifier {
     final d = data;
     if (d == null || d.pageCount == 0) return 0;
     return readPages.length / d.pageCount;
+  }
+
+  /// الترتيب المطلق للآية (0–6235) داخل [QuranData.ayahs].
+  int ayahIndex(Ayah a) {
+    final d = data!;
+    if (_off == null) {
+      final off = <int>[];
+      var o = 0;
+      for (final s in d.surahs) {
+        off.add(o);
+        o += s.ayahCount;
+      }
+      _off = off;
+    }
+    return _off![a.surah - 1] + a.number - 1;
   }
 
   Future<void> setLastPage(int page, {String? ayahKey}) async {
@@ -72,13 +116,61 @@ class QuranProvider extends ChangeNotifier {
     }
   }
 
+  // ───────── العلامات ─────────
+
   bool isBookmarked(String key) => bookmarks.contains(key);
 
-  Future<void> toggleBookmark(String key) async {
-    if (!bookmarks.remove(key)) bookmarks.add(key);
+  AyahMark? markOf(String key) =>
+      bookmarks.contains(key) ? (marks[key] ?? const AyahMark(0, '')) : null;
+
+  Future<void> _saveMarks() async {
     await _prefs?.setStringList(_kBookmarks, bookmarks.toList());
+    await _prefs?.setString(
+      _kMarks,
+      json.encode({
+        for (final e in marks.entries)
+          if (bookmarks.contains(e.key)) e.key: {'c': e.value.color, 'n': e.value.note},
+      }),
+    );
+  }
+
+  Future<void> toggleBookmark(String key) async {
+    if (!bookmarks.remove(key)) {
+      bookmarks.add(key);
+    } else {
+      marks.remove(key);
+    }
+    await _saveMarks();
     notifyListeners();
   }
+
+  Future<void> saveMark(String key, {required int color, String note = ''}) async {
+    bookmarks.add(key);
+    marks[key] = AyahMark(color, note.trim());
+    await _saveMarks();
+    notifyListeners();
+  }
+
+  /// يطبّق لونًا على عدة آيات مع الإبقاء على ملاحظات الموجود منها.
+  Future<void> saveMarksColor(Iterable<String> keys, int color) async {
+    for (final k in keys) {
+      bookmarks.add(k);
+      marks[k] = AyahMark(color, marks[k]?.note ?? '');
+    }
+    await _saveMarks();
+    notifyListeners();
+  }
+
+  Future<void> removeMarks(Iterable<String> keys) async {
+    for (final k in keys) {
+      bookmarks.remove(k);
+      marks.remove(k);
+    }
+    await _saveMarks();
+    notifyListeners();
+  }
+
+  // ───────── الإعدادات ─────────
 
   Future<void> setReaderTheme(String v) async {
     readerTheme = v;
@@ -86,9 +178,36 @@ class QuranProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setPageMode(String v) async {
+    pageMode = v;
+    await _prefs?.setString(_kMode, v);
+    notifyListeners();
+  }
+
   Future<void> setFontSize(double v) async {
     fontSize = v;
     await _prefs?.setDouble(_kFont, v);
     notifyListeners();
+  }
+
+  // ───────── التفسير (الميسّر) ─────────
+
+  /// يحمّل ملف التفسير عند أول طلب فقط. يعيد null إن لم يوجد الملف.
+  Future<String?> tafsirOf(Ayah a) async {
+    _tafsirFuture ??= _loadTafsir();
+    final list = await _tafsirFuture;
+    if (list == null || data == null) return null;
+    final i = ayahIndex(a);
+    return (i >= 0 && i < list.length) ? list[i] : null;
+  }
+
+  Future<List<String>?> _loadTafsir() async {
+    try {
+      final raw = await rootBundle.loadString('assets/data/tafsir.json');
+      final l = await compute(_parseStrings, raw);
+      return l.length == 6236 ? l : null;
+    } catch (_) {
+      return null;
+    }
   }
 }

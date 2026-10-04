@@ -44,6 +44,7 @@ flutter:
   assets:
     - lib/data/azkar.json
     - assets/data/quran.json
+    - assets/data/tafsir.json
     - assets/data/challenges.json
     - assets/brand/app_icon.png
     - assets/brand/notification_art.png

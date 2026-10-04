@@ -7,6 +7,7 @@ import hashlib, json, os, sys, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QURAN_URL = "https://api.alquran.cloud/v1/quran/quran-uthmani"
+TAFSIR_URL = "https://api.alquran.cloud/v1/quran/ar.muyassar"  # التفسير الميسر (مجمع الملك فهد)
 FONTS = {
     "AmiriQuran-Regular.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/amiriquran/AmiriQuran-Regular.ttf",
     "Tajawal-Regular.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-Regular.ttf",
@@ -100,6 +101,40 @@ def fetch_quran():
                              "surahs": 114, "ayahs": total}}, f, ensure_ascii=False, indent=2)
     print("quran ok:", total, "ayahs, sha256", sha[:12])
 
+def fetch_tafsir():
+    raw = get(TAFSIR_URL)
+    sha = hashlib.sha256(raw).hexdigest()
+    j = json.loads(raw.decode("utf-8"))
+    if j.get("code") != 200:
+        fail("استجابة التفسير غير ناجحة")
+    surahs = j["data"]["surahs"]
+    if len(surahs) != 114:
+        fail(f"عدد السور في التفسير {len(surahs)} بدل 114")
+    out = []
+    for i, s in enumerate(surahs, start=1):
+        if s["number"] != i:
+            fail(f"ترتيب سور التفسير مختل عند {i}")
+        for k, a in enumerate(s["ayahs"], start=1):
+            if a["numberInSurah"] != k:
+                fail(f"ترقيم تفسير سورة {i} مختل عند {k}")
+            t = a["text"].lstrip("\ufeff").strip()
+            if not t:
+                fail(f"تفسير فارغ {i}:{k}")
+            out.append(t)
+    if len(out) != 6236:
+        fail(f"عدد نصوص التفسير {len(out)} بدل 6236")
+    d = os.path.join(ROOT, "assets", "data")
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "tafsir.json"), "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+    sp = os.path.join(d, "SOURCES.json")
+    meta = json.load(open(sp, encoding="utf-8")) if os.path.exists(sp) else {}
+    meta["tafsir"] = {"source": TAFSIR_URL, "edition": "ar.muyassar", "sha256_raw": sha, "ayahs": len(out)}
+    with open(sp, "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=2)
+    print("tafsir ok:", len(out), "ayahs, sha256", sha[:12])
+
 if __name__ == "__main__":
     fetch_fonts()
     fetch_quran()
+    fetch_tafsir()
