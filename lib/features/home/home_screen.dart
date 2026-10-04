@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/home_tokens.dart';
@@ -577,20 +578,20 @@ _Hint _hintFor(DateTime n, NextPrayer? next) {
   }
   final h = n.hour;
   if (n.weekday == DateTime.friday && h >= 6 && h < 15) {
-    return _Hint(HomeIcons.quran, 'يوم الجمعة · سورة الكهف وكثرة الصلاة على النبي ﷺ');
+    return const _Hint(HomeIcons.quran, 'يوم الجمعة · سورة الكهف وكثرة الصلاة على النبي ﷺ');
   }
   if ((n.weekday == DateTime.monday || n.weekday == DateTime.thursday) && h >= 3 && h < 12) {
     return _Hint(HomeIcons.sparkle,
         'اليوم ${n.weekday == DateTime.monday ? 'الإثنين' : 'الخميس'} · يُستحب صيامه');
   }
-  if (h >= 3 && h < 6) return _Hint(HomeIcons.sun, 'بعد الفجر · ابدأ يومك بالأذكار والقرآن');
-  if (h >= 6 && h < 9) return _Hint(HomeIcons.sun, 'بكّر بأذكار الصباح ثم اقرأ وردك');
-  if (h >= 9 && h < 12) return _Hint(HomeIcons.sun, 'وقت صلاة الضحى · ركعتان أو أكثر');
-  if (h >= 12 && h < 15) return _Hint(HomeIcons.quran, 'خذ لك وردًا من القرآن بعد الظهر');
-  if (h >= 15 && h < 19) return _Hint(HomeIcons.sunset, 'أذكار المساء بعد العصر');
-  if (h >= 19 && h < 21) return _Hint(HomeIcons.moon, 'أذكار المساء، وراجع وردك قبل النوم');
-  if (h >= 21 || h < 1) return _Hint(HomeIcons.moon, 'قبل النوم · آية الكرسي والمعوذات');
-  return _Hint(HomeIcons.moon, 'الثلث الأخير من الليل · وقت الدعاء والاستغفار');
+  if (h >= 3 && h < 6) return const _Hint(HomeIcons.sun, 'بعد الفجر · ابدأ يومك بالأذكار والقرآن');
+  if (h >= 6 && h < 9) return const _Hint(HomeIcons.sun, 'بكّر بأذكار الصباح ثم اقرأ وردك');
+  if (h >= 9 && h < 12) return const _Hint(HomeIcons.sun, 'وقت صلاة الضحى · ركعتان أو أكثر');
+  if (h >= 12 && h < 15) return const _Hint(HomeIcons.quran, 'خذ لك وردًا من القرآن بعد الظهر');
+  if (h >= 15 && h < 19) return const _Hint(HomeIcons.sunset, 'أذكار المساء بعد العصر');
+  if (h >= 19 && h < 21) return const _Hint(HomeIcons.moon, 'أذكار المساء، وراجع وردك قبل النوم');
+  if (h >= 21 || h < 1) return const _Hint(HomeIcons.moon, 'قبل النوم · آية الكرسي والمعوذات');
+  return const _Hint(HomeIcons.moon, 'الثلث الأخير من الليل · وقت الدعاء والاستغفار');
 }
 
 class _AzkarTimeCard extends StatelessWidget {

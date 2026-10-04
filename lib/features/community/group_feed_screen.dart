@@ -136,8 +136,9 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
     try {
       // صلاحية الحذف الحقيقية في RLS: الكاتب أو admin فقط.
       await supabase.from('posts').delete().eq('id', post['id']);
-      if (mounted)
+      if (mounted) {
         setState(() => _posts.removeWhere((p) => p['id'] == post['id']));
+      }
     } on PostgrestException catch (e) {
       _toast(e.message, error: true);
     }

@@ -87,6 +87,8 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _InfoDivider extends StatelessWidget {
+  const _InfoDivider();
+
   @override
   Widget build(BuildContext context) => Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: .45));
 }

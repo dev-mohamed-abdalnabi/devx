@@ -10,7 +10,6 @@ import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
-import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
 import '../home/home_art.dart';
 import 'goto_sheet.dart';
@@ -103,6 +102,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
         if (!_sc.hasClients || !mounted) return;
         final ctx = _keys[page]?.currentContext;
         if (ctx != null) {
+          if (!ctx.mounted) return;
           await Scrollable.ensureVisible(ctx, alignment: 0, duration: Duration.zero);
           break;
         }
@@ -413,7 +413,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     ? ListView.builder(
                         key: const ValueKey('cont'),
                         controller: _sc,
-                        cacheExtent: 1500,
+                        scrollCacheExtent: 1500,
                         itemCount: data.pageCount,
                         itemBuilder: (ctx, i) => KeyedSubtree(
                           key: _keyFor(i + 1),
