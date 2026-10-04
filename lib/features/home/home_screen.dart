@@ -673,7 +673,11 @@ class _AzkarTimeCard extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(prefix, style: cairoStyle(11.5, color: pal.sub)),
+                                Transform.translate(
+                                  offset: const Offset(0, -2),
+                                  child: Text(prefix, style: cairoStyle(11.5, color: pal.sub)),
+                                ),
+                                const SizedBox(height: 3),
                                 Text(title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
