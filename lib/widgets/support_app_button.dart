@@ -26,7 +26,6 @@ class SupportTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final theme = Theme.of(context);
     return ValueListenableBuilder<int>(
       valueListenable: SupportBarVisibility._hiders,
       builder: (context, hidden, _) {

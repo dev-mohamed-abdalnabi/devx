@@ -309,7 +309,7 @@ class _ZikrListScreenState extends State<ZikrListScreen> {
                         _menuItem(tk, 'reset', ZikrIcons.refresh,
                             'إعادة تعيين العداد'),
                       ],
-                      child: HeaderButton(icon: ZikrIcons.dots),
+                      child: const HeaderButton(icon: ZikrIcons.dots),
                     ),
                   ],
                 ),

@@ -344,7 +344,7 @@ class _NotifRow extends StatelessWidget {
           Switch(
             value: on,
             onChanged: (_) => onTap(),
-            activeColor: tk.gold,
+            thumbColor: WidgetStatePropertyAll(tk.gold),
           ),
         ]),
       ),
