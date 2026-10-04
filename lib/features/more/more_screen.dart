@@ -8,6 +8,7 @@ import '../tasbeeh/tasbeeh_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
 import '../reminders/reminders_screen.dart';
+import '../../screens/categories_screen.dart';
 import 'bookmarks_screen.dart';
 import 'support_screen.dart';
 
@@ -37,6 +38,7 @@ class MoreScreen extends StatelessWidget {
           const AppSectionHeader(title: 'العبادة اليومية'),
           const SizedBox(height: 10),
           _Tile(icon: Icons.task_alt_rounded, title: 'التحديات والإنجازات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChallengesScreen()))),
+          _Tile(icon: Icons.auto_awesome_outlined, title: 'الأذكار', onTap: () => _push(context, 'الأذكار', const CategoriesScreen())),
           _Tile(icon: Icons.touch_app_rounded, title: 'التسبيح', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehScreen()))),
           _Tile(icon: Icons.notifications_active_outlined, title: 'التذكيرات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RemindersScreen()))),
           const SizedBox(height: 18),

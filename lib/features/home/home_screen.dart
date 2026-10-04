@@ -1,97 +1,391 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/hijri.dart';
+import '../../core/home_tokens.dart';
 import '../../core/text_utils.dart';
+import '../../data/quran_data.dart';
+import '../../models/zikr.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/azkar_provider.dart';
 import '../../providers/prayer_provider.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
-import '../../screens/zikr_list_screen.dart';
+import '../../screens/categories_screen.dart';
 import '../../screens/favorites_screen.dart';
+import '../../screens/zikr_list_screen.dart';
 import '../challenges/challenges_screen.dart';
 import '../more/support_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../quran/quran_audio_screen.dart';
 import '../quran/quran_home_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
-import '../../widgets/support_app_button.dart';
-import 'home_svg.dart';
+import 'home_art.dart';
 
-const _bg = Color(0xFFF7F5EE);
-const _card = Color(0xFFFFFFFF);
-const _line = Color(0xFFE7E1CE);
-const _ink = Color(0xFF1F2A1F);
-const _muted = Color(0xFF7B8270);
-const _gold = Color(0xFFB8923A);
-const _mint = Color(0xFFE3EFD8);
-const _mintInk = Color(0xFF2F5A2A);
-const _leaf = Color(0xFF6FAE5A);
+enum _Slot { morning, evening, sleep }
 
-class HomeDashboard extends StatelessWidget {
+/// الشاشة الرئيسية الجديدة: بدون Scroll، 6 صفوف بنسب 1.65:1:1:1:1:1.2.
+class HomeDashboard extends StatefulWidget {
   final void Function(int tab) onSwitchTab;
   const HomeDashboard({super.key, required this.onSwitchTab});
 
   @override
+  State<HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends State<HomeDashboard> {
+  final ValueNotifier<DateTime> _now = ValueNotifier(DateTime.now());
+  Timer? _timer;
+  _Slot _slot = _slotFor(DateTime.now());
+  NextPrayer? _next;
+  String _ayahDay = '';
+  Ayah? _ayah;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final n = DateTime.now();
+      _now.value = n;
+      final s = _slotFor(n);
+      final passed = _next != null && !_next!.time.isAfter(n);
+      if (s != _slot || passed) {
+        setState(() => _slot = s);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _now.dispose();
+    super.dispose();
+  }
+
+  /// نفس منطق التطبيق السابق (٣–١٢ صباح، ١٥–٢٠ مساء، ٢١–٣ نوم)،
+  /// مع سدّ الفجوتين (١٢–١٥ ← صباح، ٢٠–٢١ ← مساء) لأن الكارت لازم يظهر دائمًا.
+  static _Slot _slotFor(DateTime n) {
+    final h = n.hour;
+    if (h >= 3 && h < 15) return _Slot.morning;
+    if (h >= 15 && h < 21) return _Slot.evening;
+    return _Slot.sleep;
+  }
+
+  AzkarCategory? _categoryFor(AzkarProvider p, _Slot s) {
+    for (final c in p.categories) {
+      if (s == _Slot.sleep ? c.id == 'hisn-28' : c.id == 'hisn-27') return c;
+    }
+    final titles = s == _Slot.sleep
+        ? const ['النوم']
+        : const ['الصباح والمساء', 'الصباح', 'المساء'];
+    for (final t in titles) {
+      for (final c in p.categories) {
+        if (c.title.contains(t)) return c;
+      }
+    }
+    return null;
+  }
+
+  Ayah? _dailyAyah(QuranData? d, DateTime now) {
+    if (d == null || d.ayahs.isEmpty) return null;
+    final key = '${now.year}-${now.month}-${now.day}';
+    if (_ayahDay == key && _ayah != null) return _ayah;
+    final pool = d.ayahs.where((a) => a.text.length <= 90).toList();
+    final list = pool.isEmpty ? d.ayahs : pool;
+    final doy = now.difference(DateTime(now.year, 1, 1)).inDays;
+    _ayahDay = key;
+    _ayah = list[(doy + now.year * 7) % list.length];
+    return _ayah;
+  }
+
+  void _push(Widget w) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
+
+  void _pushTitled(String title, Widget body) => _push(Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: SafeArea(child: body),
+      ));
+
+  @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
+    final compact = mq.size.height < 640;
+
     final now = DateTime.now();
     final azkar = context.watch<AzkarProvider>();
     final quran = context.watch<QuranProvider>();
     final activity = context.watch<ActivityProvider>();
     final prayer = context.watch<PrayerProvider>();
-    final audio = context.watch<QuranAudioProvider>();
-    final daily = activity.dailyFor(now);
-    final category = _categoryForTime(azkar, prayer, now);
-    final hijri = prayer.hijriFor(now).format();
-    final done = daily.isEmpty ? 0 : activity.dailyDone(now);
+    final audioSub = context.select<QuranAudioProvider, String>((a) {
+      if (a.displaySurah != null) {
+        return '${a.isPlaying ? 'يعمل الآن: ' : 'آخر استماع: '}'
+            'سورة ${QuranAudioProvider.surahName(a.displaySurah!)}';
+      }
+      return a.hasAnyAudio
+          ? 'التلاوة جاهزة · اضغط للاستماع'
+          : 'اختر شيخًا ونزّل التلاوة';
+    });
 
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
+    _next = prayer.nextPrayer(now);
+    final next = _next;
+    final cat = _categoryFor(azkar, _slot);
+    final progress = cat == null ? 0.0 : azkar.categoryProgress(cat.id);
+
+    // تابع القراءة
+    final qd = quran.data;
+    final started = quran.hasStartedReading && qd != null;
+    final page = qd == null ? 1 : quran.lastPage.clamp(1, qd.pageCount);
+    final first = qd?.byPage[page]?.first;
+    final read = quran.readPages.length;
+    String readSub;
+    if (qd == null) {
+      readSub = '';
+    } else if (started) {
+      final s = first == null ? '' : QuranAudioProvider.surahName(first.surah);
+      readSub = '$s · صفحة ${toArabicDigits(page)}'
+          '${read > 0 ? ' — قرأت ${toArabicDigits(read)} من ${toArabicDigits(qd.pageCount)} صفحة' : ''}';
+    } else {
+      readSub = 'افتح المصحف من الفاتحة أو اختر السورة';
+    }
+
+    // التحديات
+    final daily = activity.dailyFor(now);
+    final done = activity.dailyDone(now);
+    final total = daily.length;
+
+    final ayah = _dailyAyah(qd, now);
+
+    Widget slotTile(
+        {required int span,
+        required double colW,
+        required double fullW,
+        required Widget child}) {
+      final w = span == 3 ? fullW : (span == 2 ? colW * 2 + 10 : colW);
+      return SizedBox(width: w, child: child);
+    }
+
+    return MediaQuery(
+      data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+      child: Container(
+        color: tk.bg,
+        child: Stack(
           children: [
-            SizedBox(
-              height: 58,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  children: [
-                    const Text('ذِكر', style: TextStyle(fontFamily: 'Amiri', fontSize: 30, fontWeight: FontWeight.w700, color: _ink)),
-                    const Spacer(),
-                    _DashedLabel(hijri),
-                    const Spacer(),
-                    _SupportPill(onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
-                  ],
-                ),
+            const Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(painter: IslamicPatternPainter(opacity: .10)),
               ),
             ),
-            Expanded(
+            SafeArea(
+              bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: Column(
                   children: [
-                    Expanded(flex: 165, child: _HeroCard(category: category, provider: azkar)),
-                    const SizedBox(height: 10),
-                    Expanded(flex: 100, child: Row(textDirection: TextDirection.rtl, children: [
-                      Expanded(flex: 2, child: _PrayerCard(prayer: prayer)), const SizedBox(width: 10), Expanded(child: _CountdownCard()),
-                    ])),
-                    const SizedBox(height: 10),
-                    Expanded(flex: 100, child: Row(textDirection: TextDirection.rtl, children: [
-                      Expanded(child: _ActionCard(icon: LineIcon.hand, title: 'التسبيح', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehScreen())))), const SizedBox(width: 10), Expanded(flex: 2, child: _ReadingCard(quran: quran, onTap: () => onSwitchTab(1))),
-                    ])),
-                    const SizedBox(height: 10),
-                    Expanded(flex: 100, child: Row(textDirection: TextDirection.rtl, children: [
-                      Expanded(flex: 2, child: _AudioCard(audio: audio)), const SizedBox(width: 10), Expanded(child: _ActionCard(icon: LineIcon.sparkle, title: 'الأذكار', onTap: () => onSwitchTab(2))),
-                    ])),
-                    const SizedBox(height: 10),
-                    Expanded(flex: 100, child: Row(textDirection: TextDirection.rtl, children: [
-                      Expanded(child: _ActionCard(icon: LineIcon.heart, title: 'المفضّلة', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FavoritesScreen())))), const SizedBox(width: 10), Expanded(flex: 2, child: _ChallengesCard(done: done, total: daily.length, streak: activity.streak, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChallengesScreen())))),
-                    ])),
-                    const SizedBox(height: 10),
-                    Expanded(flex: 120, child: _AyahCard(quran: quran)),
+                    _HomeHeader(
+                      tk: tk,
+                      compact: compact,
+                      hijri: prayer.hijriFor(now).format(),
+                      onSupport: () => _push(const SupportScreen()),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6, bottom: 10),
+                        child: LayoutBuilder(builder: (context, box) {
+                          final fullW = box.maxWidth;
+                          final colW = (fullW - 20) / 3;
+                          Widget row(int flex, List<Widget> kids) => Expanded(
+                                flex: flex,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    for (var i = 0; i < kids.length; i++) ...[
+                                      if (i > 0) const SizedBox(width: 10),
+                                      kids[i],
+                                    ],
+                                  ],
+                                ),
+                              );
+                          const gap = SizedBox(height: 10);
+                          return Column(
+                            children: [
+                              row(165, [
+                                slotTile(
+                                  span: 3,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: _AzkarTimeCard(
+                                    tk: tk,
+                                    slot: _slot,
+                                    progress: progress,
+                                    compact: compact,
+                                    onTap: () => cat == null
+                                        ? _pushTitled(
+                                            'الأذكار', const CategoriesScreen())
+                                        : _push(ZikrListScreen(
+                                            categoryId: cat.id)),
+                                  ),
+                                ),
+                              ]),
+                              gap,
+                              row(100, [
+                                slotTile(
+                                  span: 2,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.clock,
+                                    title: 'الصلاة القادمة',
+                                    subtitle: next == null
+                                        ? 'حدّد موقعك لعرض المواقيت'
+                                        : '${next.name} · ${formatClock(next.time)}',
+                                    onTap: () => _push(const PrayerScreen()),
+                                  ),
+                                ),
+                                slotTile(
+                                  span: 1,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: ValueListenableBuilder<DateTime>(
+                                    valueListenable: _now,
+                                    builder: (context, n, _) => HomeTile(
+                                      tk: tk,
+                                      compact: compact,
+                                      icon: HomeIcons.hourglass,
+                                      title: 'المتبقي',
+                                      subtitle: next == null
+                                          ? '--:--:--'
+                                          : formatCountdown(
+                                              next.time.difference(n)),
+                                      subtitleIsClock: true,
+                                      alwaysShowSubtitle: true,
+                                      onTap: () => _push(const PrayerScreen()),
+                                    ),
+                                  ),
+                                ),
+                              ]),
+                              gap,
+                              row(100, [
+                                slotTile(
+                                  span: 1,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.hand,
+                                    title: 'التسبيح',
+                                    onTap: () => _push(const TasbeehScreen()),
+                                  ),
+                                ),
+                                slotTile(
+                                  span: 2,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.quran,
+                                    title: started ? 'تابع القراءة' : 'ابدأ القراءة',
+                                    subtitle: readSub,
+                                    progress: started && read > 0
+                                        ? quran.khatmaProgress
+                                        : null,
+                                    onTap: () => started
+                                        ? openReader(context, page)
+                                        : widget.onSwitchTab(1),
+                                  ),
+                                ),
+                              ]),
+                              gap,
+                              row(100, [
+                                slotTile(
+                                  span: 2,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.headphones,
+                                    title: 'القرآن صوتيًا',
+                                    subtitle: audioSub,
+                                    onTap: () => _push(const QuranAudioScreen()),
+                                  ),
+                                ),
+                                slotTile(
+                                  span: 1,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.sparkle,
+                                    title: 'الأذكار',
+                                    onTap: () => _pushTitled(
+                                        'الأذكار', const CategoriesScreen()),
+                                  ),
+                                ),
+                              ]),
+                              gap,
+                              row(100, [
+                                slotTile(
+                                  span: 1,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.heart,
+                                    title: 'المفضّلة',
+                                    onTap: () => _pushTitled(
+                                        'المفضلة', const FavoritesScreen()),
+                                  ),
+                                ),
+                                slotTile(
+                                  span: 2,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: HomeTile(
+                                    tk: tk,
+                                    compact: compact,
+                                    icon: HomeIcons.trophy,
+                                    title:
+                                        'تحديات اليوم · ${toArabicDigits(done)} / ${toArabicDigits(total)}',
+                                    subtitle:
+                                        'أيام متواصلة: ${toArabicDigits(activity.streak)}',
+                                    progress: total == 0 ? 0 : done / total,
+                                    onTap: () =>
+                                        _push(const ChallengesScreen()),
+                                  ),
+                                ),
+                              ]),
+                              gap,
+                              row(120, [
+                                slotTile(
+                                  span: 3,
+                                  colW: colW,
+                                  fullW: fullW,
+                                  child: _AyahCard(
+                                    tk: tk,
+                                    text: ayah?.text ??
+                                        'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+                                    ref: ayah == null
+                                        ? 'سورة الرعد · ٢٨'
+                                        : 'سورة ${QuranAudioProvider.surahName(ayah.surah)} · ${toArabicDigits(ayah.number)}',
+                                    onTap: ayah == null
+                                        ? null
+                                        : () => openReader(context, ayah.page,
+                                            highlight:
+                                                '${ayah.surah}:${ayah.number}'),
+                                  ),
+                                ),
+                              ]),
+                            ],
+                          );
+                        }),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -101,96 +395,69 @@ class HomeDashboard extends StatelessWidget {
       ),
     );
   }
-
-  AzkarCategory? _categoryForTime(AzkarProvider p, PrayerProvider prayer, DateTime now) {
-    final times = prayer.timesFor(now);
-    final asr = times?.asr;
-    final maghrib = times?.maghrib;
-    final isha = times?.isha;
-    if (isha != null && (now.isAfter(isha) || now.isBefore(times?.fajr ?? now))) return _find(p, const ['النوم']);
-    if ((maghrib != null && now.isAfter(maghrib)) || (asr != null && now.isAfter(asr))) return _find(p, const ['الصباح والمساء', 'المساء']);
-    return _find(p, const ['الصباح', 'الصباح والمساء']) ?? (p.categories.isEmpty ? null : p.categories.first);
-  }
-  AzkarCategory? _find(AzkarProvider p, List<String> names) { for (final n in names) { for (final c in p.categories) { if (c.title.contains(n)) return c; } } return null; }
 }
 
-class _DashedLabel extends StatelessWidget { final String text; const _DashedLabel(this.text); @override Widget build(BuildContext context) => CustomPaint(painter: _DashedBorderPainter(_gold), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _muted)))); }
-class _SupportPill extends StatelessWidget {
-  final VoidCallback onTap;
-  const _SupportPill({required this.onTap});
+/// Header: ارتفاع 58 — الشعار (يمين) · التاريخ الهجري (منتصف) · زر الدعم (شمال).
+class _HomeHeader extends StatelessWidget {
+  final HomeTokens tk;
+  final bool compact;
+  final String hijri;
+  final VoidCallback onSupport;
+  const _HomeHeader(
+      {required this.tk,
+      required this.compact,
+      required this.hijri,
+      required this.onSupport});
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _card,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: _line)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: const SizedBox(
-          height: 36,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              LineIcon(LineIcon.heart, size: 16),
-              SizedBox(width: 6),
-              Text('ادعم التطبيق', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _ink)),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroCard extends StatelessWidget { final AzkarCategory? category; final AzkarProvider provider; const _HeroCard({required this.category, required this.provider}); @override Widget build(BuildContext context) { final c = category; final progress = c == null ? 0.0 : provider.categoryProgress(c.id); final title = c?.title ?? 'أذكار الصباح'; return _TapCard(color: _mint, border: Colors.transparent, onTap: c == null ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ZikrListScreen(categoryId: c.id))), child: Stack(children: [const Positioned.fill(child: _Pattern(opacity: .22)), const Positioned(top: 12, right: 14, child: LineIcon(LineIcon.moon)), Align(alignment: AlignmentDirectional.centerEnd, child: FractionallySizedBox(widthFactor: .62, child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 0, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [const Text('حان وقت', style: TextStyle(fontSize: 11.5, color: _mintInk)), Text(title, style: const TextStyle(fontFamily: 'Amiri', fontSize: 22, fontWeight: FontWeight.w700, color: _mintInk)), _ProgressBar(value: progress), Text('أنجزت ${toArabicDigits((progress * 100).round())}٪ · اضغط للمتابعة', style: const TextStyle(fontSize: 11.5, color: _mintInk))])))), const Positioned(left: -2, bottom: -2, width: 190, height: 140, child: MosqueSvg())])); } }
-
-class _PrayerCard extends StatelessWidget { final PrayerProvider prayer; const _PrayerCard({required this.prayer}); @override Widget build(BuildContext context) { final next = prayer.nextPrayer(DateTime.now()); final label = next == null ? 'اختر مدينتك من المواقيت' : '${next.name} · ${_time(next.time)}'; return _InfoCard(icon: LineIcon.clock, title: 'الصلاة القادمة', subtitle: label, onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrayerScreen()))); } }
-class _CountdownCard extends StatefulWidget { const _CountdownCard(); @override State<_CountdownCard> createState() => _CountdownCardState(); }
-class _CountdownCardState extends State<_CountdownCard> { Timer? timer; Duration left = Duration.zero; @override void initState() { super.initState(); _tick(); timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick()); } void _tick() { final n = DateTime.now(); final t = DateTime(n.year, n.month, n.day, 5, 25).isAfter(n) ? DateTime(n.year, n.month, n.day, 5, 25) : DateTime(n.year, n.month, n.day + 1, 5, 25); if (mounted) setState(() => left = t.difference(n)); } @override void dispose() { timer?.cancel(); super.dispose(); } @override Widget build(BuildContext context) { final s = left.inSeconds.clamp(0, 86399); final str = '${(s ~/ 3600).toString().padLeft(2, '0')}:${((s % 3600) ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}'; return _InfoCard(icon: LineIcon.hourglass, title: 'المتبقي', subtitle: toArabicDigitsStr(str), ltr: true); } }
-class _ActionCard extends StatelessWidget { final String icon, title; final VoidCallback onTap; const _ActionCard({required this.icon, required this.title, required this.onTap}); @override Widget build(BuildContext context) => _TapCard(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [LineIcon(icon), Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink))])); }
-class _ReadingCard extends StatelessWidget { final QuranProvider quran; final VoidCallback onTap; const _ReadingCard({required this.quran, required this.onTap}); @override Widget build(BuildContext context) { final data = quran.data; final page = quran.lastPage.clamp(1, data?.pageCount ?? 604).toInt(); final first = data?.byPage[page]?.first; final surah = first == null ? 'ابدأ من الفاتحة' : QuranAudioProvider.surahName(first.surah); final read = quran.readPages.length; return _TapCard(onTap: quran.hasStartedReading ? () => openReader(context, page) : onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const LineIcon(LineIcon.book), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('تابع القراءة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)), Text('$surah · صفحة ${toArabicDigits(page)} — قرأت ${toArabicDigits(read)} من ${toArabicDigits(data?.pageCount ?? 604)} صفحة', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: _muted)), _ProgressBar(value: quran.khatmaProgress)])])); } }
-class _AudioCard extends StatelessWidget { final QuranAudioProvider audio; const _AudioCard({required this.audio}); @override Widget build(BuildContext context) => _InfoCard(icon: LineIcon.headphones, title: 'القرآن صوتيًا', subtitle: audio.displaySurah == null ? 'اختر شيخًا للاستماع' : 'آخر استماع: سورة ${QuranAudioProvider.surahName(audio.displaySurah!)}', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QuranAudioScreen()))); }
-class _ChallengesCard extends StatelessWidget { final int done, total, streak; final VoidCallback onTap; const _ChallengesCard({required this.done, required this.total, required this.streak, required this.onTap}); @override Widget build(BuildContext context) => _TapCard(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const LineIcon(LineIcon.trophy), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('تحديات اليوم · ${toArabicDigits( done)} / ${toArabicDigits(total)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)), Text('أيام متواصلة: ${toArabicDigits(streak)}', style: const TextStyle(fontSize: 11.5, color: _muted)), _ProgressBar(value: total == 0 ? 0 : done / total)])])); }
-class _AyahCard extends StatelessWidget {
-  final QuranProvider quran;
-  const _AyahCard({required this.quran});
-  @override
-  Widget build(BuildContext context) {
-    final data = quran.data;
-    final day = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays;
-    final ayah = data == null || data.ayahs.isEmpty ? null : data.ayahs[day % data.ayahs.length];
-    final source = ayah == null ? 'جارٍ تحميل آية اليوم' : 'سورة ${QuranAudioProvider.surahName(ayah.surah)} · ${toArabicDigits(ayah.number)}';
-    return _TapCard(border: _gold, child: Stack(children: [
-      const Positioned.fill(child: _Pattern(opacity: .18)),
-      Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Text('آية اليوم', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold)),
-        Text(ayah == null ? 'جارٍ تحميل القرآن…' : '﴿ ${ayah.text} ﴾', textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'Amiri', fontSize: 19, height: 1.7, color: _ink)),
-        Text(source, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _gold)),
-      ])),
-    ]));
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  final String icon, title, subtitle;
-  final VoidCallback? onTap;
-  final bool ltr;
-  const _InfoCard({required this.icon, required this.title, required this.subtitle, this.onTap, this.ltr = false});
-  @override
-  Widget build(BuildContext context) {
-    return _TapCard(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SizedBox(
+      height: 58,
+      child: Row(
         children: [
-          LineIcon(icon),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)),
-              Text(subtitle, textDirection: ltr ? TextDirection.ltr : TextDirection.rtl, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: _muted)),
-            ],
+          Text('ذِكر',
+              style: amiriStyle(compact ? 26 : 30, bold: true, color: tk.ink)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: CustomPaint(
+                  painter: DashedBorderPainter(color: tk.gold, radius: 14),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    child: Text(hijri,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: cairoStyle(13, weight: 600, color: tk.muted)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onSupport,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: tk.card,
+                border: Border.all(color: tk.line),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HomeIcon(HomeIcons.heart, size: 16, color: tk.gold),
+                  const SizedBox(width: 6),
+                  Text('ادعم التطبيق',
+                      style: cairoStyle(13, weight: 600, color: tk.ink)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -198,12 +465,267 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _TapCard extends StatelessWidget { final Widget child; final VoidCallback? onTap; final Color? color, border; const _TapCard({required this.child, this.onTap, this.color = _card, this.border = _line}); @override Widget build(BuildContext context) => Material(color: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: border ?? _line)), clipBehavior: Clip.antiAlias, child: InkWell(onTap: onTap, splashColor: _gold.withValues(alpha: .08), child: Padding(padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14), child: child))); }
-class _ProgressBar extends StatelessWidget { final double value; const _ProgressBar({required this.value}); @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(top: 6), child: ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(value: value.clamp(0, 1).toDouble(), minHeight: 6, backgroundColor: _line, color: _leaf))); }
-class _Pattern extends StatelessWidget { final double opacity; const _Pattern({required this.opacity}); @override Widget build(BuildContext context) => CustomPaint(painter: _PatternPainter(opacity)); }
-class _PatternPainter extends CustomPainter { final double opacity; _PatternPainter(this.opacity); @override void paint(Canvas c, Size s) { final p = Paint()..style = PaintingStyle.stroke..strokeWidth = 1..color = _gold.withValues(alpha: opacity); for (double x = -44; x < s.width + 44; x += 44) for (double y = -44; y < s.height + 44; y += 44) { final path = Path()..moveTo(x + 22, y + 3)..lineTo(x + 26.5, y + 13.5)..lineTo(x + 37, y + 9)..lineTo(x + 32.5, y + 19.5)..lineTo(x + 41, y + 22)..lineTo(x + 32.5, y + 24.5)..lineTo(x + 37, y + 35)..lineTo(x + 26.5, y + 30.5)..lineTo(x + 22, y + 41)..lineTo(x + 17.5, y + 30.5)..lineTo(x + 7, y + 35)..lineTo(x + 11.5, y + 24.5)..lineTo(x + 3, y + 22)..lineTo(x + 11.5, y + 19.5)..lineTo(x + 7, y + 9)..lineTo(x + 17.5, y + 13.5)..close(); c.drawPath(path, p); } } @override bool shouldRepaint(covariant _PatternPainter old) => old.opacity != opacity; }
-class _DashedBorderPainter extends CustomPainter { final Color color; _DashedBorderPainter(this.color); @override void paint(Canvas c, Size s) { final p = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 1; final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & s, const Radius.circular(14))); for (final metric in path.computeMetrics()) { for (double d = 0; d < metric.length; d += 7) c.drawPath(metric.extractPath(d, d + 4), p); } } @override bool shouldRepaint(covariant _DashedBorderPainter old) => old.color != color; }
-class _MosqueArt extends StatelessWidget { const MosqueSvg(); @override Widget build(BuildContext context) => CustomPaint(painter: _MosquePainter()); }
-class _MosquePainter extends CustomPainter { @override void paint(Canvas c, Size s) { final scale = s.width / 150; c.scale(scale, scale); final fill = Paint()..color = _mintInk.withValues(alpha: .3); c.drawRect(const Rect.fromLTWH(0, 100, 150, 10), fill); c.drawRect(const Rect.fromLTWH(38, 72, 64, 28), fill); c.drawArc(const Rect.fromLTWH(40, 42, 60, 60), math.pi, math.pi, true, fill); c.drawRect(const Rect.fromLTWH(8, 54, 12, 46), fill); c.drawRect(const Rect.fromLTWH(130, 54, 12, 46), fill); final gold = Paint()..color = _gold; c.drawCircle(const Offset(70, 19), 7, gold); c.drawCircle(const Offset(72.5, 18), 5.5, Paint()..color = _mint); c.drawRect(const Rect.fromLTWH(69.5, 27, 1, 16), gold); } @override bool shouldRepaint(covariant CustomPainter old) => false; }
+/// الكارت العادي.
+class HomeTile extends StatelessWidget {
+  final HomeTokens tk;
+  final bool compact;
+  final String icon;
+  final String title;
+  final String? subtitle;
+  final double? progress;
+  final bool subtitleIsClock;
+  final bool alwaysShowSubtitle;
+  final VoidCallback onTap;
+  const HomeTile({
+    super.key,
+    required this.tk,
+    required this.compact,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.progress,
+    this.subtitleIsClock = false,
+    this.alwaysShowSubtitle = false,
+  });
 
-String _time(DateTime d) { final h = d.hour % 12 == 0 ? 12 : d.hour % 12; final m = d.minute.toString().padLeft(2, '0'); return '${toArabicDigitsStr('$h:$m')} ${d.hour < 12 ? 'ص' : 'م'}'; }
+  @override
+  Widget build(BuildContext context) {
+    final showSub = subtitle != null &&
+        subtitle!.isNotEmpty &&
+        (!compact || alwaysShowSubtitle);
+    return PressableCard(
+      onTap: onTap,
+      builder: (context, pressed) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        decoration: BoxDecoration(
+          color: tk.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: pressed ? tk.gold : tk.line),
+        ),
+        child: LayoutBuilder(builder: (context, c) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              HomeIcon(icon, size: 24, color: tk.gold),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SizedBox(
+                    width: c.maxWidth,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: cairoStyle(16,
+                                weight: 700, color: tk.ink, height: 1.25)),
+                        if (showSub)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: subtitleIsClock
+                                ? Text(subtitle!,
+                                    textDirection: TextDirection.ltr,
+                                    textAlign: TextAlign.right,
+                                    style: cairoStyle(11.5, color: tk.muted)
+                                        .copyWith(fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ]))
+                                : Text(subtitle!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: cairoStyle(11.5, color: tk.muted)),
+                          ),
+                        if (progress != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: HomeProgressBar(value: progress!, tokens: tk),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// كارت الأذكار المتغيّر حسب الوقت (الكارت الأول).
+class _AzkarTimeCard extends StatelessWidget {
+  final HomeTokens tk;
+  final _Slot slot;
+  final double progress;
+  final bool compact;
+  final VoidCallback onTap;
+  const _AzkarTimeCard(
+      {required this.tk,
+      required this.slot,
+      required this.progress,
+      required this.compact,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = switch (slot) {
+      _Slot.morning => 'أذكار الصباح',
+      _Slot.evening => 'أذكار المساء',
+      _Slot.sleep => 'أذكار النوم',
+    };
+    final icon = switch (slot) {
+      _Slot.morning => HomeIcons.sun,
+      _Slot.evening => HomeIcons.sunset,
+      _Slot.sleep => HomeIcons.moon,
+    };
+    final pct = (progress * 100).round();
+    return PressableCard(
+      onTap: onTap,
+      builder: (context, pressed) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: tk.mint,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: pressed ? tk.gold : Colors.transparent),
+        ),
+        child: LayoutBuilder(builder: (context, box) {
+          return Stack(
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: IslamicPatternPainter(opacity: .22)),
+              ),
+              Positioned(
+                left: 0,
+                bottom: 0,
+                child: MosqueArt(width: box.maxWidth * .44, tokens: tk),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                  child: LayoutBuilder(builder: (context, c) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        HomeIcon(icon, size: 24, color: tk.gold),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerStart,
+                            child: SizedBox(
+                              width: c.maxWidth * .62,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('حان وقت',
+                                      style: cairoStyle(11.5,
+                                          color: tk.mintInk
+                                              .withValues(alpha: .75))),
+                                  Text(title,
+                                      maxLines: 1,
+                                      style: amiriStyle(22,
+                                          bold: true,
+                                          color: tk.mintInk,
+                                          height: 1.2)),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: HomeProgressBar(
+                                        value: progress, tokens: tk),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                        'أنجزت ${toArabicDigits(pct)}٪ · اضغط للمتابعة',
+                                        maxLines: 1,
+                                        style: cairoStyle(11.5,
+                                            color: tk.mintInk
+                                                .withValues(alpha: .75))),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// كارت آية اليوم: شفاف + إطار ذهبي متقطع + نقش.
+class _AyahCard extends StatelessWidget {
+  final HomeTokens tk;
+  final String text;
+  final String ref;
+  final VoidCallback? onTap;
+  const _AyahCard(
+      {required this.tk, required this.text, required this.ref, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return PressableCard(
+      onTap: onTap ?? () {},
+      builder: (context, pressed) => ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: CustomPaint(
+          foregroundPainter: DashedBorderPainter(
+              color: tk.gold, radius: 18),
+          child: Stack(
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: IslamicPatternPainter(opacity: .18)),
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                child: LayoutBuilder(builder: (context, c) {
+                  return Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: SizedBox(
+                        width: c.maxWidth,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('آية اليوم',
+                                style:
+                                    cairoStyle(11.5, weight: 600, color: tk.gold)),
+                            const SizedBox(height: 2),
+                            Text('﴿ $text ﴾',
+                                textAlign: TextAlign.center,
+                                style: amiriStyle(21, color: tk.ink, height: 1.7)),
+                            const SizedBox(height: 2),
+                            Text(ref,
+                                style:
+                                    cairoStyle(11.5, weight: 600, color: tk.gold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
