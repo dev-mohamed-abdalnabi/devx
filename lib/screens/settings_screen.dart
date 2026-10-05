@@ -31,14 +31,7 @@ class SettingsScreen extends StatelessWidget {
           _Group(
             tk: tk,
             children: [
-              _SwitchRow(
-                tk: tk,
-                icon: Icons.dark_mode_rounded,
-                title: 'الوضع الليلي',
-                subtitle: 'مظهر مريح للعين في الإضاءة المنخفضة',
-                value: provider.isDarkMode,
-                onChanged: (_) => provider.toggleDarkMode(),
-              ),
+              _ThemeRow(tk: tk, provider: provider),
               _SwitchRow(
                 tk: tk,
                 icon: Icons.menu_book_rounded,
@@ -197,6 +190,98 @@ class _SwitchRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThemeRow extends StatelessWidget {
+  final HomeTokens tk;
+  final AzkarProvider provider;
+  const _ThemeRow({required this.tk, required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    const opts = [
+      (ThemeMode.system, 'تلقائي', Icons.brightness_auto_rounded),
+      (ThemeMode.light, 'فاتح', Icons.light_mode_rounded),
+      (ThemeMode.dark, 'داكن', Icons.dark_mode_rounded),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _IconDot(tk: tk, icon: Icons.contrast_rounded),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('المظهر',
+                        style: cairoStyle(14.5, weight: 700, color: tk.ink)),
+                    const SizedBox(height: 2),
+                    Text('التلقائي يتبع وضع الجهاز (فاتح أو داكن)',
+                        style: cairoStyle(12, color: tk.muted, height: 1.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: tk.bg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: tk.line),
+            ),
+            child: Row(
+              children: [
+                for (final o in opts)
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => provider.setThemeMode(o.$1),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        decoration: BoxDecoration(
+                          color: provider.themeMode == o.$1
+                              ? tk.mint
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: provider.themeMode == o.$1
+                                  ? tk.gold.withValues(alpha: .55)
+                                  : Colors.transparent),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(o.$3,
+                                size: 17,
+                                color: provider.themeMode == o.$1
+                                    ? tk.mintInk
+                                    : tk.muted),
+                            const SizedBox(width: 6),
+                            Text(o.$2,
+                                style: cairoStyle(13,
+                                    weight: 700,
+                                    color: provider.themeMode == o.$1
+                                        ? tk.mintInk
+                                        : tk.muted)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

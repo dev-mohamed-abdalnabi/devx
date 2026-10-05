@@ -49,6 +49,7 @@ flutter:
     - assets/brand/app_icon.png
     - assets/brand/logo_mark.png
     - assets/brand/notification_art.png
+    - assets/brand/developer.png
   fonts:
     - family: Tajawal
       fonts:

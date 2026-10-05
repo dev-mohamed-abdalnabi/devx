@@ -105,7 +105,7 @@ class AzkarApp extends StatelessWidget {
             },
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
-            themeMode: provider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode: provider.themeMode,
             home: const SplashScreen(),
           );
         },

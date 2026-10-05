@@ -39,7 +39,7 @@ class HomeTokens {
     leaf: Color(0xFF6FAE5A),
   );
 
-  /// الثيم يتبع سويتش الوضع الداكن في التطبيق (AzkarProvider.isDarkMode → ThemeMode).
+  /// الثيم يتبع سويتش الوضع الداكن في التطبيق (AzkarProvider.themeMode، الافتراضي حسب النظام).
   static HomeTokens of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? dark : light;
 

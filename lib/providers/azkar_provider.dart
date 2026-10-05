@@ -10,7 +10,9 @@ class AzkarProvider extends ChangeNotifier {
   bool loading = true;
   Object? error;
   final Set<String> favorites = {};
-  bool isDarkMode = false;
+
+  /// الافتراضي: يتبع وضع النظام (فاتح/داكن) تلقائيًا.
+  ThemeMode themeMode = ThemeMode.system;
   double fontScale = 1.0;
   bool showSources = true;
   DateTime? lastMorningDone;
@@ -18,7 +20,8 @@ class AzkarProvider extends ChangeNotifier {
   Future<void> _progressWrite = Future<void>.value();
 
   static const _favKey = 'azkar_favorites';
-  static const _darkKey = 'azkar_dark_mode';
+  static const _darkKey = 'azkar_dark_mode'; // قديم: bool
+  static const _themeKey = 'azkar_theme_mode'; // system | light | dark
   static const _fontKey = 'azkar_font_scale';
   static const _morningKey = 'azkar_morning_done';
   static const _eveningKey = 'azkar_evening_done';
@@ -68,7 +71,14 @@ class AzkarProvider extends ChangeNotifier {
       }
     }
     favorites.addAll(prefs.getStringList(_favKey) ?? []);
-    isDarkMode = prefs.getBool(_darkKey) ?? false;
+    themeMode = switch (prefs.getString(_themeKey)) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
+      // ترحيل من الإعداد القديم: من فعّل الداكن يبقى داكنًا، والباقي تلقائي.
+      _ =>
+        (prefs.getBool(_darkKey) ?? false) ? ThemeMode.dark : ThemeMode.system,
+    };
     fontScale = prefs.getDouble(_fontKey) ?? 1.0;
     showSources = prefs.getBool(_sourcesKey) ?? true;
     final m = prefs.getString(_morningKey);
@@ -169,11 +179,18 @@ class AzkarProvider extends ChangeNotifier {
         .toList();
   }
 
-  Future<void> toggleDarkMode() async {
-    isDarkMode = !isDarkMode;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_darkKey, isDarkMode);
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (mode == themeMode) return;
+    themeMode = mode;
     notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _themeKey,
+        switch (mode) {
+          ThemeMode.light => 'light',
+          ThemeMode.dark => 'dark',
+          ThemeMode.system => 'system',
+        });
   }
 
   Future<void> setFontScale(double scale) async {

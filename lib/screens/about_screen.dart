@@ -184,16 +184,25 @@ class _DeveloperCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
-                alignment: Alignment.center,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   color: tk.mint,
                   shape: BoxShape.circle,
                   border: Border.all(color: tk.gold.withValues(alpha: .6)),
                 ),
-                child: Text('م',
-                    style: amiriStyle(26, bold: true, color: tk.mintInk)),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/brand/developer.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text('م',
+                          style: amiriStyle(26, bold: true, color: tk.mintInk)),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(

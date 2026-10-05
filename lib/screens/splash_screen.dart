@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/home_tokens.dart';
 import '../core/text_utils.dart';
-import '../features/home/home_art.dart';
+import '../core/page_background.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
 
-/// شاشة الفتح: شعار «ذِكر» نفسه من أيقونة التطبيق (قبة + هلال + «ذكر») على أخضر الهوية.
+/// شاشة الفتح: شعار «ذِكر» (قبة + هلال + «ذكر») على نفس خلفية ونقش وألوان الرئيسية.
 /// تظهر لحظات أثناء قراءة الإعدادات، ثم تنتقل بتلاشي إلى الترحيب أو الرئيسية.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -65,122 +65,107 @@ class _SplashScreenState extends State<SplashScreen>
           [Curve curve = Curves.easeOutCubic]) =>
       CurvedAnimation(parent: _c, curve: Interval(a, b, curve: curve));
 
-  // ألوان الهوية من أيقونة التطبيق: أخضر عميق + كريمي.
-  static const _green = Color(0xFF08302D);
-  static const _greenDark = Color(0xFF041D1C);
-  static const _cream = Color(0xFFF4ECDE);
-
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    // الشعار الأصلي كريمي (شفاف الخلفية): نلوّنه بحسب الوضع ليظهر على خلفية الرئيسية.
+    final logoColor = dark ? tk.ink : const Color(0xFF08302D);
     final size = MediaQuery.of(context).size;
     final logoW = math.min(210.0, size.shortestSide * .5);
-    final bg = _iv(0, .35, Curves.easeOut);
     final logo = _iv(.05, .6, Curves.easeOutCubic);
     final line = _iv(.5, .75);
     final verse = _iv(.6, .9);
     final foot = _iv(.85, 1);
 
-    return Scaffold(
-      backgroundColor: _green,
-      body: Stack(children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, -.15),
-                radius: 1.1,
-                colors: [Color(0xFF0C4540), _green, _greenDark],
-                stops: [0, .55, 1],
-              ),
+    return PatternedBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(children: [
+          Align(
+            alignment: const Alignment(0, -.38),
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                FadeTransition(
+                  opacity: logo,
+                  child: SlideTransition(
+                    position:
+                        Tween(begin: const Offset(0, .06), end: Offset.zero)
+                            .animate(logo),
+                    child: ScaleTransition(
+                      scale: Tween(begin: .88, end: 1.0).animate(logo),
+                      child: ColorFiltered(
+                        colorFilter:
+                            ColorFilter.mode(logoColor, BlendMode.srcIn),
+                        child: Image.asset('assets/brand/logo_mark.png',
+                            width: logoW, filterQuality: FilterQuality.high),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 26),
+                AnimatedBuilder(
+                  animation: line,
+                  builder: (_, __) => Container(
+                    width: 46 * line.value,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: tk.gold,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FadeTransition(
+                  opacity: verse,
+                  child: SlideTransition(
+                    position:
+                        Tween(begin: const Offset(0, .25), end: Offset.zero)
+                            .animate(verse),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 36),
+                      child: Column(children: [
+                        Text(
+                            '﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾',
+                            textAlign: TextAlign.center,
+                            textDirection: TextDirection.rtl,
+                            style: amiriStyle(21, color: tk.ink, height: 1.7)),
+                        const SizedBox(height: 4),
+                        Text('سورة الرعد · ${toArabicDigits(28)}',
+                            style: cairoStyle(12.5, color: tk.muted)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ]),
             ),
           ),
-        ),
-        Positioned.fill(
-          child: FadeTransition(
-            opacity: bg,
-            child:
-                const CustomPaint(painter: IslamicPatternPainter(opacity: .06)),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: MediaQuery.of(context).padding.bottom + 28,
+            child: FadeTransition(
+              opacity: foot,
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (final w in const ['أذكار', 'قرآن', 'صلاة']) ...[
+                  if (w != 'أذكار')
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                              color: tk.gold, shape: BoxShape.circle)),
+                    ),
+                  Text(w, style: cairoStyle(13, weight: 600, color: tk.muted)),
+                ],
+              ]),
+            ),
           ),
-        ),
-        Align(
-          alignment: const Alignment(0, -.38),
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              FadeTransition(
-                opacity: logo,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(0, .06), end: Offset.zero)
-                      .animate(logo),
-                  child: ScaleTransition(
-                    scale: Tween(begin: .88, end: 1.0).animate(logo),
-                    child: Image.asset('assets/brand/logo_mark.png',
-                        width: logoW, filterQuality: FilterQuality.high),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 26),
-              AnimatedBuilder(
-                animation: line,
-                builder: (_, __) => Container(
-                  width: 46 * line.value,
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: _cream.withValues(alpha: .7),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              FadeTransition(
-                opacity: verse,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(0, .25), end: Offset.zero)
-                      .animate(verse),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 36),
-                    child: Column(children: [
-                      Text('﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾',
-                          textAlign: TextAlign.center,
-                          textDirection: TextDirection.rtl,
-                          style: amiriStyle(21, color: _cream, height: 1.7)),
-                      const SizedBox(height: 4),
-                      Text('سورة الرعد · ${toArabicDigits(28)}',
-                          style: cairoStyle(12.5,
-                              color: _cream.withValues(alpha: .6))),
-                    ]),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: MediaQuery.of(context).padding.bottom + 28,
-          child: FadeTransition(
-            opacity: foot,
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              for (final w in const ['أذكار', 'قرآن', 'صلاة']) ...[
-                if (w != 'أذكار')
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                            color: _cream.withValues(alpha: .6),
-                            shape: BoxShape.circle)),
-                  ),
-                Text(w,
-                    style: cairoStyle(13,
-                        weight: 600, color: _cream.withValues(alpha: .7))),
-              ],
-            ]),
-          ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
