@@ -147,8 +147,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
       readSub = '';
     } else if (started) {
       final s = first == null ? '' : QuranAudioProvider.surahName(first.surah);
+      // سطر واحد قصير: الطول المتغيّر كان يكسر السطر ويصغّر محتوى الكارت.
+      final pct = (quran.khatmaProgress * 100).floor();
       readSub = '$s · صفحة ${toArabicDigits(page)}'
-          '${read > 0 ? ' — قرأت ${toArabicDigits(read)} من ${toArabicDigits(qd.pageCount)} صفحة' : ''}';
+          '${read > 0 && pct > 0 ? ' · ${toArabicDigits(pct)}٪' : ''}';
     } else {
       readSub = 'افتح المصحف من الفاتحة أو اختر السورة';
     }
@@ -500,9 +502,10 @@ class HomeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showSub = subtitle != null &&
-        subtitle!.isNotEmpty &&
-        (!compact || alwaysShowSubtitle);
+    // الشاشات القصيرة تتعامل معها الشبكة بارتفاعات ثابتة مع تمرير،
+    // فلا داعي لإخفاء النص الفرعي (كان يختفي على بعض الأجهزة).
+    final showSub = subtitle != null && subtitle!.isNotEmpty;
+    final hasMore = showSub || progress != null || extra != null;
     return PressableCard(
       onTap: onTap,
       builder: (context, pressed) => AnimatedContainer(
@@ -530,7 +533,7 @@ class HomeTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(title,
-                            maxLines: 2,
+                            maxLines: hasMore ? 1 : 2,
                             overflow: TextOverflow.ellipsis,
                             style: cairoStyle(16,
                                 weight: 700, color: tk.ink, height: 1.25)),
@@ -538,15 +541,24 @@ class HomeTile extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
                             child: subtitleIsClock
-                                ? Text(subtitle!,
-                                    textDirection: TextDirection.ltr,
-                                    textAlign: TextAlign.right,
-                                    style: cairoStyle(11.5, color: tk.muted)
-                                        .copyWith(fontFeatures: const [
-                                      FontFeature.tabularFigures()
-                                    ]))
+                                ? SizedBox(
+                                    width: double.infinity,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(subtitle!,
+                                          maxLines: 1,
+                                          textDirection: TextDirection.ltr,
+                                          style:
+                                              cairoStyle(11.5, color: tk.muted)
+                                                  .copyWith(
+                                                      fontFeatures: const [
+                                                FontFeature.tabularFigures()
+                                              ])),
+                                    ),
+                                  )
                                 : Text(subtitle!,
-                                    maxLines: 2,
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: cairoStyle(11.5, color: tk.muted)),
                           ),
@@ -556,7 +568,7 @@ class HomeTile extends StatelessWidget {
                               child: extra!),
                         if (progress != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(top: 4),
                             child:
                                 HomeProgressBar(value: progress!, tokens: tk),
                           ),

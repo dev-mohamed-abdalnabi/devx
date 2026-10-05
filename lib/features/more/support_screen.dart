@@ -8,8 +8,8 @@ import '../../core/home_tokens.dart';
 import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../services/ads_service.dart';
+import '../../widgets/page_kit.dart';
 import '../../widgets/support_app_button.dart';
-import '../home/home_art.dart';
 
 const _contactEmail = 'dev.mohamed.abdalnabi@gmail.com';
 const _contactWhatsapp = '201102855563'; // 01102855563 بصيغة دولية (مصر)
@@ -32,6 +32,7 @@ class _SupportScreenState extends State<SupportScreen> {
   bool _loading = false;
   bool _ready = false;
   bool _failed = false;
+  bool _details = false;
 
   @override
   void initState() {
@@ -78,7 +79,7 @@ class _SupportScreenState extends State<SupportScreen> {
     if (!_ready) {
       await _prepare();
       if (!_ready) {
-        _snack('${AdsService.instance.friendlyError} شكرًا لنيتك الطيبة 🤍');
+        _snack('${AdsService.instance.friendlyError} شكرًا لنيتك الطيبة.');
         return;
       }
     }
@@ -90,7 +91,7 @@ class _SupportScreenState extends State<SupportScreen> {
       final next = (prefs.getInt(_countKey) ?? 0) + 1;
       await prefs.setInt(_countKey, next);
       if (mounted) setState(() => _count = next);
-      _snack('جزاك الله خيرًا، شكرًا لدعمك التطبيق 🤍');
+      _snack('جزاك الله خيرًا، شكرًا لدعمك التطبيق.');
     }
     // جهّز الإعلان التالي في الخلفية.
     if (mounted) _prepare();
@@ -133,7 +134,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   Future<void> _copyDua() async {
     await Clipboard.setData(const ClipboardData(text: _duaText));
-    _snack('تم نسخ الدعاء 🤍');
+    _snack('تم نسخ الدعاء');
   }
 
   @override
@@ -146,155 +147,127 @@ class _SupportScreenState extends State<SupportScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            _Hero(tk: tk),
-            const SizedBox(height: 18),
-            _Heading(tk: tk, text: 'طرق الدعم'),
+            const _Hero(),
+            const SizedBox(height: 22),
+            const KitSectionTitle(
+              text: 'كيف تدعمنا؟',
+              caption: 'كل الطرق اختيارية، وبعضها لا يكلّفك شيئًا',
+            ),
             // ─ إعلان ─
-            _Panel(
-              tk: tk,
+            KitCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _RowHead(
-                    tk: tk,
-                    icon: Icons.play_circle_outline_rounded,
-                    title: 'شاهد إعلانًا قصيرًا',
-                    subtitle:
-                        'بإرادتك فقط، ولا شيء يتغير في التطبيق إن لم تفعل.',
+                  Row(
+                    children: [
+                      const KitIcon(
+                          icon: Icons.play_circle_outline_rounded, size: 46),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('شاهد إعلانًا قصيرًا',
+                                style: cairoStyle(15.5,
+                                    weight: 700, color: tk.ink)),
+                            const SizedBox(height: 2),
+                            Text(
+                                'دقيقة واحدة تساعدنا على الاستمرار، ولا شيء يتغيّر في التطبيق إن لم تفعل.',
+                                style: cairoStyle(12.5,
+                                    color: tk.muted, height: 1.6)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton.icon(
-                      onPressed:
-                          _loading ? null : (_failed ? _prepare : _watch),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: tk.leaf,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
-                      icon: _loading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
-                          : Icon(
-                              _failed
-                                  ? Icons.refresh_rounded
-                                  : Icons.favorite_rounded,
-                              size: 20),
-                      label: Text(
-                        _loading
-                            ? 'جارٍ تحميل الإعلان...'
-                            : _failed
-                                ? 'إعادة المحاولة'
-                                : 'شاهد الإعلان',
-                        style: cairoStyle(15, weight: 700, color: Colors.white),
-                      ),
-                    ),
+                  const SizedBox(height: 14),
+                  KitPrimaryButton(
+                    busy: _loading,
+                    icon: _failed
+                        ? Icons.refresh_rounded
+                        : Icons.volunteer_activism_rounded,
+                    label: _loading
+                        ? 'جارٍ تحميل الإعلان…'
+                        : _failed
+                            ? 'إعادة المحاولة'
+                            : 'شاهد الإعلان',
+                    onPressed: _failed ? _prepare : _watch,
                   ),
                   if (_failed) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Text(ads.friendlyError,
                         style: cairoStyle(12.5, color: tk.muted, height: 1.6)),
-                    const SizedBox(height: 6),
-                    SelectableText(ads.technicalError,
-                        textDirection: TextDirection.ltr,
-                        style: cairoStyle(11, color: tk.muted)),
+                    InkWell(
+                      onTap: () => setState(() => _details = !_details),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                            _details
+                                ? 'إخفاء التفاصيل'
+                                : 'عرض التفاصيل التقنية',
+                            style: cairoStyle(12, weight: 600, color: tk.gold)),
+                      ),
+                    ),
+                    if (_details)
+                      SelectableText(ads.technicalError,
+                          textDirection: TextDirection.ltr,
+                          style: cairoStyle(11, color: tk.muted)),
                   ],
                 ],
               ),
             ),
             const SizedBox(height: 10),
             // ─ مشاركة ─
-            _Panel(
-              tk: tk,
-              onTap: _share,
-              child: _RowHead(
-                tk: tk,
+            KitCard(
+              padding: EdgeInsets.zero,
+              child: KitTile(
                 icon: Icons.ios_share_rounded,
                 title: 'شارك التطبيق',
                 subtitle: 'أرسله لمن تحب، فالدالّ على الخير كفاعله.',
-                chevron: true,
+                onTap: _share,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
             const SizedBox(height: 10),
             // ─ دعاء ─
-            _Panel(
-              tk: tk,
+            _DuaCard(tk: tk, onCopy: _copyDua),
+            const SizedBox(height: 24),
+            const KitSectionTitle(
+              text: 'تواصل معنا',
+              caption: 'اقتراح أو بلاغ عن مشكلة؟ يسعدنا سماعك',
+            ),
+            KitCard(
+              padding: EdgeInsets.zero,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _RowHead(
-                    tk: tk,
-                    icon: Icons.auto_awesome_rounded,
-                    title: 'ادعُ لنا بظهر الغيب',
-                    subtitle: 'دعوة صادقة منك أغلى ما نريد.',
+                  KitTile(
+                    icon: Icons.chat_rounded,
+                    title: 'واتساب',
+                    subtitle: toArabicDigitsStr('01102855563'),
+                    onTap: _whatsapp,
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: tk.mint,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_duaText,
-                            style:
-                                amiriStyle(18, color: tk.mintInk, height: 1.9)),
-                        const SizedBox(height: 6),
-                        Align(
-                          alignment: AlignmentDirectional.centerEnd,
-                          child: TextButton.icon(
-                            onPressed: _copyDua,
-                            icon: Icon(Icons.copy_rounded,
-                                size: 16, color: tk.gold),
-                            label: Text('نسخ',
-                                style: cairoStyle(13,
-                                    weight: 700, color: tk.gold)),
-                          ),
-                        ),
-                      ],
-                    ),
+                  const KitDivider(),
+                  KitTile(
+                    icon: Icons.mail_outline_rounded,
+                    title: 'البريد الإلكتروني',
+                    subtitle: _contactEmail,
+                    ltrSubtitle: true,
+                    onTap: _email,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 22),
-            _Heading(tk: tk, text: 'تواصل معنا'),
-            _Panel(
-              tk: tk,
-              onTap: _whatsapp,
-              child: _RowHead(
-                tk: tk,
-                icon: Icons.chat_rounded,
-                title: 'واتساب',
-                subtitle:
-                    'اقتراح أو بلاغ عن مشكلة: ${toArabicDigitsStr('01102855563')}',
-                chevron: true,
+            if (_count > 0) ...[
+              const SizedBox(height: 22),
+              _Impact(tk: tk, count: _count),
+            ] else ...[
+              const SizedBox(height: 24),
+              Center(
+                child: Text('جزاك الله خيرًا على نيتك الطيبة',
+                    style: cairoStyle(12.5, color: tk.muted)),
               ),
-            ),
-            const SizedBox(height: 10),
-            _Panel(
-              tk: tk,
-              onTap: _email,
-              child: _RowHead(
-                tk: tk,
-                icon: Icons.mail_outline_rounded,
-                title: 'البريد الإلكتروني',
-                subtitle: _contactEmail,
-                chevron: true,
-                ltrSubtitle: true,
-              ),
-            ),
-            const SizedBox(height: 22),
-            _Impact(tk: tk, count: _count),
+            ],
           ],
         ),
       ),
@@ -303,152 +276,88 @@ class _SupportScreenState extends State<SupportScreen> {
 }
 
 class _Hero extends StatelessWidget {
-  final HomeTokens tk;
-  const _Hero({required this.tk});
+  const _Hero();
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-            colors: [Color(0xFF0C2B31), Color(0xFF16473F)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: IslamicPatternPainter(opacity: .12),
-              ),
-            ),
-            Column(
-              children: [
-                SizedBox(
-                  width: 84,
-                  height: 84,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CustomPaint(
-                        size: const Size(84, 84),
-                        painter: IslamicStarPainter(const Color(0xFFE2BC63)),
-                      ),
-                      const Icon(Icons.favorite_rounded,
-                          size: 30, color: Color(0xFF0C2B31)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text('التطبيق مجاني وبلا إعلانات إجبارية',
-                    textAlign: TextAlign.center,
-                    style: cairoStyle(18,
-                        weight: 700, color: const Color(0xFFF1EEE2))),
-                const SizedBox(height: 8),
-                Text(
-                  'إن أحببت أن تدعم استمراره وتطويره فلك طرق كثيرة، أيسرها كلمة طيبة أو دعاء.',
-                  textAlign: TextAlign.center,
-                  style: cairoStyle(13.5,
-                      color: const Color(0xFFB9D3C6), height: 1.7),
-                ),
+    return KitHero(
+      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: kHeroGold, width: 1.4),
+              boxShadow: [
+                BoxShadow(
+                    color: kHeroGold.withValues(alpha: .22), blurRadius: 24),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  final HomeTokens tk;
-  final String text;
-  const _Heading({required this.tk, required this.text});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 18,
-              decoration: BoxDecoration(
-                  color: tk.gold, borderRadius: BorderRadius.circular(2)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(21),
+              child: Image.asset('assets/brand/app_icon.png',
+                  width: 72, height: 72, fit: BoxFit.cover),
             ),
-            const SizedBox(width: 8),
-            Text(text, style: cairoStyle(16, weight: 700, color: tk.ink)),
-          ],
-        ),
-      );
-}
-
-class _Panel extends StatelessWidget {
-  final HomeTokens tk;
-  final Widget child;
-  final VoidCallback? onTap;
-  const _Panel({required this.tk, required this.child, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: tk.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: tk.line),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(padding: const EdgeInsets.all(16), child: child),
+          ),
+          const SizedBox(height: 16),
+          Text('ساهم في استمرار ذِكر',
+              textAlign: TextAlign.center,
+              style: cairoStyle(20, weight: 700, color: kHeroInk)),
+          const SizedBox(height: 8),
+          Text(
+            'التطبيق مجاني بالكامل وبلا إعلانات إجبارية. دعمك الاختياري يعيننا على صيانته وتطويره ليبقى نافعًا للجميع.',
+            textAlign: TextAlign.center,
+            style: cairoStyle(13.5, color: kHeroSoft, height: 1.75),
+          ),
+          const SizedBox(height: 14),
+          const KitHeroPill(
+              icon: Icons.lock_open_rounded, text: 'مجاني دائمًا'),
+        ],
       ),
     );
   }
 }
 
-class _RowHead extends StatelessWidget {
+class _DuaCard extends StatelessWidget {
   final HomeTokens tk;
-  final IconData icon;
-  final String title, subtitle;
-  final bool chevron, ltrSubtitle;
-  const _RowHead({
-    required this.tk,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.chevron = false,
-    this.ltrSubtitle = false,
-  });
+  final VoidCallback onCopy;
+  const _DuaCard({required this.tk, required this.onCopy});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(color: tk.mint, shape: BoxShape.circle),
-          child: Icon(icon, size: 22, color: tk.mintInk),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return KitCard(
+      color: tk.mint,
+      borderColor: tk.gold.withValues(alpha: .5),
+      padding: const EdgeInsets.fromLTRB(18, 16, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(title, style: cairoStyle(15, weight: 700, color: tk.ink)),
-              const SizedBox(height: 2),
-              Text(subtitle,
-                  textDirection: ltrSubtitle ? TextDirection.ltr : null,
-                  style: cairoStyle(12.5, color: tk.muted, height: 1.5)),
+              Icon(Icons.auto_awesome_rounded, size: 18, color: tk.gold),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('ادعُ لنا بظهر الغيب',
+                    style: cairoStyle(14.5, weight: 700, color: tk.mintInk)),
+              ),
             ],
           ),
-        ),
-        if (chevron) Icon(Icons.chevron_left_rounded, color: tk.gold, size: 26),
-      ],
+          const SizedBox(height: 10),
+          Text(_duaText,
+              textAlign: TextAlign.center,
+              style: amiriStyle(19, color: tk.mintInk, height: 2)),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: onCopy,
+              icon: Icon(Icons.copy_rounded, size: 16, color: tk.gold),
+              label: Text('نسخ الدعاء',
+                  style: cairoStyle(13, weight: 700, color: tk.gold)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -460,13 +369,9 @@ class _Impact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tk.mint,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: tk.gold.withValues(alpha: .5)),
-      ),
+    return KitCard(
+      color: tk.mint,
+      borderColor: tk.gold.withValues(alpha: .5),
       child: Row(
         children: [
           IslamicStar(
@@ -479,9 +384,7 @@ class _Impact extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              count == 0
-                  ? 'أثرك عندنا غالٍ مهما صغر. جزاك الله خيرًا على نيتك الطيبة.'
-                  : 'دعمتَ التطبيق ${toArabicDigits(count)} ${count == 1 ? 'مرة' : 'مرات'}، جزاك الله خيرًا وبارك فيك.',
+              'دعمتَ التطبيق ${toArabicDigits(count)} ${count == 1 ? 'مرة' : 'مرات'}، جزاك الله خيرًا وبارك فيك.',
               style:
                   cairoStyle(13.5, weight: 600, color: tk.mintInk, height: 1.7),
             ),

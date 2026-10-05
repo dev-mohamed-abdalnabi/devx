@@ -69,7 +69,8 @@ class NotificationService {
         statIconAvailable ? 'drawable/ic_stat_blank' : 'mipmap/ic_launcher';
 
     try {
-      await _android?.createNotificationChannel(const AndroidNotificationChannel(
+      await _android
+          ?.createNotificationChannel(const AndroidNotificationChannel(
         _channelId,
         _channelName,
         description: _channelDesc,
@@ -158,16 +159,64 @@ class NotificationService {
     } catch (_) {}
   }
 
-  static NotificationDetails _details(String body) => NotificationDetails(
+  /// لون هوية التطبيق (أخضر) لأيقونة الإشعار وعنوانه.
+  static const _brandColor = Color(0xFF2F6B3A);
+  static const _brandName = 'ذِكر';
+
+  /// شكل الإشعار: نص موسَّع كامل + اسم التطبيق + لون الهوية + تصنيف «تذكير».
+  static NotificationDetails _details(String title, String body) =>
+      NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           channelDescription: _channelDesc,
           importance: Importance.high,
           priority: Priority.high,
-          styleInformation: BigTextStyleInformation(body),
+          category: AndroidNotificationCategory.reminder,
+          color: _brandColor,
+          subText: _brandName,
+          ticker: title,
+          styleInformation: BigTextStyleInformation(
+            body,
+            contentTitle: title,
+            summaryText: _brandName,
+          ),
         ),
       );
+
+  /// نص الإشعار: للتذكيرات الافتراضية نصوص مختارة (تُطبَّق حتى على من حفظ نصًّا قديمًا)،
+  /// وللمخصّص يظهر ما كتبه المستخدم كعنوان مع دعاء جامع في المتن.
+  static String _bodyFor(Reminder r) {
+    switch (r.kind) {
+      case 'morning':
+        return 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ. ابدأ يومك بذكر الله تطمئنّ نفسك، دقائق قليلة تكفي.';
+      case 'evening':
+        return 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ. اختم نهارك بأذكار المساء واستودع يومك ربّك.';
+      case 'sleep':
+        return 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا. اختم يومك بآية الكرسي والمعوّذات ونَم في حفظ الله.';
+      case 'quran':
+        return 'خذ وردك اليوم ولو صفحة واحدة، فأحبّ الأعمال إلى الله أدومها وإن قلّ.';
+      case 'challenges':
+        return 'خطوات صغيرة اليوم تصنع عادة دائمة. أكمل ما بقي من تحدياتك وحافظ على سلسلتك.';
+      default:
+        return 'حان موعد تذكيرك. اللهم أعنّا على ذكرك وشكرك وحسن عبادتك.';
+    }
+  }
+
+  static String _titleFor(Reminder r) {
+    switch (r.kind) {
+      case 'quran':
+        return 'حان وقت وردك من القرآن';
+      case 'challenges':
+        return 'تحديات اليوم بانتظارك';
+      case 'morning':
+      case 'evening':
+      case 'sleep':
+        return 'حان وقت ${r.title}';
+      default:
+        return r.title;
+    }
+  }
 
   /// [custom]: true = صوت الأذان من res/raw، false = صوت النظام، null = حسب نتيجة الفحص.
   static NotificationDetails _adhanDetails(String body, {bool? custom}) {
@@ -180,11 +229,16 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.max,
         playSound: true,
-        sound: useCustom ? const RawResourceAndroidNotificationSound('adhan') : null,
+        sound: useCustom
+            ? const RawResourceAndroidNotificationSound('adhan')
+            : null,
         audioAttributesUsage: AudioAttributesUsage.alarm,
         category: AndroidNotificationCategory.alarm,
         fullScreenIntent: true,
-        styleInformation: BigTextStyleInformation(body),
+        color: _brandColor,
+        subText: _brandName,
+        styleInformation:
+            BigTextStyleInformation(body, summaryText: _brandName),
       ),
     );
   }
@@ -201,8 +255,10 @@ class NotificationService {
   }
 
   static Future<void> showTest() async {
-    await _plugin.show(999999, 'إشعار تجريبي', 'التذكيرات تعمل على هذا الجهاز',
-        _details('التذكيرات تعمل على هذا الجهاز'));
+    const title = 'التذكيرات تعمل بنجاح';
+    const body =
+        'ستصلك تذكيراتك في مواعيدها حتى لو أغلقت التطبيق. جزاك الله خيرًا على مواظبتك.';
+    await _plugin.show(999999, title, body, _details(title, body));
   }
 
   static Future<int> pendingCount() async {
@@ -264,14 +320,16 @@ class NotificationService {
           continue;
         }
         final body = silent
-            ? 'حافظ على صلاتك في وقتها، تقبّل الله منك'
-            : 'حان الآن وقت صلاة ${entry.name}';
+            ? 'حافظ على صلاتك في وقتها، تقبّل الله منك.'
+            : 'حيَّ على الصلاة، حيَّ على الفلاح. حان الآن وقت صلاة ${entry.name}.';
         await _scheduleOne(
           70000 + index++,
-          silent ? 'وقت صلاة ${entry.name}' : 'أذان ${entry.name}',
+          silent ? 'وقت صلاة ${entry.name}' : 'حان وقت صلاة ${entry.name}',
           body,
           tz.TZDateTime.from(entry.time, tz.local),
-          silent ? _silentDetails(body) : _adhanDetails(body, custom: custom ? null : false),
+          silent
+              ? _silentDetails(body)
+              : _adhanDetails(body, custom: custom ? null : false),
           mode: exact
               ? AndroidScheduleMode.alarmClock
               : AndroidScheduleMode.inexactAllowWhileIdle,
@@ -302,7 +360,10 @@ class NotificationService {
           priority: Priority.defaultPriority,
           playSound: false,
           enableVibration: false,
-          styleInformation: BigTextStyleInformation(body),
+          color: _brandColor,
+          subText: _brandName,
+          styleInformation:
+              BigTextStyleInformation(body, summaryText: _brandName),
         ),
       );
 
@@ -325,13 +386,15 @@ class NotificationService {
     final mode = exact
         ? AndroidScheduleMode.alarmClock
         : AndroidScheduleMode.inexactAllowWhileIdle;
-    final details = _details(r.body);
+    final title = _titleFor(r);
+    final body = _bodyFor(r);
+    final details = _details(title, body);
 
     if (r.days.length == 7) {
       await _scheduleOne(
         r.id * 10,
-        r.title,
-        r.body,
+        title,
+        body,
         _next(r.hour, r.minute, null),
         details,
         mode: mode,
@@ -342,8 +405,8 @@ class NotificationService {
     for (final d in r.days) {
       await _scheduleOne(
         r.id * 10 + d,
-        r.title,
-        r.body,
+        title,
+        body,
         _next(r.hour, r.minute, d),
         details,
         mode: mode,
