@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="azw_loading">ذِكر</string>
+    <string name="azw_hero_label">ذِكر · أذكار الوقت</string>
+    <string name="azw_hero_desc">كارت أذكار الصباح والمساء والنوم بمشاهد اليوم المتغيّرة</string>
+    <string name="azw_ayah_label">ذِكر · آية اليوم</string>
+    <string name="azw_ayah_desc">آية جديدة كل يوم بنفس تصميم التطبيق</string>
+    <string name="azw_prayer_label">ذِكر · الصلاة القادمة</string>
+    <string name="azw_prayer_desc">الصلاة القادمة وعدّاد حي والتاريخ الهجري ونصيحة تذكّرك بالصلاة</string>
+</resources>

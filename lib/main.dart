@@ -14,6 +14,7 @@ import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
 import 'screens/splash_screen.dart';
 import 'services/supabase_config.dart';
+import 'services/widget_sync.dart';
 import 'widgets/support_app_button.dart';
 
 Future<void> main() async {
@@ -57,58 +58,60 @@ class AzkarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PrayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => RemindersProvider()..init()),
       ],
-      child: Consumer<AzkarProvider>(
-        builder: (context, provider, _) {
-          return MaterialApp(
-            title: 'ذكر',
-            debugShowCheckedModeBanner: false,
-            navigatorKey: appNavigatorKey,
-            locale: const Locale('ar'),
-            supportedLocales: const [Locale('ar')],
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            // تجربة موحّدة على كل الأجهزة: نتجاهل مقياس الخط وحجم العرض في النظام
-            // (وهما سبب الخط الصغير/الكبير جدًا) ونضبط الحجم حسب عرض الشاشة نفسه.
-            builder: (context, child) {
-              final mq = MediaQuery.of(context);
-              final scale =
-                  (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
-              final dark = Theme.of(context).brightness == Brightness.dark;
-              final icons = dark ? Brightness.light : Brightness.dark;
-              return AnnotatedRegion<SystemUiOverlayStyle>(
-                value: SystemUiOverlayStyle(
-                  statusBarColor: Colors.transparent,
-                  statusBarIconBrightness: icons,
-                  statusBarBrightness:
-                      dark ? Brightness.dark : Brightness.light,
-                  systemNavigationBarColor: Colors.transparent,
-                  systemNavigationBarIconBrightness: icons,
-                  systemStatusBarContrastEnforced: false,
-                  systemNavigationBarContrastEnforced: false,
-                ),
-                child: MediaQuery(
-                  data: mq.copyWith(textScaler: TextScaler.linear(scale)),
-                  child: Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600),
-                        child: child!,
+      child: WidgetSyncHost(
+        child: Consumer<AzkarProvider>(
+          builder: (context, provider, _) {
+            return MaterialApp(
+              title: 'ذكر',
+              debugShowCheckedModeBanner: false,
+              navigatorKey: appNavigatorKey,
+              locale: const Locale('ar'),
+              supportedLocales: const [Locale('ar')],
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              // تجربة موحّدة على كل الأجهزة: نتجاهل مقياس الخط وحجم العرض في النظام
+              // (وهما سبب الخط الصغير/الكبير جدًا) ونضبط الحجم حسب عرض الشاشة نفسه.
+              builder: (context, child) {
+                final mq = MediaQuery.of(context);
+                final scale =
+                    (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
+                final dark = Theme.of(context).brightness == Brightness.dark;
+                final icons = dark ? Brightness.light : Brightness.dark;
+                return AnnotatedRegion<SystemUiOverlayStyle>(
+                  value: SystemUiOverlayStyle(
+                    statusBarColor: Colors.transparent,
+                    statusBarIconBrightness: icons,
+                    statusBarBrightness:
+                        dark ? Brightness.dark : Brightness.light,
+                    systemNavigationBarColor: Colors.transparent,
+                    systemNavigationBarIconBrightness: icons,
+                    systemStatusBarContrastEnforced: false,
+                    systemNavigationBarContrastEnforced: false,
+                  ),
+                  child: MediaQuery(
+                    data: mq.copyWith(textScaler: TextScaler.linear(scale)),
+                    child: Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600),
+                          child: child!,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-            theme: AppTheme.light(),
-            darkTheme: AppTheme.dark(),
-            themeMode: provider.themeMode,
-            home: const SplashScreen(),
-          );
-        },
+                );
+              },
+              theme: AppTheme.light(),
+              darkTheme: AppTheme.dark(),
+              themeMode: provider.themeMode,
+              home: const SplashScreen(),
+            );
+          },
+        ),
       ),
     );
   }

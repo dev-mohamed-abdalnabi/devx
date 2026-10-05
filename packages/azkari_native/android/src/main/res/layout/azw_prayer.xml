@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- الصلاة القادمة: الرسم كله صورة، والعدّاد التنازلي Chronometer يعدّ داخل اللانشر بلا أي استيقاظ للتطبيق. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/azw_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/azw_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY" />
+
+    <Chronometer
+        android:id="@+id/azw_chrono"
+        android:layout_width="86dp"
+        android:layout_height="26dp"
+        android:layout_gravity="top|left"
+        android:layout_marginLeft="14dp"
+        android:layout_marginTop="62dp"
+        android:background="@drawable/azw_pill_bg"
+        android:gravity="center"
+        android:textColor="#B8923A"
+        android:textDirection="ltr"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</FrameLayout>

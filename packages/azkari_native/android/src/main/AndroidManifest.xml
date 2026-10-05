@@ -49,6 +49,17 @@
             android:name="com.azkar.azkari_native.AdhanService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false" />
+        <!-- شاشة الأذان الكاملة: فوق القفل وتشغّل الشاشة -->
+        <activity
+            android:name="com.azkar.azkari_native.AdhanActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <receiver
             android:name="com.azkar.azkari_native.AdhanReceiver"
             android:exported="false" />
@@ -59,6 +70,53 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- ودجتس الشاشة الرئيسية للهاتف: لا خدمات دائمة ولا محرّك Flutter؛ منبّه غير مُوقِظ عند لحظات التغيّر فقط -->
+        <receiver
+            android:name="com.azkar.azkari_native.AzwHeroProvider"
+            android:exported="true"
+            android:label="@string/azw_hero_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/azw_hero_info" />
+        </receiver>
+        <receiver
+            android:name="com.azkar.azkari_native.AzwAyahProvider"
+            android:exported="true"
+            android:label="@string/azw_ayah_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/azw_ayah_info" />
+        </receiver>
+        <receiver
+            android:name="com.azkar.azkari_native.AzwPrayerProvider"
+            android:exported="true"
+            android:label="@string/azw_prayer_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/azw_prayer_info" />
+        </receiver>
+        <receiver
+            android:name="com.azkar.azkari_native.WidgetTickReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.azkar.azkari_native.WIDGET_TICK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
     </application>

@@ -100,12 +100,19 @@ def main() -> None:
             f"Hisn corpus validation failed: chapters={len(categories)}, items={len(items)}"
         )
 
+    # أذكار المساء قسم مستقل بجانب أذكار الصباح (المصدر يدمجهما في باب 27).
+    evening = json.loads((ROOT / "tool" / "hisn_evening.json").read_text(encoding="utf-8"))
+    pos = next(i for i, c in enumerate(categories) if c["id"] == "hisn-27")
+    categories.insert(pos + 1, evening)
+    if not any(c["id"] == "hisn-27e" for c in categories):
+        raise SystemExit("evening azkar category missing")
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "source": "حصن المسلم من أذكار الكتاب والسنة",
         "sourceUrl": "https://hisnmuslim.com/",
         "sourceApi": INDEX_URL,
-        "chapters": len(categories),
+        "chapters": len(categories) - 1,
         "items": len(items),
         "categories": categories,
     }

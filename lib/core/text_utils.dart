@@ -1,8 +1,11 @@
 const _digits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
 /// يحوّل رقمًا إلى أرقام عربية (هندية).
-String toArabicDigits(int n) =>
-    n.toString().split('').map((c) => c == '-' ? '-' : _digits[int.parse(c)]).join();
+String toArabicDigits(int n) => n
+    .toString()
+    .split('')
+    .map((c) => c == '-' ? '-' : _digits[int.parse(c)])
+    .join();
 
 /// يزيل التشكيل وعلامات المصحف ويوحّد الألفات والياء لأغراض البحث.
 String normalizeArabic(String s) {
@@ -31,10 +34,57 @@ String normalizeArabic(String s) {
   return b.toString().trim();
 }
 
-const _weekdays = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+/// مفتاح بحث متسامح: يوحّد الرسم العثماني والإملائي
+/// («الصلوة» = «الصلاة»، «الرحمٰن» = «الرحمن») بحذف الألفات والهمزات
+/// وتوحيد التاء المربوطة والهاء والألف المقصورة والياء.
+String searchKey(String s) {
+  final b = StringBuffer();
+  // واو الرسم العثماني مع الألف الخنجرية (الصلوٰة، الزكوٰة، الحيوٰة) = ألف.
+  final raw = s.replaceAll('\u0648\u0670', '\u0627');
+  for (final r in normalizeArabic(raw).runes) {
+    switch (r) {
+      case 0x0627: // ا
+      case 0x0621: // ء
+      case 0x0670:
+        break;
+      case 0x0629: // ة → ه
+        b.writeCharCode(0x0647);
+        break;
+      case 0x0624: // ؤ → و
+        b.writeCharCode(0x0648);
+        break;
+      case 0x0626: // ئ → ي
+        b.writeCharCode(0x064A);
+        break;
+      default:
+        b.writeCharCode(r);
+    }
+  }
+  return b.toString();
+}
+
+const _weekdays = [
+  'الاثنين',
+  'الثلاثاء',
+  'الأربعاء',
+  'الخميس',
+  'الجمعة',
+  'السبت',
+  'الأحد'
+];
 const _months = [
-  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر'
 ];
 
 String arabicDate(DateTime d) =>

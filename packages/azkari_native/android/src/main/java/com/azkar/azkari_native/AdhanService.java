@@ -5,7 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.media.AudioAttributes;
@@ -15,20 +17,26 @@ import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 
 /**
  * خدمة أمامية تشغّل الأذان كاملًا من res/raw/adhan ثم تتوقف.
  * (صوت قناة الإشعار قد يُقطع من النظام أو عند أول تفاعل؛ هذه الخدمة لا تُقطع حتى ينتهي الملف.)
  */
 public class AdhanService extends Service {
-    private static final String CHANNEL = "adhan_playback_v1";
+    private static final String CHANNEL = "adhan_playback_v2";
     private static final int NOTIF_ID = 79000;
     static final String ACTION_STOP = "com.azkar.azkari_native.ADHAN_STOP";
+    /** يُبثّ عند انتهاء الأذان/إيقافه ليُغلق شاشة الأذان. */
+    static final String ACTION_ENDED = "com.azkar.azkari_native.ADHAN_ENDED";
+    static final String EXTRA_DIRECT = "direct";
 
     private MediaPlayer player;
     private PowerManager.WakeLock wake;
     private AudioManager audio;
     private AudioFocusRequest focusRequest;
+    private BroadcastReceiver volumeReceiver;
+    private long startedAt;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -43,43 +51,88 @@ public class AdhanService extends Service {
         }
         String name = intent == null ? null : intent.getStringExtra(AdhanScheduler.EXTRA_NAME);
         if (name == null || name.isEmpty()) name = "الصلاة";
+        boolean direct = intent != null && intent.getBooleanExtra(EXTRA_DIRECT, false);
         startForegroundCompat(name);
+        if (direct) {
+            // تجربة من داخل التطبيق (التطبيق ظاهر): افتح الشاشة الكاملة مباشرة.
+            try {
+                startActivity(activityIntent(name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Exception ignored) {
+            }
+        }
         if (player == null) play();
         return START_NOT_STICKY;
+    }
+
+    private Intent activityIntent(String name) {
+        Intent i = new Intent(this, AdhanActivity.class);
+        i.putExtra(AdhanActivity.EXTRA_NAME, name);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        return i;
     }
 
     private void startForegroundCompat(String name) {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm != null) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "الأذان", NotificationManager.IMPORTANCE_LOW);
-            ch.setDescription("تشغيل الأذان عند دخول وقت الصلاة");
+            NotificationChannel ch = new NotificationChannel(CHANNEL, "الأذان", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("شاشة وإشعار الأذان عند دخول وقت الصلاة (الصوت من الخدمة نفسها)");
             ch.setSound(null, null);
+            ch.enableVibration(false);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
             nm.createNotificationChannel(ch);
         }
         int flagsImm = Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0;
         Intent stop = new Intent(this, AdhanService.class).setAction(ACTION_STOP);
         PendingIntent stopPi = PendingIntent.getService(this, 2, stop, PendingIntent.FLAG_UPDATE_CURRENT | flagsImm);
-        Intent open = getPackageManager().getLaunchIntentForPackage(getPackageName());
-        PendingIntent openPi = PendingIntent.getActivity(this, 3, open, PendingIntent.FLAG_UPDATE_CURRENT | flagsImm);
+        PendingIntent screenPi = PendingIntent.getActivity(this, 3, activityIntent(name),
+                PendingIntent.FLAG_UPDATE_CURRENT | flagsImm);
 
-        int icon = getResources().getIdentifier("ic_stat_blank", "drawable", getPackageName());
+        int icon = getResources().getIdentifier("ic_stat_adhan", "drawable", getPackageName());
         if (icon == 0) icon = getApplicationInfo().icon;
 
         Notification.Builder b = Build.VERSION.SDK_INT >= 26
                 ? new Notification.Builder(this, CHANNEL)
                 : new Notification.Builder(this);
         b.setSmallIcon(icon)
-                .setContentTitle("أذان " + name)
-                .setContentText("حان الآن وقت صلاة " + name)
-                .setContentIntent(openPi)
+                .setColor(0xFF2F6B3A)
+                .setContentTitle("حان وقت صلاة " + name)
+                .setContentText("حيَّ على الصلاة، حيَّ على الفلاح")
+                .setSubText("ذِكر")
+                .setStyle(new Notification.BigTextStyle().bigText("حيَّ على الصلاة، حيَّ على الفلاح"))
+                .setContentIntent(screenPi)
+                .setFullScreenIntent(screenPi, true)
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setWhen(System.currentTimeMillis())
                 .setCategory(Notification.CATEGORY_ALARM)
-                .addAction(new Notification.Action.Builder(icon, "إيقاف", stopPi).build());
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .addAction(new Notification.Action.Builder(icon, "إيقاف الأذان", stopPi).build());
+        if (Build.VERSION.SDK_INT < 26) b.setPriority(Notification.PRIORITY_MAX);
         Notification n = b.build();
         if (Build.VERSION.SDK_INT >= 29) {
             startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         } else {
             startForeground(NOTIF_ID, n);
+        }
+    }
+
+    /** أي ضغطة على زر الصوت (رفع/خفض) أثناء الأذان توقفه فورًا. */
+    private void listenForVolumeKeys() {
+        volumeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent i) {
+                // تجاهل أي تغيير يحدث في أول لحظات التشغيل (من النظام نفسه)
+                if (SystemClock.elapsedRealtime() - startedAt < 1200) return;
+                stopSelf();
+            }
+        };
+        IntentFilter f = new IntentFilter("android.media.VOLUME_CHANGED_ACTION");
+        try {
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(volumeReceiver, f, Context.RECEIVER_EXPORTED);
+            else registerReceiver(volumeReceiver, f);
+        } catch (Exception ignored) {
+            volumeReceiver = null;
         }
     }
 
@@ -127,10 +180,20 @@ public class AdhanService extends Service {
             return true;
         });
         player.start();
+        startedAt = SystemClock.elapsedRealtime();
+        listenForVolumeKeys();
     }
 
     @Override
     public void onDestroy() {
+        try {
+            if (volumeReceiver != null) unregisterReceiver(volumeReceiver);
+        } catch (Exception ignored) {
+        }
+        try {
+            sendBroadcast(new Intent(ACTION_ENDED).setPackage(getPackageName()));
+        } catch (Exception ignored) {
+        }
         try {
             if (player != null) {
                 player.release();

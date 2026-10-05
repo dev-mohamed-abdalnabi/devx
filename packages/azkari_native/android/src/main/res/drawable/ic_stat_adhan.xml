@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- أيقونة إشعار الأذان: هلال فوق قبّة (أحادية اللون كما يتطلب شريط الحالة) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2.2a3.4,3.4 0,1 0,3.2 4.6a2.7,2.7 0,1 1,-3.2 -4.6z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,9c-3.9,2.1 -6,4.6 -6,8v1.5h12V17c0,-3.4 -2.1,-5.9 -6,-8zM4,20h16v2H4z"/>
+</vector>

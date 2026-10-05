@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:azkari_native/azkari_native.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/dates.dart';
@@ -21,7 +23,10 @@ class PrayerHomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.watch<PrayerProvider>();
     if (p.loading) return const SizedBox.shrink();
-    final title = Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold);
+    final title = Theme.of(context)
+        .textTheme
+        .titleMedium
+        ?.copyWith(fontWeight: FontWeight.bold);
 
     if (!p.hasLocation) {
       return Card(
@@ -69,20 +74,24 @@ class PrayerHomeCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('الصلاة القادمة', style: Theme.of(context).textTheme.bodySmall),
+                      Text('الصلاة القادمة',
+                          style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 2),
-                      Text('${next.name} · ${formatClock(next.time)}', style: title),
+                      Text('${next.name} · ${formatClock(next.time)}',
+                          style: title),
                     ],
                   ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('المتبقي', style: Theme.of(context).textTheme.bodySmall),
+                    Text('المتبقي',
+                        style: Theme.of(context).textTheme.bodySmall),
                     Text(
                       formatCountdown(next.time.difference(now)),
                       textDirection: TextDirection.ltr,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -224,6 +233,28 @@ class _PrayerScreenState extends State<PrayerScreen> {
     );
   }
 
+  Future<void> _testAdhan(BuildContext ctx, PrayerProvider p) async {
+    final messenger = ScaffoldMessenger.of(ctx);
+    if (!Platform.isAndroid) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('تجربة الأذان متاحة على أندرويد فقط.')));
+      return;
+    }
+    // أندرويد 14+: بدون هذا الإذن لا تظهر شاشة الأذان فوق القفل.
+    if (!await AzkariNative.canUseFullScreenIntent()) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text(
+              'فعّل «عرض الإشعارات بملء الشاشة» لتظهر شاشة الأذان والهاتف مقفل.')));
+      await AzkariNative.requestFullScreenIntent();
+    }
+    final name = p.nextPrayer(DateTime.now())?.name ?? 'الظهر';
+    final ok = await AzkariNative.testAdhan(name);
+    if (!ok) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text('تعذّر تشغيل الأذان التجريبي.')));
+    }
+  }
+
   /// الإعدادات في ورقة سفلية بدل صفحة مزدحمة.
   void _settings() {
     showModalBottomSheet<void>(
@@ -252,10 +283,17 @@ class _PrayerScreenState extends State<PrayerScreen> {
                     final ok = await p.setAdhanEnabled(value);
                     if (!ok && ctx.mounted) {
                       ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                          content:
-                              Text('اسمح بالإشعارات من إعدادات النظام أولًا.')));
+                          content: Text(
+                              'اسمح بالإشعارات من إعدادات النظام أولًا.')));
                     }
                   },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.play_circle_outline_rounded),
+                  title: const Text('تجربة الأذان'),
+                  subtitle: const Text('يفتح شاشة الأذان بالفيديو والصوت الآن'),
+                  trailing: const Icon(Icons.chevron_left),
+                  onTap: () => _testAdhan(ctx, p),
                 ),
                 _modesSection(ctx, p),
                 SwitchListTile(
@@ -422,7 +460,8 @@ class _PrayerScreenState extends State<PrayerScreen> {
     final day = p.timesFor(_date);
     final next = isToday ? p.nextPrayer(now) : null;
     final friday = _date.weekday == DateTime.friday;
-    final canTick = !_date.isAfter(DateTime(now.year, now.month, now.day, 23, 59, 59));
+    final canTick =
+        !_date.isAfter(DateTime(now.year, now.month, now.day, 23, 59, 59));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -465,8 +504,8 @@ class _PrayerScreenState extends State<PrayerScreen> {
   }
 
   Widget _dateBar(PrayerProvider p, HomeTokens tk, bool friday) {
-    Widget arrow(IconData i, VoidCallback f, String tip) => IconButton(
-        tooltip: tip, onPressed: f, icon: Icon(i, color: tk.muted));
+    Widget arrow(IconData i, VoidCallback f, String tip) =>
+        IconButton(tooltip: tip, onPressed: f, icon: Icon(i, color: tk.muted));
     return Row(
       children: [
         arrow(Icons.chevron_right, () => _shift(-1), 'اليوم السابق'),
@@ -509,8 +548,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
               HomeIcon(HomeIcons.trophy, size: 20, color: tk.gold),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                    'صلوات اليوم · ${toArabicDigits(n)} / ٥',
+                child: Text('صلوات اليوم · ${toArabicDigits(n)} / ٥',
                     style: cairoStyle(14, weight: 700, color: tk.ink)),
               ),
               Text('أيام متواصلة: ${toArabicDigits(streak)}',
@@ -566,7 +604,10 @@ class _Hero extends StatelessWidget {
   final DateTime now;
   final NextPrayer next;
   const _Hero(
-      {required this.tk, required this.p, required this.now, required this.next});
+      {required this.tk,
+      required this.p,
+      required this.now,
+      required this.next});
 
   /// نسبة ما مضى بين الصلاة السابقة والقادمة.
   double get _progress {
@@ -575,9 +616,7 @@ class _Hero extends StatelessWidget {
     for (final e in today?.prayers ?? const <PrayerEntry>[]) {
       if (!e.time.isAfter(now)) prev = e.time;
     }
-    prev ??= p
-        .timesFor(DateTime(now.year, now.month, now.day - 1))
-        ?.isha;
+    prev ??= p.timesFor(DateTime(now.year, now.month, now.day - 1))?.isha;
     if (prev == null) return 0;
     final total = next.time.difference(prev).inSeconds;
     if (total <= 0) return 0;
@@ -607,7 +646,8 @@ class _Hero extends StatelessWidget {
             ),
             Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: SizedBox(
@@ -625,15 +665,18 @@ class _Hero extends StatelessWidget {
                                 style: cairoStyle(12, color: soft)),
                             Text(next.name,
                                 style: amiriStyle(30,
-                                    bold: true, color: tk.mintInk, height: 1.2)),
+                                    bold: true,
+                                    color: tk.mintInk,
+                                    height: 1.2)),
                             Text('عند ${formatClock(next.time)}',
                                 style: cairoStyle(13, color: soft)),
                             const SizedBox(height: 4),
                             Text(
                               formatCountdown(next.time.difference(now)),
                               textDirection: TextDirection.ltr,
-                              style: cairoStyle(32, weight: 700, color: tk.mintInk)
-                                  .copyWith(fontFeatures: const [
+                              style:
+                                  cairoStyle(32, weight: 700, color: tk.mintInk)
+                                      .copyWith(fontFeatures: const [
                                 FontFeature.tabularFigures()
                               ]),
                             ),
@@ -701,7 +744,8 @@ class _PrayerRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            HomeIcon(_icon, size: 24, color: entry.isPrayer ? tk.gold : tk.muted),
+            HomeIcon(_icon,
+                size: 24, color: entry.isPrayer ? tk.gold : tk.muted),
             const SizedBox(width: 12),
             Expanded(
               child: Row(
@@ -713,8 +757,8 @@ class _PrayerRow extends StatelessWidget {
                   if (badge != null) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         border: Border.all(color: tk.gold),
                         borderRadius: BorderRadius.circular(10),
@@ -733,7 +777,8 @@ class _PrayerRow extends StatelessWidget {
                     size: 15, color: tk.muted),
               ),
             Text(formatClock(entry.time),
-                style: cairoStyle(17, weight: 700, color: isNext ? tk.mintInk : tk.ink)),
+                style: cairoStyle(17,
+                    weight: 700, color: isNext ? tk.mintInk : tk.ink)),
             if (entry.isPrayer) ...[
               const SizedBox(width: 12),
               GestureDetector(
@@ -745,7 +790,8 @@ class _PrayerRow extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: done ? tk.leaf : Colors.transparent,
-                    border: Border.all(color: done ? tk.leaf : tk.line, width: 1.5),
+                    border:
+                        Border.all(color: done ? tk.leaf : tk.line, width: 1.5),
                   ),
                   child: done
                       ? const Icon(Icons.check, size: 18, color: Colors.white)

@@ -73,15 +73,21 @@ class QuranData {
     return ayahs[offset + n - 1];
   }
 
-  List<Ayah> searchAyahs(String query, {int limit = 50}) {
-    final q = normalizeArabic(query);
-    if (q.length < 2) return const [];
-    _normalized ??=
-        ayahs.map((a) => normalizeArabic(a.text)).toList(growable: false);
+  /// بحث بكلمة أو أكثر من الآية (بأي ترتيب، وبدون تشكيل أو تفرقة بين
+  /// الرسم العثماني والإملائي).
+  List<Ayah> searchAyahs(String query, {int limit = 100}) {
+    final words = query
+        .split(RegExp(r'\s+'))
+        .map(searchKey)
+        .where((w) => w.isNotEmpty)
+        .toList();
+    if (words.isEmpty || words.join().length < 2) return const [];
+    _normalized ??= ayahs.map((a) => searchKey(a.text)).toList(growable: false);
     final out = <Ayah>[];
     final norm = _normalized!;
     for (var i = 0; i < norm.length && out.length < limit; i++) {
-      if (norm[i].contains(q)) out.add(ayahs[i]);
+      final t = norm[i];
+      if (words.every(t.contains)) out.add(ayahs[i]);
     }
     return out;
   }

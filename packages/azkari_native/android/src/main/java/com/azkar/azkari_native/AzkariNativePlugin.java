@@ -94,12 +94,77 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
             } catch (Exception e) {
                 result.error("schedule_failed", String.valueOf(e), null);
             }
+        } else if ("updateWidgets".equals(call.method)) {
+            try {
+                String json = call.argument("json");
+                if (json != null) {
+                    context.getSharedPreferences(WidgetData.PREFS, Context.MODE_PRIVATE)
+                            .edit().putString(WidgetData.KEY, json).apply();
+                    if (WidgetUpdater.anyWidget(context)) WidgetUpdater.updateAsync(context, null);
+                }
+                result.success(true);
+            } catch (Exception e) {
+                result.success(false);
+            }
+        } else if ("pinWidget".equals(call.method)) {
+            try {
+                String kind = call.argument("kind");
+                Class<?> cls = WidgetUpdater.providerFor(kind);
+                boolean ok = false;
+                if (cls != null && Build.VERSION.SDK_INT >= 26) {
+                    android.appwidget.AppWidgetManager mgr = android.appwidget.AppWidgetManager.getInstance(context);
+                    if (mgr.isRequestPinAppWidgetSupported()) {
+                        ok = mgr.requestPinAppWidget(new ComponentName(context, cls), null, null);
+                    }
+                }
+                result.success(ok);
+            } catch (Exception e) {
+                result.success(false);
+            }
+        } else if ("widgetCounts".equals(call.method)) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("hero", WidgetUpdater.count(context, WidgetUpdater.HERO));
+            m.put("ayah", WidgetUpdater.count(context, WidgetUpdater.AYAH));
+            m.put("prayer", WidgetUpdater.count(context, WidgetUpdater.PRAYER));
+            result.success(m);
         } else if ("cancelAdhan".equals(call.method)) {
             AdhanScheduler.cancelAll(context);
             result.success(true);
         } else if ("stopAdhan".equals(call.method)) {
             context.stopService(new android.content.Intent(context, AdhanService.class));
             result.success(true);
+        } else if ("testAdhan".equals(call.method)) {
+            try {
+                String name = call.argument("name");
+                android.content.Intent svc = new android.content.Intent(context, AdhanService.class);
+                svc.putExtra(AdhanScheduler.EXTRA_NAME, name == null ? "الصلاة" : name);
+                svc.putExtra(AdhanService.EXTRA_DIRECT, true);
+                if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(svc);
+                else context.startService(svc);
+                result.success(true);
+            } catch (Exception e) {
+                result.success(false);
+            }
+        } else if ("canUseFullScreenIntent".equals(call.method)) {
+            boolean ok = true;
+            if (Build.VERSION.SDK_INT >= 34) {
+                NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                ok = nm == null || nm.canUseFullScreenIntent();
+            }
+            result.success(ok);
+        } else if ("requestFullScreenIntent".equals(call.method)) {
+            try {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    android.content.Intent i = new android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                            android.net.Uri.parse("package:" + context.getPackageName()));
+                    i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(i);
+                }
+                result.success(true);
+            } catch (Exception e) {
+                result.success(false);
+            }
         } else if ("setKeepAwake".equals(call.method)) {
             Boolean on = call.argument("on");
             setKeepAwake(on != null && on);

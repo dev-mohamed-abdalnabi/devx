@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/daily_ayah.dart';
 import '../../core/home_tokens.dart';
 import '../../core/text_utils.dart';
 import '../../data/quran_data.dart';
@@ -99,11 +100,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
     if (d == null || d.ayahs.isEmpty) return null;
     final key = '${now.year}-${now.month}-${now.day}';
     if (_ayahDay == key && _ayah != null) return _ayah;
-    final pool = d.ayahs.where((a) => a.text.length <= 90).toList();
-    final list = pool.isEmpty ? d.ayahs : pool;
-    final doy = now.difference(DateTime(now.year, 1, 1)).inDays;
     _ayahDay = key;
-    _ayah = list[(doy + now.year * 7) % list.length];
+    _ayah = pickDailyAyah(dailyAyahPool(d.ayahs), now);
     return _ayah;
   }
 

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- يمنع مُقلّص الموارد من حذف موارد تُقرأ بالاسم فقط (الأذان + أيقونات إشعار الميديا) -->
+<!-- يمنع مُقلّص الموارد من حذف موارد تُقرأ بالاسم فقط (الأذان + الفيديو + أيقونات الإشعار) -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/adhan,@drawable/ic_stat_blank,@drawable/ic_media_*,@drawable/audio_service_*" />
+    tools:keep="@raw/adhan,@raw/adhan_bg,@drawable/adhan_logo,@drawable/ic_stat_adhan,@drawable/ic_stat_blank,@drawable/ic_media_*,@drawable/audio_service_*" />

@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+import 'package:azkari_native/azkari_native.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/home_tokens.dart';
 import '../../widgets/home_style.dart';
@@ -81,6 +84,11 @@ class MoreScreen extends StatelessWidget {
               _Item(Icons.explore_outlined, 'القبلة', 'اتجاه الكعبة',
                   () => _go(context, const QiblaScreen())),
             ]),
+            if (!kIsWeb && Platform.isAndroid) ...[
+              const SizedBox(height: 20),
+              _Heading(tk: tk, text: 'ودجتس الشاشة الرئيسية'),
+              _WidgetsSection(tk: tk),
+            ],
             const SizedBox(height: 20),
             _Heading(tk: tk, text: 'مكتبتي'),
             grid([
@@ -264,6 +272,94 @@ class _RowCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// إضافة ودجتس الهاتف من داخل التطبيق (بديلها: ضغطة مطوّلة على الشاشة الرئيسية ← الودجتس ← ذِكر).
+class _WidgetsSection extends StatefulWidget {
+  final HomeTokens tk;
+  const _WidgetsSection({required this.tk});
+
+  @override
+  State<_WidgetsSection> createState() => _WidgetsSectionState();
+}
+
+class _WidgetsSectionState extends State<_WidgetsSection>
+    with WidgetsBindingObserver {
+  Map<String, int> _counts = const {'hero': 0, 'ayah': 0, 'prayer': 0};
+
+  static const _items = [
+    (
+      'hero',
+      Icons.wb_twilight_rounded,
+      'كارت أذكار الوقت',
+      'نفس كارت الرئيسية بمشاهده المتغيّرة'
+    ),
+    ('ayah', Icons.menu_book_rounded, 'آية اليوم', 'آية جديدة كل يوم'),
+    (
+      'prayer',
+      Icons.access_time_rounded,
+      'الصلاة القادمة',
+      'عدّاد حي وتاريخ هجري ونصيحة'
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final c = await AzkariNative.widgetCounts();
+    if (mounted) setState(() => _counts = c);
+  }
+
+  Future<void> _add(String kind) async {
+    final ok = await AzkariNative.pinWidget(kind);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'لانشر هاتفك لا يدعم الإضافة المباشرة. اضغط مطوّلًا على الشاشة الرئيسية ← الودجتس ← ذِكر.'),
+      ));
+    }
+    // بعد التأكيد من نافذة النظام نحدّث العدّاد.
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (mounted) _refresh();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < _items.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _RowCard(
+            tk: widget.tk,
+            icon: _items[i].$2,
+            title: _items[i].$3,
+            subtitle: (_counts[_items[i].$1] ?? 0) > 0
+                ? 'مضاف ×${_counts[_items[i].$1]} · اضغط لإضافة نسخة أخرى'
+                : '${_items[i].$4} · اضغط للإضافة',
+            onTap: () => _add(_items[i].$1),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -51,6 +51,7 @@ class _GotoBody extends StatefulWidget {
 class _GotoBodyState extends State<_GotoBody> {
   int _tab = 0;
   String _filter = '';
+  String _ayahQuery = '';
   final _pageCtl = TextEditingController();
 
   @override
@@ -72,7 +73,7 @@ class _GotoBodyState extends State<_GotoBody> {
     final data = q.data!;
     final cur = data.byPage[widget.currentPage]?.first;
 
-    const tabs = ['السور', 'الأجزاء', 'صفحة', 'العلامات'];
+    const tabs = ['السور', 'الأجزاء', 'صفحة', 'بحث في الآيات', 'العلامات'];
     Widget body;
     switch (_tab) {
       case 0:
@@ -83,6 +84,9 @@ class _GotoBodyState extends State<_GotoBody> {
         break;
       case 2:
         body = _pageInput(tk, data.pageCount);
+        break;
+      case 3:
+        body = _ayahSearch(tk, data);
         break;
       default:
         body = _marks(tk, q);
@@ -282,6 +286,100 @@ class _GotoBodyState extends State<_GotoBody> {
         ),
         const SizedBox(height: 14),
         QButton(tk: tk, label: 'اذهب', onTap: () => _submitPage(max)),
+      ],
+    );
+  }
+
+  Widget _ayahSearch(HomeTokens tk, QuranData data) {
+    final hits = _ayahQuery.trim().isEmpty
+        ? const <Ayah>[]
+        : data.searchAyahs(_ayahQuery);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: TextField(
+            autofocus: true,
+            onChanged: (v) => setState(() => _ayahQuery = v),
+            style: cairoStyle(14, color: tk.ink),
+            decoration: InputDecoration(
+              hintText: 'اكتب كلمة أو جزءًا من آية',
+              hintStyle: cairoStyle(14, color: tk.muted),
+              isDense: true,
+              filled: true,
+              fillColor: tk.card,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.line)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.line)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.gold)),
+            ),
+          ),
+        ),
+        Expanded(
+          child: hits.isEmpty
+              ? Center(
+                  child: Text(
+                      _ayahQuery.trim().isEmpty
+                          ? 'ابحث بكلمة من القرآن'
+                          : 'لا توجد نتائج مطابقة',
+                      style: cairoStyle(13.5, color: tk.muted)),
+                )
+              : ListView.builder(
+                  controller: widget.controller,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: hits.length,
+                  itemBuilder: (ctx, i) {
+                    final a = hits[i];
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () =>
+                          Navigator.pop(context, GotoResult(a.page, a.key)),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: tk.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: tk.line),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                      '${surahTitle(a.surah)} · ${toArabicDigits(a.number)}',
+                                      style: cairoStyle(13,
+                                          weight: 700, color: tk.ink)),
+                                ),
+                                Text('ص ${toArabicDigits(a.page)}',
+                                    style: cairoStyle(12,
+                                        weight: 600, color: tk.gold)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(a.text,
+                                textDirection: TextDirection.rtl,
+                                style: TextStyle(
+                                    fontFamily: AppTheme.quranFont,
+                                    fontSize: 19,
+                                    height: 1.9,
+                                    color: tk.ink)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
       ],
     );
   }
