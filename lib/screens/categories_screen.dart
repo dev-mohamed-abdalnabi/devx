@@ -28,15 +28,7 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
-  final _search = TextEditingController();
-  String _q = '';
   int _group = -1; // -1 = الكل
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +42,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         HeaderButton(
           icon: ZikrIcons.search,
           label: 'البحث في كل الأذكار',
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SearchScreen())),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const SearchScreen())),
         ),
       ],
     );
@@ -72,7 +64,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     return Scaffold(
       body: MediaQuery(
-        data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+        data:
+            mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -90,8 +83,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Widget _buildContent(
       BuildContext context, HomeTokens tk, AzkarProvider provider) {
-    final q = normalizeArabic(_q);
-    const pinned = ['hisn-27', 'hisn-28', 'hisn-25'];
+    const pinned = ['hisn-27', 'hisn-27e', 'hisn-28', 'hisn-25'];
     final ordered = [
       for (final id in pinned) ...provider.categories.where((c) => c.id == id),
       ...provider.categories.where((c) => !pinned.contains(c.id)),
@@ -102,27 +94,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             final n = hisnNumber(c.id);
             return n != null && kCategoryGroups[_group].$2.contains(n);
           }).toList();
-    final cats = q.isEmpty
-        ? base
-        : base.where((c) {
-            return normalizeArabic(c.title).contains(q) ||
-                normalizeArabic(shortCategoryTitle(c.id, c.title)).contains(q);
-          }).toList();
+    final cats = base;
 
     return Column(
       children: [
         const SizedBox(height: 6),
-        HomeSearchField(
-          tk: tk,
-          controller: _search,
-          hint: 'ابحث في أقسام الأذكار...',
-          onChanged: (v) => setState(() => _q = v),
-          onClear: () {
-            _search.clear();
-            setState(() => _q = '');
-          },
-        ),
-        const SizedBox(height: 10),
         SizedBox(
           height: 34,
           child: ListView(
@@ -146,7 +122,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           child: CustomScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              if (q.isEmpty && _group < 0) ...[
+              if (_group < 0) ...[
                 SliverToBoxAdapter(
                   child: HomeHeroCard(
                     tk: tk,
@@ -165,7 +141,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   child: HomeEmpty(
                     tk: tk,
                     icon: ZikrIcons.search,
-                    title: 'لا توجد نتائج لـ «$_q»',
+                    title: 'لا توجد أقسام في هذه المجموعة',
                   ),
                 )
               else

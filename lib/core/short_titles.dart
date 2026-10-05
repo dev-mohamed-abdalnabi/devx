@@ -1,6 +1,7 @@
 /// أسماء مختصرة لأقسام الأذكار تظهر في بطاقات الشبكة (الاسم الكامل يظهر داخل القسم).
 const Map<String, String> _short = {
-  'hisn-27': 'الصباح والمساء',
+  'hisn-27': 'أذكار الصباح',
+  'hisn-27e': 'أذكار المساء',
   'hisn-28': 'أذكار النوم',
   'hisn-1': 'الاستيقاظ من النوم',
   'hisn-6': 'دخول الخلاء',
@@ -116,10 +117,7 @@ const Map<String, String> _short = {
 String shortCategoryTitle(String id, String full) {
   final s = _short[id];
   if (s != null) return s;
-  return full
-      .replaceAll('\u064F ', ' ')
-      .replaceAll('\u0640', '')
-      .trim();
+  return full.replaceAll('\u064F ', ' ').replaceAll('\u0640', '').trim();
 }
 
 /// تطبيع للبحث: يشيل التشكيل والتطويل ويوحّد الهمزات والياء/الألف المقصورة والتاء المربوطة.

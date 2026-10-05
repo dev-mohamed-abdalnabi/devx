@@ -74,12 +74,19 @@ class _HomeDashboardState extends State<HomeDashboard> {
   }
 
   AzkarCategory? _categoryFor(AzkarProvider p, _Slot s) {
+    final id = switch (s) {
+      _Slot.morning => 'hisn-27',
+      _Slot.evening => 'hisn-27e',
+      _Slot.sleep => 'hisn-28',
+    };
     for (final c in p.categories) {
-      if (s == _Slot.sleep ? c.id == 'hisn-28' : c.id == 'hisn-27') return c;
+      if (c.id == id) return c;
     }
-    final titles = s == _Slot.sleep
-        ? const ['النوم']
-        : const ['الصباح والمساء', 'الصباح', 'المساء'];
+    final titles = switch (s) {
+      _Slot.morning => const ['أذكار الصباح', 'الصباح'],
+      _Slot.evening => const ['أذكار المساء', 'المساء'],
+      _Slot.sleep => const ['النوم'],
+    };
     for (final t in titles) {
       for (final c in p.categories) {
         if (c.title.contains(t)) return c;

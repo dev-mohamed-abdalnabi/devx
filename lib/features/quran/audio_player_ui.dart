@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../providers/quran_audio_provider.dart';
+import '../home/home_art.dart';
 
 /// نجمة ثمانية تحمل رقم السورة.
 class StarBadge extends StatelessWidget {
@@ -252,7 +254,8 @@ class AudioMiniPlayer extends StatelessWidget {
                                 ? () =>
                                     audio.seekBy(QuranAudioProvider.seekStep)
                                 : null,
-                            icon: Icon(Icons.forward_10_rounded, color: tk.gold),
+                            icon:
+                                Icon(Icons.forward_10_rounded, color: tk.gold),
                           ),
                         ],
                       ),
@@ -305,10 +308,14 @@ Future<void> showFullPlayer(BuildContext context) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
+    showDragHandle: false,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black54,
     builder: (_) => const _FullPlayer(),
   );
 }
+
+// ───────────────────────── المشغل الكامل (هوية التطبيق) ─────────────────────────
 
 class _FullPlayer extends StatelessWidget {
   const _FullPlayer();
@@ -316,126 +323,370 @@ class _FullPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final audio = context.watch<QuranAudioProvider>();
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
+    final tk = HomeTokens.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     final surah = audio.displaySurah;
     final canSeek = audio.currentSurah != null;
 
-    if (surah == null) {
-      return const SizedBox(
-          height: 200, child: Center(child: Text('اختر سورة للاستماع')));
-    }
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: tk.bg,
+          border:
+              Border(top: BorderSide(color: tk.gold.withValues(alpha: .45))),
+        ),
+        child: Stack(
+          children: [
+            // نقش النجمة نفسه المستخدم في كل الشاشات.
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: IslamicPatternPainter(opacity: dark ? .07 : .10),
+                ),
+              ),
+            ),
+            // وهج علوي ناعم خلف النجمة.
+            Positioned(
+              top: -60,
+              left: 0,
+              right: 0,
+              height: 340,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -.2),
+                      radius: .8,
+                      colors: [
+                        tk.leaf.withValues(alpha: dark ? .20 : .16),
+                        tk.leaf.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: surah == null
+                  ? SizedBox(
+                      height: 220,
+                      child: Center(
+                        child: Text('اختر سورة للاستماع',
+                            style:
+                                cairoStyle(15, weight: 600, color: tk.muted)),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(22, 10, 22, 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: tk.gold.withValues(alpha: .55),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: tk.mint,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    EqualizerBars(
+                                        animate: audio.player.playing,
+                                        color: tk.mintInk),
+                                    const SizedBox(width: 8),
+                                    Text('القرآن صوتيًا',
+                                        style: cairoStyle(12,
+                                            weight: 600, color: tk.mintInk)),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                tooltip: 'إغلاق',
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                    size: 30, color: tk.muted),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          _StarArt(audio: audio, surah: surah, tk: tk),
+                          const SizedBox(height: 14),
+                          Text(
+                            'سورة ${QuranAudioProvider.surahName(surah)}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: AppTheme.quranFont,
+                              fontSize: 36,
+                              color: tk.ink,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                    color: tk.gold, shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  audio.selectedReciter.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: cairoStyle(14,
+                                      weight: 600, color: tk.gold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: Column(
+                              children: [
+                                _SeekBar(audio: audio, tk: tk),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _CtrlIcon(
+                                      icon: Icons.skip_previous_rounded,
+                                      size: 36,
+                                      tooltip: 'السابق',
+                                      color: tk.ink,
+                                      onTap: canSeek ? audio.previous : null,
+                                    ),
+                                    _CtrlIcon(
+                                      icon: Icons.replay_10_rounded,
+                                      size: 34,
+                                      tooltip: 'تأخير ١٠ ثوانٍ',
+                                      color: tk.gold,
+                                      onTap: canSeek
+                                          ? () => audio.seekBy(
+                                              -QuranAudioProvider.seekStep)
+                                          : null,
+                                    ),
+                                    _BigPlay(audio: audio, tk: tk),
+                                    _CtrlIcon(
+                                      icon: Icons.forward_10_rounded,
+                                      size: 34,
+                                      tooltip: 'تقديم ١٠ ثوانٍ',
+                                      color: tk.gold,
+                                      onTap: canSeek
+                                          ? () => audio.seekBy(
+                                              QuranAudioProvider.seekStep)
+                                          : null,
+                                    ),
+                                    _CtrlIcon(
+                                      icon: Icons.skip_next_rounded,
+                                      size: 36,
+                                      tooltip: 'التالي',
+                                      color: tk.ink,
+                                      onTap: canSeek ? audio.next : null,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _SpeedPicker(audio: audio, tk: tk),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _Tile(
+                                  tk: tk,
+                                  icon: Icons.shuffle_rounded,
+                                  label: 'عشوائي',
+                                  active: audio.shuffle,
+                                  onTap: audio.toggleShuffle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _Tile(
+                                  tk: tk,
+                                  icon: audio.repeat == AudioRepeat.one
+                                      ? Icons.repeat_one_rounded
+                                      : Icons.repeat_rounded,
+                                  label: switch (audio.repeat) {
+                                    AudioRepeat.off => 'بدون تكرار',
+                                    AudioRepeat.all => 'تكرار الكل',
+                                    AudioRepeat.one => 'تكرار السورة',
+                                  },
+                                  active: audio.repeat != AudioRepeat.off,
+                                  onTap: audio.cycleRepeat,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _Tile(
+                                  tk: tk,
+                                  icon: audio.sleepActive
+                                      ? Icons.bedtime_rounded
+                                      : Icons.bedtime_outlined,
+                                  label: audio.sleepActive
+                                      ? (audio.sleepAtSurahEnd
+                                          ? 'نهاية السورة'
+                                          : formatAudioTime(
+                                              audio.sleepRemaining ??
+                                                  Duration.zero))
+                                      : 'مؤقت النوم',
+                                  active: audio.sleepActive,
+                                  onTap: () => _showSleepSheet(context),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _Tile(
+                                  tk: tk,
+                                  icon: audio.isFavorite(surah)
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  label: audio.isFavorite(surah)
+                                      ? 'في المفضلة'
+                                      : 'المفضلة',
+                                  active: audio.isFavorite(surah),
+                                  onTap: () => audio.toggleFavorite(surah),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+/// نجمة الغلاف: نجمة مملوءة بتدرّج + إطاران ذهبيان يدوران ببطء أثناء التشغيل.
+class _StarArt extends StatefulWidget {
+  final QuranAudioProvider audio;
+  final int surah;
+  final HomeTokens tk;
+  const _StarArt({required this.audio, required this.surah, required this.tk});
+
+  @override
+  State<_StarArt> createState() => _StarArtState();
+}
+
+class _StarArtState extends State<_StarArt>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(seconds: 48));
+  StreamSubscription<bool>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.audio.player.playing) _c.repeat();
+    _sub = widget.audio.player.playingStream.listen((p) {
+      if (!mounted) return;
+      if (p && !_c.isAnimating) {
+        _c.repeat();
+      } else if (!p && _c.isAnimating) {
+        _c.stop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = widget.tk;
+    final fillB = Color.lerp(tk.mint, tk.leaf, .42)!;
+    return SizedBox(
+      width: 250,
+      height: 250,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          StarBadge(
-              number: surah,
-              size: 132,
-              fill: scheme.primaryContainer,
-              textColor: scheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            'سورة ${QuranAudioProvider.surahName(surah)}',
-            style: TextStyle(
-              fontFamily: AppTheme.quranFont,
-              fontSize: 32,
-              color: scheme.onSurface,
-              height: 1.4,
+          RotationTransition(
+            turns: _c,
+            child: CustomPaint(
+              size: const Size(250, 250),
+              painter: _StarOutlinePainter(tk.gold.withValues(alpha: .55), 1.3),
             ),
           ),
-          Text(audio.selectedReciter.name,
-              style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 20),
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Column(
-              children: [
-                _SeekBar(audio: audio),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _ShuffleButton(audio: audio),
-                    IconButton(
-                      iconSize: 34,
-                      tooltip: 'السابق',
-                      onPressed: canSeek ? audio.previous : null,
-                      icon: const Icon(Icons.skip_previous_rounded),
-                    ),
-                    IconButton(
-                      iconSize: 36,
-                      tooltip: 'تأخير ١٠ ثوانٍ',
-                      onPressed: canSeek
-                          ? () => audio.seekBy(-QuranAudioProvider.seekStep)
-                          : null,
-                      icon: const Icon(Icons.replay_10_rounded),
-                    ),
-                    _PlayButton(audio: audio, size: 68),
-                    IconButton(
-                      iconSize: 36,
-                      tooltip: 'تقديم ١٠ ثوانٍ',
-                      onPressed: canSeek
-                          ? () => audio.seekBy(QuranAudioProvider.seekStep)
-                          : null,
-                      icon: const Icon(Icons.forward_10_rounded),
-                    ),
-                    IconButton(
-                      iconSize: 34,
-                      tooltip: 'التالي',
-                      onPressed: canSeek ? audio.next : null,
-                      icon: const Icon(Icons.skip_next_rounded),
-                    ),
-                    _RepeatButton(audio: audio),
-                  ],
+          RotationTransition(
+            turns: ReverseAnimation(_c),
+            child: Transform.scale(
+              scale: .84,
+              child: Transform.rotate(
+                angle: math.pi / 8,
+                child: CustomPaint(
+                  size: const Size(250, 250),
+                  painter:
+                      _StarOutlinePainter(tk.gold.withValues(alpha: .32), 1),
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: 168,
+            height: 168,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: tk.leaf.withValues(alpha: .30),
+                  blurRadius: 40,
+                  spreadRadius: 4,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Text('سرعة التشغيل', style: text.labelLarge),
+          CustomPaint(
+            size: const Size(172, 172),
+            painter:
+                _GradStarPainter(tk.mint, fillB, tk.gold.withValues(alpha: .6)),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final s in QuranAudioProvider.speeds)
-                ChoiceChip(
-                  label: Text(_speedLabel(s)),
-                  selected: audio.speed == s,
-                  onSelected: (_) => audio.setSpeed(s),
+              Text('سورة',
+                  style: cairoStyle(12,
+                      weight: 600, color: tk.mintInk.withValues(alpha: .8))),
+              Text(
+                toArabicDigits(widget.surah),
+                style: TextStyle(
+                  fontFamily: 'Amiri',
+                  fontWeight: FontWeight.w700,
+                  fontSize: widget.surah > 99 ? 50 : 58,
+                  height: 1.05,
+                  color: tk.mintInk,
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showSleepSheet(context),
-                  icon: Icon(audio.sleepActive
-                      ? Icons.bedtime_rounded
-                      : Icons.bedtime_outlined),
-                  label: Text(
-                    audio.sleepActive ? _sleepLabel(audio) : 'مؤقت النوم',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton.filledTonal(
-                tooltip: audio.isFavorite(surah)
-                    ? 'إزالة من المفضلة'
-                    : 'إضافة إلى المفضلة',
-                onPressed: () => audio.toggleFavorite(surah),
-                icon: Icon(audio.isFavorite(surah)
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded),
               ),
             ],
           ),
@@ -445,45 +696,258 @@ class _FullPlayer extends StatelessWidget {
   }
 }
 
-String _speedLabel(double s) =>
-    s == s.truncateToDouble() ? '${s.toInt()}×' : '$s×';
+class _StarOutlinePainter extends CustomPainter {
+  final Color color;
+  final double width;
+  const _StarOutlinePainter(this.color, this.width);
 
-class _ShuffleButton extends StatelessWidget {
-  final QuranAudioProvider audio;
-  const _ShuffleButton({required this.audio});
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      islamicStarPath(size),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeJoin = StrokeJoin.round
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_StarOutlinePainter o) =>
+      o.color != color || o.width != width;
+}
+
+class _GradStarPainter extends CustomPainter {
+  final Color a, b, stroke;
+  const _GradStarPainter(this.a, this.b, this.stroke);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = islamicStarPath(size);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [a, b],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..strokeJoin = StrokeJoin.round
+        ..color = stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GradStarPainter o) =>
+      o.a != a || o.b != b || o.stroke != stroke;
+}
+
+class _CtrlIcon extends StatelessWidget {
+  final IconData icon;
+  final double size;
+  final String tooltip;
+  final Color color;
+  final VoidCallback? onTap;
+  const _CtrlIcon({
+    required this.icon,
+    required this.size,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return IconButton(
-      tooltip: audio.shuffle ? 'إيقاف العشوائي' : 'تشغيل عشوائي',
-      onPressed: audio.toggleShuffle,
-      icon: Icon(Icons.shuffle_rounded,
-          color: audio.shuffle ? scheme.primary : scheme.onSurfaceVariant),
+      iconSize: size,
+      tooltip: tooltip,
+      onPressed: onTap,
+      color: color,
+      disabledColor: color.withValues(alpha: .35),
+      icon: Icon(icon),
     );
   }
 }
 
-class _RepeatButton extends StatelessWidget {
+class _BigPlay extends StatelessWidget {
   final QuranAudioProvider audio;
-  const _RepeatButton({required this.audio});
+  final HomeTokens tk;
+  const _BigPlay({required this.audio, required this.tk});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final on = audio.repeat != AudioRepeat.off;
-    return IconButton(
-      tooltip: switch (audio.repeat) {
-        AudioRepeat.off => 'بدون تكرار',
-        AudioRepeat.all => 'تكرار الكل',
-        AudioRepeat.one => 'تكرار السورة',
+    return StreamBuilder<PlayerState>(
+      stream: audio.player.playerStateStream,
+      builder: (_, snap) {
+        final st = snap.data;
+        final loading = st != null &&
+            (st.processingState == ProcessingState.loading ||
+                st.processingState == ProcessingState.buffering);
+        final playing = st?.playing ?? false;
+        final enabled = audio.hasAnyAudio;
+        return Tooltip(
+          message: playing ? 'إيقاف مؤقت' : 'تشغيل',
+          child: GestureDetector(
+            onTap: enabled ? audio.togglePlay : null,
+            child: Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: enabled
+                      ? [Color.lerp(tk.leaf, Colors.white, .12)!, tk.leaf]
+                      : [tk.line, tk.line],
+                ),
+                border: Border.all(
+                    color: tk.gold.withValues(alpha: .7), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: tk.leaf.withValues(alpha: enabled ? .40 : 0),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: loading
+                  ? Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 3, color: tk.mintInk),
+                    )
+                  : Icon(
+                      playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      size: 44,
+                      color: enabled ? Colors.white : tk.muted,
+                    ),
+            ),
+          ),
+        );
       },
-      onPressed: audio.cycleRepeat,
-      icon: Icon(
-        audio.repeat == AudioRepeat.one
-            ? Icons.repeat_one_rounded
-            : Icons.repeat_rounded,
-        color: on ? scheme.primary : scheme.onSurfaceVariant,
+    );
+  }
+}
+
+class _SpeedPicker extends StatelessWidget {
+  final QuranAudioProvider audio;
+  final HomeTokens tk;
+  const _SpeedPicker({required this.audio, required this.tk});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.speed_rounded, size: 18, color: tk.gold),
+            const SizedBox(width: 6),
+            Text('سرعة التشغيل',
+                style: cairoStyle(13, weight: 600, color: tk.muted)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: tk.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: tk.line),
+          ),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Row(
+              children: [
+                for (final sp in QuranAudioProvider.speeds)
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => audio.setSpeed(sp),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        height: 38,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color:
+                              audio.speed == sp ? tk.mint : Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: audio.speed == sp
+                                ? tk.leaf.withValues(alpha: .6)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Text(
+                          '${sp == sp.truncateToDouble() ? sp.toInt().toString() : sp.toString()}×',
+                          style: cairoStyle(13,
+                              weight: audio.speed == sp ? 700 : 600,
+                              color: audio.speed == sp ? tk.mintInk : tk.muted),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Tile extends StatelessWidget {
+  final HomeTokens tk;
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _Tile({
+    required this.tk,
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 74,
+        decoration: BoxDecoration(
+          color: active ? tk.mint : tk.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+              color: active ? tk.gold.withValues(alpha: .7) : tk.line),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24, color: active ? tk.gold : tk.muted),
+            const SizedBox(height: 5),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: cairoStyle(11,
+                    weight: 600, color: active ? tk.mintInk : tk.muted),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -491,7 +955,8 @@ class _RepeatButton extends StatelessWidget {
 
 class _SeekBar extends StatefulWidget {
   final QuranAudioProvider audio;
-  const _SeekBar({required this.audio});
+  final HomeTokens tk;
+  const _SeekBar({required this.audio, required this.tk});
 
   @override
   State<_SeekBar> createState() => _SeekBarState();
@@ -502,11 +967,10 @@ class _SeekBarState extends State<_SeekBar> {
 
   @override
   Widget build(BuildContext context) {
+    final tk = widget.tk;
     final player = widget.audio.player;
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+    final style = cairoStyle(12, weight: 600, color: tk.muted)
+        .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
     return StreamBuilder<Duration?>(
       stream: player.durationStream,
       builder: (_, durSnap) {
@@ -520,17 +984,32 @@ class _SeekBarState extends State<_SeekBar> {
             final value = (_drag ?? pos).clamp(0.0, max <= 0 ? 1.0 : max);
             return Column(
               children: [
-                Slider(
-                  value: value,
-                  max: max <= 0 ? 1.0 : max,
-                  onChanged: max <= 0 ? null : (v) => setState(() => _drag = v),
-                  onChangeEnd: (v) {
-                    widget.audio.seekTo(Duration(milliseconds: v.round()));
-                    setState(() => _drag = null);
-                  },
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 5,
+                    activeTrackColor: tk.leaf,
+                    inactiveTrackColor: tk.line,
+                    thumbColor: tk.gold,
+                    overlayColor: tk.gold.withValues(alpha: .16),
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    overlayShape:
+                        const RoundSliderOverlayShape(overlayRadius: 20),
+                    trackShape: const RoundedRectSliderTrackShape(),
+                  ),
+                  child: Slider(
+                    value: value,
+                    max: max <= 0 ? 1.0 : max,
+                    onChanged:
+                        max <= 0 ? null : (v) => setState(() => _drag = v),
+                    onChangeEnd: (v) {
+                      widget.audio.seekTo(Duration(milliseconds: v.round()));
+                      setState(() => _drag = null);
+                    },
+                  ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -553,46 +1032,62 @@ class _SeekBarState extends State<_SeekBar> {
 
 Future<void> _showSleepSheet(BuildContext context) {
   final audio = context.read<QuranAudioProvider>();
+  final tk = HomeTokens.of(context);
   return showModalBottomSheet<void>(
     context: context,
-    showDragHandle: true,
+    backgroundColor: tk.bg,
+    shape: RoundedRectangleBorder(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      side: BorderSide(color: tk.gold.withValues(alpha: .45)),
+    ),
     builder: (sheetContext) {
       void pick(VoidCallback action) {
         action();
         Navigator.of(sheetContext).pop();
       }
 
+      Widget row(IconData icon, String title, VoidCallback onTap) => ListTile(
+            onTap: onTap,
+            leading: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: tk.mint, shape: BoxShape.circle),
+              child: Icon(icon, size: 20, color: tk.mintInk),
+            ),
+            title:
+                Text(title, style: cairoStyle(15, weight: 600, color: tk.ink)),
+          );
+
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 0, 24, 8),
+            const SizedBox(height: 10),
+            Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(
+                color: tk.gold.withValues(alpha: .55),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: Text('إيقاف التشغيل تلقائيًا',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                    style: cairoStyle(18, weight: 700, color: tk.ink)),
               ),
             ),
             for (final m in const [10, 15, 30, 45, 60])
-              ListTile(
-                leading: const Icon(Icons.timer_outlined),
-                title: Text('بعد ${toArabicDigits(m)} دقيقة'),
-                onTap: () =>
-                    pick(() => audio.setSleepTimer(Duration(minutes: m))),
-              ),
-            ListTile(
-              leading: const Icon(Icons.menu_book_outlined),
-              title: const Text('عند نهاية السورة'),
-              onTap: () => pick(audio.setSleepAtSurahEnd),
-            ),
+              row(Icons.timer_outlined, 'بعد ${toArabicDigits(m)} دقيقة',
+                  () => pick(() => audio.setSleepTimer(Duration(minutes: m)))),
+            row(Icons.menu_book_outlined, 'عند نهاية السورة',
+                () => pick(audio.setSleepAtSurahEnd)),
             if (audio.sleepActive)
-              ListTile(
-                leading: const Icon(Icons.timer_off_outlined),
-                title: const Text('إلغاء المؤقت'),
-                onTap: () => pick(audio.clearSleepTimer),
-              ),
+              row(Icons.timer_off_outlined, 'إلغاء المؤقت',
+                  () => pick(audio.clearSleepTimer)),
+            const SizedBox(height: 8),
           ],
         ),
       );

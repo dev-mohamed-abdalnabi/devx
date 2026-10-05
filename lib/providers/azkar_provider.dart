@@ -44,7 +44,9 @@ class AzkarProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final today = _dayKey(DateTime.now());
     final savedDate = prefs.getString(_progressDateKey);
-    final savedProgress = savedDate == today ? prefs.getStringList(_progressKey) ?? [] : <String>[];
+    final savedProgress = savedDate == today
+        ? prefs.getStringList(_progressKey) ?? []
+        : <String>[];
     if (savedDate != today) {
       await prefs.setString(_progressDateKey, today);
       await prefs.setStringList(_progressKey, []);
@@ -106,10 +108,10 @@ class AzkarProvider extends ChangeNotifier {
   Future<void> _markCategoryDone(String categoryId) async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    if (categoryId == 'morning') {
+    if (categoryId == 'morning' || categoryId == 'hisn-27') {
       lastMorningDone = now;
       await prefs.setString(_morningKey, now.toIso8601String());
-    } else if (categoryId == 'evening') {
+    } else if (categoryId == 'evening' || categoryId == 'hisn-27e') {
       lastEveningDone = now;
       await prefs.setString(_eveningKey, now.toIso8601String());
     }
@@ -118,7 +120,9 @@ class AzkarProvider extends ChangeNotifier {
   bool isDoneToday(DateTime? last) {
     if (last == null) return false;
     final now = DateTime.now();
-    return last.year == now.year && last.month == now.month && last.day == now.day;
+    return last.year == now.year &&
+        last.month == now.month &&
+        last.day == now.day;
   }
 
   void resetCategory(String categoryId) {
@@ -160,7 +164,9 @@ class AzkarProvider extends ChangeNotifier {
     if (query.trim().isEmpty) return [];
     final all = categories.expand((c) => c.azkar).toList();
     final normalized = normalizeArabic(query);
-    return all.where((z) => normalizeArabic(z.text).contains(normalized)).toList();
+    return all
+        .where((z) => normalizeArabic(z.text).contains(normalized))
+        .toList();
   }
 
   Future<void> toggleDarkMode() async {
@@ -187,7 +193,8 @@ class AzkarProvider extends ChangeNotifier {
   Future<void> _saveProgress() async {
     final values = [
       for (final category in categories)
-        for (final zikr in category.azkar) '${zikr.uniqueKey}=${zikr.remaining}',
+        for (final zikr in category.azkar)
+          '${zikr.uniqueKey}=${zikr.remaining}',
     ];
     _progressWrite = _progressWrite.then((_) async {
       final prefs = await SharedPreferences.getInstance();

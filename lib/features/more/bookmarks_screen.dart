@@ -12,14 +12,12 @@ class BookmarksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final q = context.watch<QuranProvider>();
     final data = q.data;
-    final List<Ayah> items = q.bookmarks
-        .map((k) => data?.ayahByKey(k))
-        .whereType<Ayah>()
-        .toList()
-      ..sort((a, b) {
-        final c = a.surah.compareTo(b.surah);
-        return c != 0 ? c : a.number.compareTo(b.number);
-      });
+    final List<Ayah> items =
+        q.bookmarks.map((k) => data?.ayahByKey(k)).whereType<Ayah>().toList()
+          ..sort((a, b) {
+            final c = a.surah.compareTo(b.surah);
+            return c != 0 ? c : a.number.compareTo(b.number);
+          });
 
     return Scaffold(
       appBar: AppBar(title: const Text('علامات القرآن')),
@@ -38,13 +36,23 @@ class BookmarksScreen extends StatelessWidget {
               itemCount: items.length,
               itemBuilder: (ctx, i) {
                 final a = items[i];
+                final note = (q.markOf(a.key)?.note ?? '').trim();
                 return ListTile(
+                  isThreeLine: note.isNotEmpty,
                   title: Text(a.text,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
-                  subtitle: Text(
-                      '${displaySurahName(data!.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
+                      style: const TextStyle(
+                          fontFamily: 'AmiriQuran', fontSize: 19, height: 1.8)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          '${displaySurahName(data!.surahOf(a.surah).name)} · آية ${toArabicDigits(a.number)}'),
+                      if (note.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text('📝 $note'),
+                      ],
+                    ],
+                  ),
                   trailing: IconButton(
                     tooltip: 'إزالة العلامة',
                     icon: const Icon(Icons.bookmark_remove_outlined),

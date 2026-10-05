@@ -30,7 +30,8 @@ Future<GotoResult?> showGotoSheet(BuildContext context, HomeTokens tk,
         initialChildSize: .8,
         minChildSize: .5,
         maxChildSize: .95,
-        builder: (ctx, sc) => _GotoBody(tk: tk, currentPage: currentPage, controller: sc),
+        builder: (ctx, sc) =>
+            _GotoBody(tk: tk, currentPage: currentPage, controller: sc),
       ),
     ),
   );
@@ -40,7 +41,8 @@ class _GotoBody extends StatefulWidget {
   final HomeTokens tk;
   final int currentPage;
   final ScrollController controller;
-  const _GotoBody({required this.tk, required this.currentPage, required this.controller});
+  const _GotoBody(
+      {required this.tk, required this.currentPage, required this.controller});
 
   @override
   State<_GotoBody> createState() => _GotoBodyState();
@@ -97,7 +99,11 @@ class _GotoBodyState extends State<_GotoBody> {
               child: Row(
                 children: [
                   for (var i = 0; i < tabs.length; i++) ...[
-                    QPill(tk: tk, label: tabs[i], selected: _tab == i, onTap: () => setState(() => _tab = i)),
+                    QPill(
+                        tk: tk,
+                        label: tabs[i],
+                        selected: _tab == i,
+                        onTap: () => setState(() => _tab = i)),
                     if (i < tabs.length - 1) const SizedBox(width: 8),
                   ],
                 ],
@@ -113,7 +119,8 @@ class _GotoBodyState extends State<_GotoBody> {
   Widget _badge(HomeTokens tk, int n) => IslamicStar(
         size: 40,
         color: tk.mint,
-        child: Text(toArabicDigits(n), style: cairoStyle(11.5, weight: 700, color: tk.mintInk)),
+        child: Text(toArabicDigits(n),
+            style: cairoStyle(11.5, weight: 700, color: tk.mintInk)),
       );
 
   Widget _surahs(HomeTokens tk, QuranData data, int current) {
@@ -138,13 +145,17 @@ class _GotoBodyState extends State<_GotoBody> {
               isDense: true,
               filled: true,
               fillColor: tk.card,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: tk.line)),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.line)),
               enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: tk.line)),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.line)),
               focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: tk.gold)),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: tk.gold)),
             ),
           ),
         ),
@@ -161,7 +172,8 @@ class _GotoBodyState extends State<_GotoBody> {
                 onTap: () => Navigator.pop(context, GotoResult(s.firstPage)),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: tk.card,
                     borderRadius: BorderRadius.circular(16),
@@ -176,8 +188,10 @@ class _GotoBodyState extends State<_GotoBody> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(QuranAudioProvider.surahName(s.number),
-                                style: amiriStyle(20, bold: true, color: tk.ink)),
-                            Text('${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
+                                style:
+                                    amiriStyle(20, bold: true, color: tk.ink)),
+                            Text(
+                                '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
                                 style: cairoStyle(11.5, color: tk.muted)),
                           ],
                         ),
@@ -210,7 +224,8 @@ class _GotoBodyState extends State<_GotoBody> {
         final on = i + 1 == current;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.pop(context, GotoResult(data.juzStartPages[i])),
+          onTap: () =>
+              Navigator.pop(context, GotoResult(data.juzStartPages[i])),
           child: Container(
             decoration: BoxDecoration(
               color: on ? tk.mint : tk.card,
@@ -221,7 +236,8 @@ class _GotoBodyState extends State<_GotoBody> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('الجزء ${toArabicDigits(i + 1)}',
-                    style: cairoStyle(13.5, weight: 700, color: on ? tk.mintInk : tk.ink)),
+                    style: cairoStyle(13.5,
+                        weight: 700, color: on ? tk.mintInk : tk.ink)),
                 Text('صفحة ${toArabicDigits(data.juzStartPages[i])}',
                     style: cairoStyle(11, color: tk.muted)),
               ],
@@ -254,11 +270,14 @@ class _GotoBodyState extends State<_GotoBody> {
             filled: true,
             fillColor: tk.card,
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: tk.line)),
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(color: tk.line)),
             enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: tk.line)),
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(color: tk.line)),
             focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: tk.gold)),
+                borderRadius: BorderRadius.circular(18),
+                borderSide: BorderSide(color: tk.gold)),
           ),
         ),
         const SizedBox(height: 14),
@@ -290,7 +309,9 @@ class _GotoBodyState extends State<_GotoBody> {
             itemCount: items.length,
             itemBuilder: (ctx, i) {
               final a = items[i];
-              final c = kMarkColors[(q.markOf(a.key)?.color ?? 0) % kMarkColors.length];
+              final mark = q.markOf(a.key);
+              final c = kMarkColors[(mark?.color ?? 0) % kMarkColors.length];
+              final note = (mark?.note ?? '').trim();
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => Navigator.pop(context, GotoResult(a.page, a.key)),
@@ -303,26 +324,71 @@ class _GotoBodyState extends State<_GotoBody> {
                     border: Border.all(color: tk.line),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                                color: c, shape: BoxShape.circle)),
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${surahTitle(a.surah)} · ${toArabicDigits(a.number)}',
-                                style: cairoStyle(13.5, weight: 700, color: tk.ink)),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                      '${surahTitle(a.surah)} · ${toArabicDigits(a.number)}',
+                                      style: cairoStyle(13.5,
+                                          weight: 700, color: tk.ink)),
+                                ),
+                                Text('ص ${toArabicDigits(a.page)}',
+                                    style: cairoStyle(12,
+                                        weight: 600, color: tk.gold)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // الآية كاملة بلا اقتطاع.
                             Text(a.text,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                                 textDirection: TextDirection.rtl,
                                 style: TextStyle(
-                                    fontFamily: AppTheme.quranFont, fontSize: 15, color: tk.muted)),
+                                    fontFamily: AppTheme.quranFont,
+                                    fontSize: 20,
+                                    height: 1.9,
+                                    color: tk.ink)),
+                            if (note.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: tk.mint,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.sticky_note_2_outlined,
+                                        size: 16, color: tk.gold),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(note,
+                                          style: cairoStyle(13,
+                                              color: tk.mintInk, height: 1.6)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
-                      Text('ص ${toArabicDigits(a.page)}',
-                          style: cairoStyle(12, weight: 600, color: tk.gold)),
                     ],
                   ),
                 ),
@@ -339,7 +405,8 @@ class _GotoBodyState extends State<_GotoBody> {
             onTap: () {
               final nav = Navigator.of(context);
               nav.pop();
-              nav.push(MaterialPageRoute(builder: (_) => const BookmarksScreen()));
+              nav.push(
+                  MaterialPageRoute(builder: (_) => const BookmarksScreen()));
             },
           ),
         ),

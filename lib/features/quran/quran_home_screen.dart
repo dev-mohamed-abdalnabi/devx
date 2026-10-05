@@ -8,6 +8,8 @@ import '../../providers/quran_provider.dart';
 import '../../providers/quran_audio_provider.dart';
 import '../../widgets/home_style.dart';
 import '../home/home_art.dart';
+import '../more/bookmarks_screen.dart';
+import 'audio_player_ui.dart' show StarBadge;
 import 'reader_screen.dart';
 
 void openReader(BuildContext context, int page, {String? highlight}) {
@@ -77,8 +79,25 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
       ]);
     } else {
       final top = <Widget>[
-        const PageHeader(title: 'القرآن الكريم'),
+        PageHeader(
+          title: 'القرآن الكريم',
+          actions: [
+            HeaderButton(
+              icon: '<path d="M6 4h12v17l-6-4-6 4z"/>',
+              label: 'علامات القرآن',
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const BookmarksScreen())),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
+        if (_query.isEmpty &&
+            (q.readPages.isNotEmpty ||
+                q.lastAyahKey != null ||
+                q.lastPage > 1)) ...[
+          _ContinueCard(tk: tk, data: data, q: q),
+          const SizedBox(height: 12),
+        ],
         HomeSearchField(
           key: _searchKey,
           tk: tk,
@@ -139,6 +158,26 @@ const _grid = SliverGridDelegateWithFixedCrossAxisCount(
   mainAxisExtent: 112,
 );
 
+const _surahGrid = SliverGridDelegateWithFixedCrossAxisCount(
+  crossAxisCount: 2,
+  mainAxisSpacing: 10,
+  crossAxisSpacing: 10,
+  mainAxisExtent: 84,
+);
+
+/// السورة التي تقع فيها الصفحة [page].
+Surah _surahAtPage(QuranData data, int page) {
+  var cur = data.surahs.first;
+  for (final s in data.surahs) {
+    if (s.firstPage <= page) {
+      cur = s;
+    } else {
+      break;
+    }
+  }
+  return cur;
+}
+
 class _SurahGrid extends StatelessWidget {
   final HomeTokens tk;
   final QuranData data;
@@ -147,23 +186,25 @@ class _SurahGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lastPage = context.select<QuranProvider, int>((q) => q.lastPage);
+    final hasProgress = context.select<QuranProvider, bool>((q) =>
+        q.readPages.isNotEmpty || q.lastAyahKey != null || q.lastPage > 1);
+    final currentSurah = hasProgress ? _surahAtPage(data, lastPage).number : -1;
     return CustomScrollView(
       slivers: [
         SliverList(delegate: SliverChildListDelegate(top)),
         SliverPadding(
           padding: const EdgeInsets.only(bottom: 16),
           sliver: SliverGrid(
-            gridDelegate: _grid,
+            gridDelegate: _surahGrid,
             delegate: SliverChildBuilderDelegate(
               childCount: data.surahs.length,
               (ctx, i) {
                 final s = data.surahs[i];
-                return NumberCard(
+                return _SurahCard(
                   tk: tk,
-                  number: s.number,
-                  title: QuranAudioProvider.surahName(s.number),
-                  subtitle:
-                      '${s.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(s.ayahCount)} آية',
+                  surah: s,
+                  current: s.number == currentSurah,
                   onTap: () => openReader(ctx, s.firstPage),
                 );
               },
@@ -333,6 +374,154 @@ class _ResultRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(subtitle,
                       style: cairoStyle(11.5, weight: 600, color: tk.gold)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// كارت سورة مضغوط: نجمة الرقم + الاسم + النوع وعدد الآيات + رقم الصفحة.
+class _SurahCard extends StatelessWidget {
+  final HomeTokens tk;
+  final Surah surah;
+  final bool current;
+  final VoidCallback onTap;
+  const _SurahCard({
+    required this.tk,
+    required this.surah,
+    required this.current,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PressableCard(
+      onTap: onTap,
+      builder: (context, pressed) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: current ? tk.mint : tk.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: (pressed || current) ? tk.gold : tk.line),
+        ),
+        child: Row(
+          children: [
+            StarBadge(
+              number: surah.number,
+              size: 44,
+              fill: current ? tk.card : tk.mint,
+              textColor: tk.mintInk,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    QuranAudioProvider.surahName(surah.number),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cairoStyle(16,
+                        weight: 700, color: tk.ink, height: 1.25),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${surah.meccan ? 'مكية' : 'مدنية'} · ${toArabicDigits(surah.ayahCount)} آية',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cairoStyle(11.5, color: tk.muted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (current)
+              Icon(Icons.bookmark_rounded, size: 20, color: tk.gold)
+            else
+              Text('ص ${toArabicDigits(surah.firstPage)}',
+                  style: cairoStyle(11, weight: 600, color: tk.gold)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// «أكمل القراءة»: آخر موضع + نسبة الختمة.
+class _ContinueCard extends StatelessWidget {
+  final HomeTokens tk;
+  final QuranData data;
+  final QuranProvider q;
+  const _ContinueCard({required this.tk, required this.data, required this.q});
+
+  @override
+  Widget build(BuildContext context) {
+    final page = q.lastPage;
+    final surah = _surahAtPage(data, page);
+    final progress = q.khatmaProgress.clamp(0.0, 1.0);
+    final pct = (progress * 100).round();
+    return PressableCard(
+      onTap: () => openReader(context, page, highlight: q.lastAyahKey),
+      builder: (context, pressed) => Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          color: tk.mint,
+          borderRadius: BorderRadius.circular(20),
+          border:
+              Border.all(color: tk.gold.withValues(alpha: pressed ? 1 : .55)),
+        ),
+        child: Row(
+          children: [
+            StarBadge(
+              number: surah.number,
+              size: 50,
+              fill: tk.card,
+              textColor: tk.mintInk,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('أكمل القراءة',
+                      style: cairoStyle(11.5, weight: 700, color: tk.gold)),
+                  Text('سورة ${QuranAudioProvider.surahName(surah.number)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: cairoStyle(17,
+                          weight: 700, color: tk.mintInk, height: 1.3)),
+                  Text(
+                      'صفحة ${toArabicDigits(page)} من ${toArabicDigits(data.pageCount)}',
+                      style: cairoStyle(12,
+                          color: tk.mintInk.withValues(alpha: .75))),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 50,
+              height: 50,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 4,
+                      backgroundColor: tk.card,
+                      color: tk.gold,
+                    ),
+                  ),
+                  Text('${toArabicDigits(pct)}٪',
+                      style: cairoStyle(11.5, weight: 700, color: tk.mintInk)),
                 ],
               ),
             ),

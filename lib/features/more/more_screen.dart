@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../widgets/app_ui.dart';
+import '../../core/home_tokens.dart';
+import '../../widgets/home_style.dart';
+import '../home/home_art.dart';
 import '../challenges/challenges_screen.dart';
 import '../../screens/favorites_screen.dart';
 import '../../screens/search_screen.dart';
@@ -24,65 +26,241 @@ class MoreScreen extends StatelessWidget {
     ));
   }
 
-  void _pushPage(BuildContext context, Widget page) {
+  void _go(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        children: [
-          const AppSectionHeader(
-            title: 'المزيد',
-            subtitle: 'كل أدواتك الإسلامية في مكان واحد',
-          ),
-          const SizedBox(height: 24),
-          const AppSectionHeader(title: 'العبادة اليومية'),
-          const SizedBox(height: 10),
-          _Tile(icon: Icons.task_alt_rounded, title: 'التحديات والإنجازات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChallengesScreen()))),
-          _Tile(icon: Icons.auto_awesome_outlined, title: 'الأذكار', onTap: () => _pushPage(context, const CategoriesScreen())),
-          _Tile(icon: Icons.touch_app_rounded, title: 'التسبيح', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TasbeehScreen()))),
-          _Tile(icon: Icons.notifications_active_outlined, title: 'التذكيرات', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RemindersScreen()))),
-          const SizedBox(height: 18),
-          const AppSectionHeader(title: 'الموقع والصلاة'),
-          const SizedBox(height: 10),
-          _Tile(icon: Icons.access_time_rounded, title: 'مواقيت الصلاة', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrayerScreen()))),
-          _Tile(icon: Icons.explore_outlined, title: 'القبلة', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QiblaScreen()))),
-          const SizedBox(height: 18),
-          const AppSectionHeader(title: 'المكتبة والتخصيص'),
-          const SizedBox(height: 10),
-          _Tile(icon: Icons.bookmark_border_rounded, title: 'علامات القرآن', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookmarksScreen()))),
-          _Tile(icon: Icons.favorite_border_rounded, title: 'المفضلة', onTap: () => _pushPage(context, const FavoritesScreen())),
-          _Tile(icon: Icons.search_rounded, title: 'البحث في الأذكار', onTap: () => _pushPage(context, const SearchScreen())),
-          _Tile(icon: Icons.volunteer_activism_outlined, title: 'ادعم التطبيق', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SupportScreen()))),
-          _Tile(icon: Icons.settings_outlined, title: 'الإعدادات', onTap: () => _push(context, 'الإعدادات', const SettingsScreen())),
-        ],
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
+
+    Widget grid(List<_Item> items) => GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          mainAxisExtent: 84,
+          padding: EdgeInsets.zero,
+          children: [for (final i in items) _MoreCard(tk: tk, item: i)],
+        );
+
+    return MediaQuery(
+      data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+          children: [
+            const PageHeader(title: 'المزيد'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(2, 0, 2, 14),
+              child: Text('كل أدواتك الإسلامية في مكان واحد',
+                  style: cairoStyle(13.5, color: tk.muted)),
+            ),
+            _Heading(tk: tk, text: 'العبادة اليومية'),
+            grid([
+              _Item(Icons.task_alt_rounded, 'التحديات', 'أهدافك وإنجازاتك',
+                  () => _go(context, const ChallengesScreen())),
+              _Item(Icons.auto_awesome_outlined, 'الأذكار', 'حصن المسلم',
+                  () => _go(context, const CategoriesScreen())),
+              _Item(Icons.touch_app_rounded, 'التسبيح', 'سبحة إلكترونية',
+                  () => _go(context, const TasbeehScreen())),
+              _Item(
+                  Icons.notifications_active_outlined,
+                  'التذكيرات',
+                  'تنبيهات الأذكار',
+                  () => _go(context, const RemindersScreen())),
+            ]),
+            const SizedBox(height: 20),
+            _Heading(tk: tk, text: 'الصلاة والموقع'),
+            grid([
+              _Item(Icons.access_time_rounded, 'مواقيت الصلاة', 'حسب موقعك',
+                  () => _go(context, const PrayerScreen())),
+              _Item(Icons.explore_outlined, 'القبلة', 'اتجاه الكعبة',
+                  () => _go(context, const QiblaScreen())),
+            ]),
+            const SizedBox(height: 20),
+            _Heading(tk: tk, text: 'مكتبتي'),
+            grid([
+              _Item(
+                  Icons.bookmark_border_rounded,
+                  'علامات القرآن',
+                  'آياتك المحفوظة',
+                  () => _go(context, const BookmarksScreen())),
+              _Item(Icons.favorite_border_rounded, 'المفضلة', 'أذكارك المفضلة',
+                  () => _go(context, const FavoritesScreen())),
+              _Item(Icons.search_rounded, 'البحث', 'في كل الأذكار',
+                  () => _go(context, const SearchScreen())),
+            ]),
+            const SizedBox(height: 20),
+            _Heading(tk: tk, text: 'التطبيق'),
+            _RowCard(
+              tk: tk,
+              icon: Icons.volunteer_activism_outlined,
+              title: 'ادعم التطبيق',
+              subtitle: 'شارك، ادعُ لنا، أو تواصل معنا',
+              highlight: true,
+              onTap: () => _go(context, const SupportScreen()),
+            ),
+            const SizedBox(height: 10),
+            _RowCard(
+              tk: tk,
+              icon: Icons.settings_outlined,
+              title: 'الإعدادات',
+              subtitle: 'المظهر والإشعارات والمزيد',
+              onTap: () => _push(context, 'الإعدادات', const SettingsScreen()),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _Tile extends StatelessWidget {
+class _Item {
   final IconData icon;
-  final String title;
+  final String title, subtitle;
   final VoidCallback onTap;
-  const _Tile({required this.icon, required this.title, required this.onTap});
+  const _Item(this.icon, this.title, this.subtitle, this.onTap);
+}
+
+class _Heading extends StatelessWidget {
+  final HomeTokens tk;
+  final String text;
+  const _Heading({required this.tk, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 16,
+              decoration: BoxDecoration(
+                  color: tk.gold, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 8),
+            Text(text, style: cairoStyle(15, weight: 700, color: tk.ink)),
+          ],
+        ),
+      );
+}
+
+class _MoreCard extends StatelessWidget {
+  final HomeTokens tk;
+  final _Item item;
+  const _MoreCard({required this.tk, required this.item});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        onTap: onTap,
+    return PressableCard(
+      onTap: item.onTap,
+      builder: (context, pressed) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: tk.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: pressed ? tk.gold : tk.line),
+        ),
         child: Row(
           children: [
-            AppIconBadge(icon: icon),
-            const SizedBox(width: 14),
-            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700))),
-            const Icon(Icons.chevron_left_rounded),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: tk.mint, shape: BoxShape.circle),
+              child: Icon(item.icon, size: 21, color: tk.mintInk),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: cairoStyle(14.5,
+                          weight: 700, color: tk.ink, height: 1.25)),
+                  const SizedBox(height: 2),
+                  Text(item.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: cairoStyle(11.5, color: tk.muted)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RowCard extends StatelessWidget {
+  final HomeTokens tk;
+  final IconData icon;
+  final String title, subtitle;
+  final bool highlight;
+  final VoidCallback onTap;
+  const _RowCard({
+    required this.tk,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PressableCard(
+      onTap: onTap,
+      builder: (context, pressed) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: highlight ? tk.mint : tk.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: (pressed || highlight)
+                ? tk.gold.withValues(alpha: pressed ? 1 : .6)
+                : tk.line,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: highlight ? tk.card : tk.mint,
+                shape: BoxShape.circle,
+              ),
+              child:
+                  Icon(icon, size: 22, color: highlight ? tk.gold : tk.mintInk),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: cairoStyle(15,
+                          weight: 700, color: highlight ? tk.mintInk : tk.ink)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: cairoStyle(12,
+                          color: highlight
+                              ? tk.mintInk.withValues(alpha: .75)
+                              : tk.muted)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_left_rounded, color: tk.gold, size: 26),
           ],
         ),
       ),
