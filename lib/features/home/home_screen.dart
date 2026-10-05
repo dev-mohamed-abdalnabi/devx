@@ -147,10 +147,8 @@ class _HomeDashboardState extends State<HomeDashboard> {
       readSub = '';
     } else if (started) {
       final s = first == null ? '' : QuranAudioProvider.surahName(first.surah);
-      // سطر واحد قصير: الطول المتغيّر كان يكسر السطر ويصغّر محتوى الكارت.
-      final pct = (quran.khatmaProgress * 100).floor();
-      readSub = '$s · صفحة ${toArabicDigits(page)}'
-          '${read > 0 && pct > 0 ? ' · ${toArabicDigits(pct)}٪' : ''}';
+      // سطر واحد قصير؛ التقدّم يظهر في الشريط (النسبة المئوية تتشوّه في النص العربي).
+      readSub = '$s · صفحة ${toArabicDigits(page)}';
     } else {
       readSub = 'افتح المصحف من الفاتحة أو اختر السورة';
     }
@@ -182,23 +180,24 @@ class _HomeDashboardState extends State<HomeDashboard> {
               child: LayoutBuilder(builder: (context, box) {
                 final fullW = box.maxWidth;
                 final colW = (fullW - 20) / 3;
-                // لو الشاشة/النافذة أقصر من التصميم الكامل نستخدم ارتفاعات ثابتة
-                // مع تمرير، بدل ضغط الكروت (وهو ما كان يصغّر الخط جدًا).
-                // الهيدر (58) + المسافات (16) محسوبة من الارتفاع المتاح للشبكة.
-                final fixed = box.maxHeight - 74 < 750;
-                Widget row(int flex, List<Widget> kids) {
-                  final r = Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (var i = 0; i < kids.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 10),
-                        kids[i],
+                // تصميم ثابت المقاسات: الكروت لا تُضغط أبدًا (كان الضغط يصغّر الخط ويخفي النص).
+                // نحسب معامل تكبير بسيط ليملأ الشاشات الطويلة، والقصيرة تُمرَّر.
+                const baseTotal = 180 + 108 * 4 + 120 + 40.0;
+                final avail = box.maxHeight - 74;
+                final scale = (avail / baseTotal).clamp(1.0, 1.18);
+                Widget row(int h, List<Widget> kids) {
+                  return SizedBox(
+                    height: h * scale,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < kids.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
+                          kids[i],
+                        ],
                       ],
-                    ],
+                    ),
                   );
-                  return fixed
-                      ? SizedBox(height: flex.toDouble(), child: r)
-                      : Expanded(flex: flex, child: r);
                 }
 
                 const gap = SizedBox(height: 10);
@@ -223,7 +222,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                     ]),
                     gap,
-                    row(100, [
+                    row(108, [
                       slotTile(
                         span: 2,
                         colW: colW,
@@ -237,9 +236,10 @@ class _HomeDashboardState extends State<HomeDashboard> {
                             title: 'الصلاة القادمة',
                             subtitle: next == null
                                 ? 'حدّد موقعك لعرض المواقيت'
-                                : '${next.name} · ${formatClock(next.time)}   |   '
-                                    'متبقي \u2066${formatCountdown(next.time.difference(n))}\u2069',
-                            alwaysShowSubtitle: true,
+                                : '${next.name} · ${formatClock(next.time)}',
+                            badge: next == null
+                                ? null
+                                : '\u2066${formatCountdown(next.time.difference(n))}\u2069',
                             onTap: () => _push(const PrayerScreen()),
                           ),
                         ),
@@ -258,7 +258,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                     ]),
                     gap,
-                    row(100, [
+                    row(108, [
                       slotTile(
                         span: 1,
                         colW: colW,
@@ -290,7 +290,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                     ]),
                     gap,
-                    row(100, [
+                    row(108, [
                       slotTile(
                         span: 2,
                         colW: colW,
@@ -318,7 +318,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                       ),
                     ]),
                     gap,
-                    row(100, [
+                    row(108, [
                       slotTile(
                         span: 1,
                         colW: colW,
@@ -341,8 +341,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           icon: HomeIcons.trophy,
                           title:
                               'تحديات اليوم · ${toArabicDigits(done)} / ${toArabicDigits(total)}',
-                          subtitle:
-                              'أيام متواصلة: ${toArabicDigits(activity.streak)}',
+                          subtitle: activity.streak > 0
+                              ? 'سلسلة ${toArabicDigits(activity.streak)} ${activity.streak == 1 ? 'يوم' : 'أيام'}'
+                              : 'ابدأ سلسلتك اليوم',
                           progress: total == 0 ? 0 : done / total,
                           onTap: () => _push(const ChallengesScreen()),
                         ),
@@ -376,26 +377,13 @@ class _HomeDashboardState extends State<HomeDashboard> {
                   hijri: prayer.hijriFor(now).format(),
                   onSupport: () => _push(const SupportScreen()),
                 );
-                // الهيدر جزء من الصفحة: يطلع مع التمرير بدل ما يفضل ثابت.
-                if (fixed) {
-                  return SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Column(
-                      children: [header, const SizedBox(height: 6), grid],
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    header,
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 6, bottom: 10),
-                        child: grid,
-                      ),
-                    ),
-                  ],
+                // الهيدر جزء من الصفحة: يطلع مع التمرير على الشاشات القصيرة.
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    children: [header, const SizedBox(height: 6), grid],
+                  ),
                 );
               }),
             ),
@@ -484,6 +472,7 @@ class HomeTile extends StatelessWidget {
   final double? progress;
   final bool subtitleIsClock;
   final bool alwaysShowSubtitle;
+  final String? badge; // شارة صغيرة بجوار الأيقونة (مثل العدّ التنازلي)
   final Widget? extra;
   final VoidCallback onTap;
   const HomeTile({
@@ -497,6 +486,7 @@ class HomeTile extends StatelessWidget {
     this.progress,
     this.subtitleIsClock = false,
     this.alwaysShowSubtitle = false,
+    this.badge,
     this.extra,
   });
 
@@ -505,7 +495,6 @@ class HomeTile extends StatelessWidget {
     // الشاشات القصيرة تتعامل معها الشبكة بارتفاعات ثابتة مع تمرير،
     // فلا داعي لإخفاء النص الفرعي (كان يختفي على بعض الأجهزة).
     final showSub = subtitle != null && subtitle!.isNotEmpty;
-    final hasMore = showSub || progress != null || extra != null;
     return PressableCard(
       onTap: onTap,
       builder: (context, pressed) => AnimatedContainer(
@@ -516,70 +505,61 @@ class HomeTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: pressed ? tk.gold : tk.line),
         ),
-        child: LayoutBuilder(builder: (context, c) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HomeIcon(icon, size: 24, color: tk.gold),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: AlignmentDirectional.centerStart,
-                  child: SizedBox(
-                    width: c.maxWidth,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title,
-                            maxLines: hasMore ? 1 : 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: cairoStyle(16,
-                                weight: 700, color: tk.ink, height: 1.25)),
-                        if (showSub)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: subtitleIsClock
-                                ? SizedBox(
-                                    width: double.infinity,
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerRight,
-                                      child: Text(subtitle!,
-                                          maxLines: 1,
-                                          textDirection: TextDirection.ltr,
-                                          style:
-                                              cairoStyle(11.5, color: tk.muted)
-                                                  .copyWith(
-                                                      fontFeatures: const [
-                                                FontFeature.tabularFigures()
-                                              ])),
-                                    ),
-                                  )
-                                : Text(subtitle!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: cairoStyle(11.5, color: tk.muted)),
-                          ),
-                        if (extra != null)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: extra!),
-                        if (progress != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child:
-                                HomeProgressBar(value: progress!, tokens: tk),
-                          ),
-                      ],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                HomeIcon(icon, size: 24, color: tk.gold),
+                const Spacer(),
+                if (badge != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: tk.mint,
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Text(badge!,
+                        maxLines: 1,
+                        textDirection: TextDirection.ltr,
+                        style: cairoStyle(11.5, weight: 700, color: tk.mintInk)
+                            .copyWith(fontFeatures: const [
+                          FontFeature.tabularFigures()
+                        ])),
                   ),
-                ),
-              ),
-            ],
-          );
-        }),
+              ],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: cairoStyle(16,
+                        weight: 700, color: tk.ink, height: 1.25)),
+                if (showSub)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: cairoStyle(11.5, color: tk.muted, height: 1.4)),
+                  ),
+                if (extra != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 2), child: extra!),
+                if (progress != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: HomeProgressBar(value: progress!, tokens: tk),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

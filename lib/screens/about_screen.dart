@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/home_tokens.dart';
 import '../features/more/support_screen.dart';
 import '../widgets/page_kit.dart';
+import '../widgets/home_style.dart';
+import '../features/home/home_art.dart';
 import 'privacy_screen.dart';
 
 const _version = '1.3.0';
@@ -42,7 +44,14 @@ class AboutScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            const _Hero(),
+            HomeHeroCard(
+              tk: tk,
+              icon: HomeIcons.sparkle,
+              eyebrow: 'عبادة يومية بهدوء ووضوح',
+              title: 'ذِكر',
+              caption: 'الإصدار $_version',
+              height: 124,
+            ),
             const SizedBox(height: 22),
             const KitSectionTitle(text: 'عن التطبيق'),
             KitCard(
@@ -116,49 +125,6 @@ class AboutScreen extends StatelessWidget {
               child: Text('صُمّم ليكون أبسط طريق إلى الذكر',
                   style: cairoStyle(12.5, color: tk.muted)),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Hero extends StatelessWidget {
-  const _Hero();
-
-  @override
-  Widget build(BuildContext context) {
-    return KitHero(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-      child: SizedBox(
-        width: double.infinity,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: kHeroGold, width: 1.6),
-                boxShadow: [
-                  BoxShadow(
-                      color: kHeroGold.withValues(alpha: .25), blurRadius: 28),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.asset('assets/brand/app_icon.png',
-                    width: 84, height: 84, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text('ذِكر',
-                style:
-                    amiriStyle(38, bold: true, color: kHeroInk, height: 1.2)),
-            const SizedBox(height: 4),
-            Text('عبادة يومية بهدوء ووضوح',
-                style: cairoStyle(14, color: kHeroSoft)),
-            const SizedBox(height: 14),
-            const KitHeroPill(text: 'الإصدار $_version'),
           ],
         ),
       ),

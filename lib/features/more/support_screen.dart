@@ -9,6 +9,8 @@ import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../services/ads_service.dart';
 import '../../widgets/page_kit.dart';
+import '../../widgets/home_style.dart';
+import '../home/home_art.dart';
 import '../../widgets/support_app_button.dart';
 
 const _contactEmail = 'dev.mohamed.abdalnabi@gmail.com';
@@ -147,7 +149,14 @@ class _SupportScreenState extends State<SupportScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
           children: [
-            const _Hero(),
+            HomeHeroCard(
+              tk: tk,
+              icon: HomeIcons.heart,
+              eyebrow: 'مجاني وبلا إعلانات إجبارية',
+              title: 'ادعم ذِكر',
+              caption: 'دعمك يبقيه نافعًا',
+              height: 124,
+            ),
             const SizedBox(height: 22),
             const KitSectionTitle(
               text: 'كيف تدعمنا؟',
@@ -270,50 +279,6 @@ class _SupportScreenState extends State<SupportScreen> {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Hero extends StatelessWidget {
-  const _Hero();
-
-  @override
-  Widget build(BuildContext context) {
-    return KitHero(
-      padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: kHeroGold, width: 1.4),
-              boxShadow: [
-                BoxShadow(
-                    color: kHeroGold.withValues(alpha: .22), blurRadius: 24),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(21),
-              child: Image.asset('assets/brand/app_icon.png',
-                  width: 72, height: 72, fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text('ساهم في استمرار ذِكر',
-              textAlign: TextAlign.center,
-              style: cairoStyle(20, weight: 700, color: kHeroInk)),
-          const SizedBox(height: 8),
-          Text(
-            'التطبيق مجاني بالكامل وبلا إعلانات إجبارية. دعمك الاختياري يعيننا على صيانته وتطويره ليبقى نافعًا للجميع.',
-            textAlign: TextAlign.center,
-            style: cairoStyle(13.5, color: kHeroSoft, height: 1.75),
-          ),
-          const SizedBox(height: 14),
-          const KitHeroPill(
-              icon: Icons.lock_open_rounded, text: 'مجاني دائمًا'),
-        ],
       ),
     );
   }

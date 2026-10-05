@@ -44,7 +44,8 @@ class DayLog {
   static DayLog fromJson(Map<String, dynamic> j) {
     final d = DayLog();
     d.zikr = (j['z'] as num?)?.toInt() ?? 0;
-    d.pages.addAll(((j['p'] as List?) ?? const []).whereType<num>().map((v) => v.toInt()));
+    d.pages.addAll(
+        ((j['p'] as List?) ?? const []).whereType<num>().map((v) => v.toInt()));
     ((j['t'] as Map?) ?? const {}).forEach((k, v) {
       if (k is String && v is num) d.tasbeeh[k] = v.toInt();
     });
@@ -80,7 +81,8 @@ class ActivityProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> init() async {
     try {
-      all = parseChallenges(await rootBundle.loadString('assets/data/challenges.json'));
+      all = parseChallenges(
+          await rootBundle.loadString('assets/data/challenges.json'));
     } catch (_) {
       all = const [];
     }
@@ -94,9 +96,11 @@ class ActivityProvider extends ChangeNotifier with WidgetsBindingObserver {
         });
         done.addAll(((j['done'] as List?) ?? const []).cast<String>());
         for (final c in (j['custom'] as List?) ?? const []) {
-          custom.add(TasbeehPreset(c['id'] as String, c['text'] as String, custom: true));
+          custom.add(TasbeehPreset(c['id'] as String, c['text'] as String,
+              custom: true));
         }
-        ((j['goals'] as Map?) ?? const {}).forEach((k, v) => goals[k as String] = v as int);
+        ((j['goals'] as Map?) ?? const {})
+            .forEach((k, v) => goals[k as String] = v as int);
         vibrate = (j['vibrate'] as bool?) ?? true;
         sound = (j['sound'] as bool?) ?? false;
       } catch (_) {
@@ -214,33 +218,83 @@ class ActivityProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ---------- التحديات ----------
   Iterable<Challenge> _byPeriod(String p) => all.where((c) => c.period == p);
 
-  List<Challenge> _pick(List<Challenge> pool, int seed, int n) {
-    final list = [...pool]..sort((a, b) => a.id.compareTo(b.id));
-    list.shuffle(Random(seed));
-    return list.take(n).toList();
+  /// اختيار متنوّع: نأخذ تحديات بفئات مختلفة، ونتجنّب ما ظهر في الفترة السابقة.
+  List<Challenge> _pickDiverse(
+      List<Challenge> source, int seed, int n, Set<String> avoid) {
+    final rng = Random(seed);
+    final pool = [...source]..sort((a, b) => a.id.compareTo(b.id));
+    var fresh = pool.where((c) => !avoid.contains(c.id)).toList();
+    if (fresh.length < n) fresh = pool;
+    fresh.shuffle(rng);
+    final out = <Challenge>[];
+    for (final c in fresh) {
+      if (out.length == n) break;
+      if (out.every((o) => o.cat != c.cat)) out.add(c);
+    }
+    for (final c in fresh) {
+      if (out.length == n) break;
+      if (!out.contains(c)) out.add(c);
+    }
+    return out;
+  }
+
+  /// مجموعات اليوم: واحد من كل مجموعة (قرآن/ذكر، صلاة/عبادة، خير/أخلاق، عادات/تطوير)
+  /// ثم تحدٍّ مفاجئ من فئة لم تظهر، فيتغيّر طعم اليوم دون أن يختلّ التوازن.
+  static const _dailyGroups = <List<String>>[
+    ['quran', 'dhikr'],
+    ['prayer', 'worship'],
+    ['good', 'manners'],
+    ['habits', 'self'],
+  ];
+
+  List<Challenge> _dailyPick(DateTime d, Set<String> avoid) {
+    final rng = Random(d.year * 10000 + d.month * 100 + d.day);
+    final pool = _byPeriod('day').toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+    final out = <Challenge>[];
+    for (final g in _dailyGroups) {
+      final cats = [...g]..shuffle(rng);
+      for (final cat in cats) {
+        var opts =
+            pool.where((c) => c.cat == cat && !avoid.contains(c.id)).toList();
+        if (opts.isEmpty) opts = pool.where((c) => c.cat == cat).toList();
+        if (opts.isEmpty) continue;
+        out.add(opts[rng.nextInt(opts.length)]);
+        break;
+      }
+    }
+    var rest = pool
+        .where((c) => out.every((o) => o.cat != c.cat) && !avoid.contains(c.id))
+        .toList();
+    if (rest.isEmpty) rest = pool.where((c) => !out.contains(c)).toList();
+    if (rest.isNotEmpty) out.add(rest[rng.nextInt(rest.length)]);
+    return out;
   }
 
   List<Challenge> dailyFor(DateTime d) {
-    final rng = Random(d.year * 10000 + d.month * 100 + d.day);
-    final byCat = <String, List<Challenge>>{};
-    for (final c in _byPeriod('day')) {
-      byCat.putIfAbsent(c.cat, () => <Challenge>[]).add(c);
-    }
-    final cats = byCat.keys.toList()..sort();
-    cats.shuffle(rng);
-    return cats.take(5).map((k) {
-      final l = [...byCat[k]!]..sort((a, b) => a.id.compareTo(b.id));
-      return l[rng.nextInt(l.length)];
-    }).toList();
+    final y = addDays(DateTime(d.year, d.month, d.day), -1);
+    final avoid = _dailyPick(y, const {}).map((c) => c.id).toSet();
+    return _dailyPick(d, avoid);
   }
 
   List<Challenge> weeklyFor(DateTime d) {
+    int seedOf(DateTime w) => w.year * 10000 + w.month * 100 + w.day;
     final s = weekStart(d);
-    return _pick(_byPeriod('week').toList(), s.year * 10000 + s.month * 100 + s.day, 2);
+    final prev = addDays(s, -7);
+    final avoid =
+        _pickDiverse(_byPeriod('week').toList(), seedOf(prev), 3, const {})
+            .map((c) => c.id)
+            .toSet();
+    return _pickDiverse(_byPeriod('week').toList(), seedOf(s), 3, avoid);
   }
 
-  List<Challenge> monthlyFor(DateTime d) =>
-      _pick(_byPeriod('month').toList(), d.year * 100 + d.month, 1);
+  List<Challenge> monthlyFor(DateTime d) {
+    final prev = DateTime(d.year, d.month - 1, 1);
+    final avoid = _pickDiverse(_byPeriod('month').toList(),
+        prev.year * 100 + prev.month, 2, const {}).map((c) => c.id).toSet();
+    return _pickDiverse(
+        _byPeriod('month').toList(), d.year * 100 + d.month, 2, avoid);
+  }
 
   String periodKey(Challenge c, DateTime d) {
     switch (c.period) {
@@ -327,7 +381,8 @@ class ActivityProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   List<DateTime> lastDays(int n) {
     final t = DateTime.now();
-    return List.generate(n, (i) => DateTime(t.year, t.month, t.day - (n - 1 - i)));
+    return List.generate(
+        n, (i) => DateTime(t.year, t.month, t.day - (n - 1 - i)));
   }
 
   List<DateTime> monthDays() => _range('month', DateTime.now());

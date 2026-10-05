@@ -10,8 +10,9 @@ import '../../core/text_utils.dart';
 import '../../data/challenges.dart';
 import '../../providers/activity_provider.dart';
 import '../../screens/categories_screen.dart';
-import '../../widgets/app_ui.dart';
+import '../../widgets/app_ui.dart' hide IslamicPatternPainter;
 import '../../widgets/page_kit.dart';
+import '../home/home_art.dart';
 import '../quran/quran_home_screen.dart';
 import '../stats/stats_screen.dart';
 import '../tasbeeh/tasbeeh_screen.dart';
@@ -157,7 +158,7 @@ class ChallengesScreen extends StatelessWidget {
                 _ChallengeCard(c: c, a: a, now: now, total: daily.length),
               const SizedBox(height: 14),
               KitSectionTitle(
-                text: 'هدف الشهر',
+                text: 'أهداف الشهر',
                 caption: 'متبقٍ ${toArabicDigits(monthDaysLeft)} يومًا',
               ),
               for (final c in monthly)
@@ -231,90 +232,135 @@ class _ProgressHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
     final msg = _message();
     final active = a.activeDates;
     final start = weekStart(now);
     final today = DateTime(now.year, now.month, now.day);
     final value = total == 0 ? 0.0 : done / total;
 
-    return KitHero(
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                width: 104,
-                height: 104,
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: value),
-                  duration: const Duration(milliseconds: 700),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, v, _) => CustomPaint(
-                    painter: _RingPainter(v, complete: done >= total),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(toArabicDigits(done),
-                              style: cairoStyle(30,
-                                  weight: 700, color: kHeroInk, height: 1.1)),
-                          Text('من ${toArabicDigits(total)}',
-                              style: cairoStyle(12, color: kHeroSoft)),
-                        ],
+    // نفس بطاقة الأذكار: خلفية نعناعية + نقش إسلامي + مسجد.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        color: tk.mint,
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: CustomPaint(painter: IslamicPatternPainter(opacity: .22)),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              child: MosqueArt(width: 96, tokens: tk),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: value),
+                          duration: const Duration(milliseconds: 700),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, v, _) => CustomPaint(
+                            painter: _RingPainter(v,
+                                complete: done >= total,
+                                track: tk.mintInk.withValues(alpha: .14),
+                                arc: tk.gold,
+                                doneArc: tk.leaf),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(toArabicDigits(done),
+                                      style: cairoStyle(28,
+                                          weight: 700,
+                                          color: tk.mintInk,
+                                          height: 1.1)),
+                                  Text('من ${toArabicDigits(total)}',
+                                      style: cairoStyle(12,
+                                          color: tk.mintInk
+                                              .withValues(alpha: .75))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(msg.title,
+                                style: amiriStyle(21,
+                                    bold: true,
+                                    color: tk.mintInk,
+                                    height: 1.35)),
+                            const SizedBox(height: 4),
+                            Text(msg.sub,
+                                style: cairoStyle(12.5,
+                                    color: tk.mintInk.withValues(alpha: .8),
+                                    height: 1.65)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: tk.card.withValues(alpha: .85),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: tk.line),
+                    ),
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < 7; i++)
+                          Expanded(
+                            child: _WeekDot(
+                              letter: _dayInitial[addDays(start, i).weekday]!,
+                              active:
+                                  active.contains(dayKey(addDays(start, i))),
+                              isToday: addDays(start, i) == today,
+                              future: addDays(start, i).isAfter(today),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(msg.title,
-                        style: cairoStyle(18,
-                            weight: 700, color: kHeroInk, height: 1.35)),
-                    const SizedBox(height: 4),
-                    Text(msg.sub,
-                        style:
-                            cairoStyle(12.5, color: kHeroSoft, height: 1.65)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // شريط الأسبوع
-          Row(
-            children: [
-              for (var i = 0; i < 7; i++)
-                Expanded(
-                  child: _WeekDot(
-                    letter: _dayInitial[addDays(start, i).weekday]!,
-                    active: active.contains(dayKey(addDays(start, i))),
-                    isToday: addDays(start, i) == today,
-                    future: addDays(start, i).isAfter(today),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.local_fire_department_rounded,
+                          size: 18, color: tk.gold),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          a.streak > 0
+                              ? '${toArabicDigits(a.streak)} ${a.streak == 1 ? 'يوم متواصل' : 'أيام متواصلة'}'
+                              : 'ابدأ سلسلتك اليوم',
+                          style: cairoStyle(13, weight: 700, color: tk.mintInk),
+                        ),
+                      ),
+                      if (a.bestStreak > 0)
+                        Text('أفضل سلسلة ${toArabicDigits(a.bestStreak)}',
+                            style: cairoStyle(12,
+                                color: tk.mintInk.withValues(alpha: .75))),
+                    ],
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              KitHeroPill(
-                icon: Icons.local_fire_department_rounded,
-                text: a.streak > 0
-                    ? '${toArabicDigits(a.streak)} ${a.streak == 1 ? 'يوم متواصل' : 'أيام متواصلة'}'
-                    : 'ابدأ سلسلتك اليوم',
+                ],
               ),
-              const Spacer(),
-              if (a.bestStreak > 0)
-                Text('أفضل سلسلة ${toArabicDigits(a.bestStreak)}',
-                    style: cairoStyle(12, color: kHeroSoft)),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -323,7 +369,12 @@ class _ProgressHero extends StatelessWidget {
 class _RingPainter extends CustomPainter {
   final double value;
   final bool complete;
-  const _RingPainter(this.value, {required this.complete});
+  final Color track, arc, doneArc;
+  const _RingPainter(this.value,
+      {required this.complete,
+      required this.track,
+      required this.arc,
+      required this.doneArc});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -331,24 +382,29 @@ class _RingPainter extends CustomPainter {
     final center = size.center(Offset.zero);
     final radius = size.width / 2 - stroke;
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final track = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = Colors.white.withValues(alpha: .12);
-    canvas.drawCircle(center, radius, track);
+    canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..color = track);
     if (value <= 0) return;
-    final arc = Paint()
+    final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = stroke
-      ..color = complete ? const Color(0xFF8FD27A) : kHeroGold;
+      ..color = complete ? doneArc : arc;
     canvas.drawArc(
-        rect, -math.pi / 2, 2 * math.pi * value.clamp(0.0, 1.0), false, arc);
+        rect, -math.pi / 2, 2 * math.pi * value.clamp(0.0, 1.0), false, paint);
   }
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.complete != complete;
+      old.value != value ||
+      old.complete != complete ||
+      old.track != track ||
+      old.arc != arc;
 }
 
 class _WeekDot extends StatelessWidget {
@@ -362,6 +418,7 @@ class _WeekDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
     return Column(
       children: [
         Container(
@@ -370,23 +427,23 @@ class _WeekDot extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? kHeroGold : Colors.white.withValues(alpha: .06),
+            color: active ? tk.gold : Colors.transparent,
             border: Border.all(
               color: isToday
-                  ? kHeroGold
-                  : Colors.white.withValues(alpha: future ? .08 : .16),
+                  ? tk.gold
+                  : tk.line.withValues(alpha: future ? .6 : 1),
               width: isToday ? 1.8 : 1,
             ),
           ),
           child: active
-              ? const Icon(Icons.check_rounded, size: 17, color: kHeroDark)
+              ? const Icon(Icons.check_rounded, size: 17, color: Colors.white)
               : null,
         ),
         const SizedBox(height: 4),
         Text(letter,
             style: cairoStyle(11.5,
                 weight: isToday ? 700 : 400,
-                color: isToday ? kHeroGold : kHeroSoft)),
+                color: isToday ? tk.gold : tk.muted)),
       ],
     );
   }
