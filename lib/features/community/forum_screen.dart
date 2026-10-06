@@ -62,15 +62,16 @@ class _ForumScreenState extends State<ForumScreen> {
     }
     final base = supabase
         .from('posts')
-        .select('*, profiles!posts_author_id_fkey(username, full_name)');
+        .select('*, profiles!posts_author_id_fkey(username, full_name)')
+        // منشورات الجروبات تظهر داخل الجروب فقط وليس في الرئيسية
+        .neq('visibility', 'group');
     final rows = await (authorFilter == null
             ? base
             : base.inFilter('author_id', authorFilter))
         .order('created_at', ascending: false)
         .range(offset, offset + _pageSize - 1);
-    final list = (rows as List)
-        .map((r) => Map<String, dynamic>.from(r as Map))
-        .toList();
+    final list =
+        (rows as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
     if (list.isEmpty || userId == null) {
       for (final p in list) {
         p['liked'] = false;
@@ -90,7 +91,8 @@ class _ForumScreenState extends State<ForumScreen> {
         .select('following_id')
         .eq('follower_id', userId)
         .inFilter('following_id', authors);
-    final liked = (likedRows as List).map((e) => e['post_id'].toString()).toSet();
+    final liked =
+        (likedRows as List).map((e) => e['post_id'].toString()).toSet();
     final following =
         (followRows as List).map((e) => e['following_id'].toString()).toSet();
     for (final p in list) {
@@ -170,8 +172,8 @@ class _ForumScreenState extends State<ForumScreen> {
 
   Future<bool> _requireAuth({bool signUp = false}) async {
     if (supabase.auth.currentUser != null) return true;
-    final result = await Navigator.of(context).push<bool>(MaterialPageRoute(
-        builder: (_) => CommunityAuthScreen(signUp: signUp)));
+    final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => CommunityAuthScreen(signUp: signUp)));
     if (result == true && mounted) await _loadFeed();
     return result == true;
   }
@@ -251,11 +253,15 @@ class _ForumScreenState extends State<ForumScreen> {
         'user_id': supabase.auth.currentUser!.id,
       });
       if (!mounted) return;
-      setState(() => post['share_count'] = ((post['share_count'] as int?) ?? 0) + 1);
+      setState(
+          () => post['share_count'] = ((post['share_count'] as int?) ?? 0) + 1);
       _toast('تمت مشاركة المنشور في ملفك.');
     } on PostgrestException catch (e) {
       if (!mounted) return;
-      _toast(e.code == pgUniqueViolation ? 'شاركت هذا المنشور من قبل.' : 'تعذرت المشاركة الآن.',
+      _toast(
+          e.code == pgUniqueViolation
+              ? 'شاركت هذا المنشور من قبل.'
+              : 'تعذرت المشاركة الآن.',
           error: e.code != pgUniqueViolation);
     } catch (_) {
       if (mounted) _toast('تعذرت المشاركة الآن.', error: true);
@@ -317,7 +323,10 @@ class _ForumScreenState extends State<ForumScreen> {
       if (mounted) _toast('وصل بلاغك وسيراجعه فريق الإشراف.');
     } on PostgrestException catch (e) {
       if (!mounted) return;
-      _toast(e.code == pgUniqueViolation ? 'سبق أن أبلغت عن هذا المنشور.' : 'تعذر إرسال البلاغ.',
+      _toast(
+          e.code == pgUniqueViolation
+              ? 'سبق أن أبلغت عن هذا المنشور.'
+              : 'تعذر إرسال البلاغ.',
           error: e.code != pgUniqueViolation);
     } catch (_) {
       if (mounted) _toast('تعذر إرسال البلاغ.', error: true);
@@ -352,7 +361,8 @@ class _ForumScreenState extends State<ForumScreen> {
   }
 
   Future<void> _copy(Map<String, dynamic> post) async {
-    await Clipboard.setData(ClipboardData(text: post['body']?.toString() ?? ''));
+    await Clipboard.setData(
+        ClipboardData(text: post['body']?.toString() ?? ''));
     if (mounted) _toast('تم نسخ النص.');
   }
 
@@ -387,8 +397,8 @@ class _ForumScreenState extends State<ForumScreen> {
   Future<void> _openAccount() async {
     if (!await _requireAuth()) return;
     if (!mounted) return;
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const CommunityAccountScreen()));
+    await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CommunityAccountScreen()));
     if (mounted) setState(() {});
     _loadFeed(silent: true);
   }
@@ -396,8 +406,8 @@ class _ForumScreenState extends State<ForumScreen> {
   Future<void> _openNotifications() async {
     if (!await _requireAuth()) return;
     if (!mounted) return;
-    await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CommunityNotificationsScreen()));
+    await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => const CommunityNotificationsScreen()));
     _loadUnread();
   }
 
@@ -464,9 +474,18 @@ class _ForumScreenState extends State<ForumScreen> {
                 child: SegmentedButton<int>(
                   showSelectedIcon: false,
                   segments: const [
-                    ButtonSegment(value: 0, label: Text('الكل')),
-                    ButtonSegment(value: 1, label: Text('المتابَعون')),
-                    ButtonSegment(value: 2, label: Text('الجروبات')),
+                    ButtonSegment(
+                        value: 0,
+                        icon: Icon(Icons.public_rounded, size: 18),
+                        label: Text('الكل')),
+                    ButtonSegment(
+                        value: 1,
+                        icon: Icon(Icons.people_alt_outlined, size: 18),
+                        label: Text('المتابَعون')),
+                    ButtonSegment(
+                        value: 2,
+                        icon: Icon(Icons.groups_rounded, size: 18),
+                        label: Text('الجروبات')),
                   ],
                   selected: {_section},
                   onSelectionChanged: (s) => _changeSection(s.first),
@@ -567,7 +586,8 @@ class _ForumHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         const Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('المنتدى',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             SizedBox(height: 3),
@@ -616,43 +636,35 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return AppCard(
-      padding: const EdgeInsets.all(16),
-      pattern: true,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          AppIconBadge(
-              icon: signedIn ? Icons.edit_note_rounded : Icons.lock_outline_rounded,
-              size: 42),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(
-                  signedIn ? 'شارك ما ينفع الناس' : 'سجّل دخولك لتكتب في المنتدى',
-                  style: const TextStyle(fontWeight: FontWeight.w800))),
-        ]),
-        const SizedBox(height: 12),
         TextField(
           controller: controller,
           minLines: 2,
-          maxLines: 5,
+          maxLines: 6,
           maxLength: 5000,
           enabled: signedIn,
+          buildCounter: (_,
+                  {required currentLength, required isFocused, maxLength}) =>
+              null,
           decoration: InputDecoration(
             hintText: signedIn
-                ? 'اكتب منشورًا نصيًا...'
-                : 'المنشورات النصية فقط، بلا تشتيت',
+                ? 'شارك ما ينفع الناس...'
+                : 'سجّل دخولك لتكتب في المنتدى',
             filled: true,
-            fillColor: scheme.surface,
+            fillColor: scheme.surfaceContainerHighest.withOpacity(.5),
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Align(
           alignment: AlignmentDirectional.centerEnd,
           child: FilledButton.icon(
             onPressed: signedIn ? (loading ? null : onPost) : onSignIn,
-            icon: Icon(signedIn ? Icons.send_rounded : Icons.login_rounded),
+            icon: Icon(signedIn ? Icons.send_rounded : Icons.login_rounded,
+                size: 18),
             label: Text(signedIn ? (loading ? 'ينشر...' : 'نشر') : 'دخول'),
           ),
         ),
@@ -706,14 +718,17 @@ class _PostCard extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800)),
-                Text('@${profile['username'] ?? 'member'} · ${timeAgo(post['created_at']?.toString())}',
-                    style: muted),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(
+                        '@${profile['username'] ?? 'member'} · ${timeAgo(post['created_at']?.toString())}',
+                        style: muted),
+                  ]),
             ),
             if (!isMine)
               TextButton(
@@ -734,7 +749,8 @@ class _PostCard extends StatelessWidget {
                 const PopupMenuItem(
                     value: 'copy',
                     child: ListTile(
-                        leading: Icon(Icons.copy_rounded), title: Text('نسخ النص'))),
+                        leading: Icon(Icons.copy_rounded),
+                        title: Text('نسخ النص'))),
                 if (isMine)
                   const PopupMenuItem(
                       value: 'delete',
@@ -752,25 +768,25 @@ class _PostCard extends StatelessWidget {
           ]),
           const SizedBox(height: 14),
           Text(post['body']?.toString() ?? '',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.65)),
-          const SizedBox(height: 14),
-          Row(children: [
-            Text('${post['like_count'] ?? 0} إعجاب', style: muted),
-            const SizedBox(width: 12),
-            Text('${post['comment_count'] ?? 0} تعليق', style: muted),
-            const SizedBox(width: 12),
-            Text('${post['share_count'] ?? 0} مشاركة', style: muted),
-          ]),
-          const Divider(height: 18),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.copyWith(height: 1.65)),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             _Action(
                 icon: liked ? Icons.favorite : Icons.favorite_border,
-                label: 'أعجبني',
+                label: '${post['like_count'] ?? 0}',
                 active: liked,
                 onTap: onLike),
             _Action(
-                icon: Icons.mode_comment_outlined, label: 'تعليق', onTap: onComment),
-            _Action(icon: Icons.repeat_rounded, label: 'مشاركة', onTap: onShare),
+                icon: Icons.mode_comment_outlined,
+                label: '${post['comment_count'] ?? 0}',
+                onTap: onComment),
+            _Action(
+                icon: Icons.repeat_rounded,
+                label: '${post['share_count'] ?? 0}',
+                onTap: onShare),
           ]),
         ]),
       ),
@@ -875,7 +891,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   Future<void> _deleteComment(Map<String, dynamic> c) async {
     try {
       await supabase.from('comments').delete().eq('id', c['id']);
-      if (mounted) setState(() => _comments.removeWhere((x) => x['id'] == c['id']));
+      if (mounted)
+        setState(() => _comments.removeWhere((x) => x['id'] == c['id']));
     } catch (_) {
       _snack('تعذر حذف التعليق.');
     }
@@ -959,8 +976,13 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                     minLines: 1,
                     maxLines: 3,
                     maxLength: 2000,
-                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
-                    decoration: const InputDecoration(hintText: 'اكتب تعليقًا...'),
+                    buildCounter: (_,
+                            {required currentLength,
+                            required isFocused,
+                            maxLength}) =>
+                        null,
+                    decoration:
+                        const InputDecoration(hintText: 'اكتب تعليقًا...'),
                   ),
                 ),
                 const SizedBox(width: 8),

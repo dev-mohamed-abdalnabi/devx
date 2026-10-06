@@ -264,11 +264,27 @@ class _PostCard extends StatelessWidget {
       child: AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const AppIconBadge(icon: Icons.person_rounded, size: 38),
+            CircleAvatar(
+              radius: 19,
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              child: Text(initialOf(displayName(profile)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary)),
+            ),
             const SizedBox(width: 10),
             Expanded(
-                child: Text(displayName(profile),
-                    style: const TextStyle(fontWeight: FontWeight.w800))),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(displayName(profile),
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  Text(timeAgo(post['created_at']?.toString()),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                ])),
             if (canDelete)
               IconButton(
                   tooltip: 'حذف',
