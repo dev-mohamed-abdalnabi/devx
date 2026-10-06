@@ -95,85 +95,121 @@ final class HeroArt {
         return x - Math.floor(x);
     }
 
-    /** يرسم المشهد كاملًا داخل (0,0,w,h). t = طور الحركة 0..1 (يحرّك النجوم والسحاب والطيور). */
-    static void draw(Canvas c, int scene, float w, float h, float t) {
+    /** الطبقات: الثابت (سماء + مشهد + مسجد) ، النجوم المتلألئة ، السحاب/الطيور المتحركة. */
+    static final int BASE = 1, STARS = 2, MOTION = 4;
+
+    /** قوة النجوم في المشهد (0 = لا نجوم). */
+    static float starStrength(int scene) {
+        switch (scene) {
+            case DEEP_NIGHT: return 1f;
+            case SAHAR: return .6f;
+            case DAWN: return .55f;
+            case DUSK: return .45f;
+            case NIGHT: return 1f;
+            default: return 0f;
+        }
+    }
+
+    static boolean hasMotion(int scene) {
+        return scene == MORNING || scene == NOON || scene == AFTERNOON || scene == ASR || scene == MAGHRIB;
+    }
+
+    /** يرسم الطبقات المطلوبة داخل (0,0,w,h). t = طور الحركة (يغيّر لمعان النجوم). */
+    static void draw(Canvas c, int scene, float w, float h, float t, int layers) {
         Pal pal = pal(scene);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        p.setShader(new LinearGradient(0, 0, 0, h, pal.sky, null, Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, w, h, p);
-        p.setShader(null);
 
-        pattern(c, w, h, alpha(pal.accent, .1f));
+        if ((layers & BASE) != 0) {
+            p.setShader(new LinearGradient(0, 0, 0, h, pal.sky, null, Shader.TileMode.CLAMP));
+            c.drawRect(0, 0, w, h, p);
+            p.setShader(null);
+            pattern(c, w, h, alpha(pal.accent, .1f));
 
-        switch (scene) {
-            case DEEP_NIGHT:
-                stars(c, w, h, t, 1f);
-                glow(c, w * .8f, h * .26f, h * .5f, 0xFFFFF0B8, .2f);
-                crescent(c, w * .8f, h * .26f, h * .13f, 0xFFFFF0B8, 1f);
-                break;
-            case SAHAR:
-                stars(c, w, h, t, .6f);
-                glow(c, w * .24f, h * .98f, h * .85f, 0xFF9B7BC0, .4f);
-                crescent(c, w * .12f, h * .22f, h * .08f, 0xFFFFF2CF, .85f);
-                break;
-            case DAWN:
-                stars(c, w, h, t, .55f);
-                glow(c, w * .24f, h * .86f, h * .75f, 0xFFFFC98A, .55f);
-                crescent(c, w * .1f, h * .2f, h * .08f, 0xFFFFF2CF, .85f);
-                break;
-            case MORNING:
-                glow(c, w * .24f, h * .66f, h * .9f, 0xFFFFD98A, .6f);
-                disc(c, w * .24f, h * .62f, h * .14f, 0xFFFFE7A3);
-                cloud(c, w, h, t, .2f, h * .22f, .9f, .3f);
-                cloud(c, w, h, t, .68f, h * .36f, .6f, .22f);
-                break;
-            case NOON:
-                glow(c, w * .3f, h * .32f, h * .7f, 0xFFFFF1B8, .45f);
-                disc(c, w * .3f, h * .3f, h * .12f, 0xFFFFF1B8);
-                cloud(c, w, h, t, .12f, h * .2f, 1.0f, .3f);
-                cloud(c, w, h, t, .6f, h * .42f, .7f, .24f);
-                break;
-            case AFTERNOON:
-                glow(c, w * .24f, h * .55f, h * .8f, 0xFFFFD27A, .55f);
-                disc(c, w * .24f, h * .52f, h * .14f, 0xFFFFE6A8);
-                cloud(c, w, h, t, .5f, h * .26f, .8f, .25f);
-                break;
-            case ASR:
-                glow(c, w * .24f, h * .78f, h * .9f, 0xFFFFB347, .7f);
-                disc(c, w * .24f, h * .74f, h * .2f, 0xFFFFE1A0);
-                birds(c, w, h, t);
-                break;
-            case MAGHRIB:
-                glow(c, w * .24f, h * .88f, h * 1.0f, 0xFFFF8A4A, .75f);
-                disc(c, w * .24f, h * .9f, h * .2f, 0xFFFFB36B);
-                birds(c, w, h, t);
-                break;
-            case DUSK:
-                stars(c, w, h, t, .45f);
-                glow(c, w * .24f, h * .98f, h * .9f, 0xFFFF9A5A, .35f);
-                crescent(c, w * .8f, h * .24f, h * .1f, 0xFFFFEBC4, .9f);
-                break;
-            default: // NIGHT
-                stars(c, w, h, t, 1f);
-                glow(c, w * .2f, h * .3f, h * .5f, 0xFFFFF0B8, .22f);
-                crescent(c, w * .2f, h * .3f, h * .15f, 0xFFFFF0B8, 1f);
-                break;
+            switch (scene) {
+                case DEEP_NIGHT:
+                    glow(c, w * .19f, h * .32f, h * .5f, 0xFFFFF0B8, .2f);
+                    crescent(c, w * .19f, h * .32f, h * .12f, 0xFFFFF0B8, 1f);
+                    break;
+                case SAHAR:
+                    glow(c, w * .24f, h * .98f, h * .85f, 0xFF9B7BC0, .4f);
+                    crescent(c, w * .12f, h * .22f, h * .08f, 0xFFFFF2CF, .85f);
+                    break;
+                case DAWN:
+                    glow(c, w * .24f, h * .86f, h * .75f, 0xFFFFC98A, .55f);
+                    crescent(c, w * .1f, h * .2f, h * .08f, 0xFFFFF2CF, .85f);
+                    break;
+                case MORNING:
+                    glow(c, w * .24f, h * .66f, h * .9f, 0xFFFFD98A, .6f);
+                    disc(c, w * .24f, h * .62f, h * .14f, 0xFFFFE7A3);
+                    break;
+                case NOON:
+                    glow(c, w * .2f, h * .36f, h * .7f, 0xFFFFF1B8, .45f);
+                    disc(c, w * .2f, h * .34f, h * .12f, 0xFFFFF1B8);
+                    break;
+                case AFTERNOON:
+                    glow(c, w * .24f, h * .55f, h * .8f, 0xFFFFD27A, .55f);
+                    disc(c, w * .24f, h * .52f, h * .14f, 0xFFFFE6A8);
+                    break;
+                case ASR:
+                    glow(c, w * .24f, h * .78f, h * .9f, 0xFFFFB347, .7f);
+                    disc(c, w * .24f, h * .74f, h * .2f, 0xFFFFE1A0);
+                    break;
+                case MAGHRIB:
+                    glow(c, w * .24f, h * .88f, h * 1.0f, 0xFFFF8A4A, .75f);
+                    disc(c, w * .24f, h * .9f, h * .2f, 0xFFFFB36B);
+                    break;
+                case DUSK:
+                    glow(c, w * .24f, h * .98f, h * .9f, 0xFFFF9A5A, .35f);
+                    crescent(c, w * .19f, h * .32f, h * .1f, 0xFFFFEBC4, .9f);
+                    break;
+                default: // NIGHT
+                    glow(c, w * .19f, h * .32f, h * .5f, 0xFFFFF0B8, .22f);
+                    crescent(c, w * .19f, h * .32f, h * .12f, 0xFFFFF0B8, 1f);
+                    break;
+            }
+
+            Path hill = new Path();
+            hill.moveTo(0, h * .84f);
+            hill.cubicTo(w * .2f, h * .74f, w * .38f, h * .9f, w * .58f, h * .82f);
+            hill.cubicTo(w * .76f, h * .75f, w * .88f, h * .86f, w, h * .8f);
+            hill.lineTo(w, h);
+            hill.lineTo(0, h);
+            hill.close();
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(pal.hill);
+            c.drawPath(hill, p);
+
+            float mw = Math.min(w * .5f, h * 1.25f);
+            boolean day = scene == MORNING || scene == NOON || scene == AFTERNOON;
+            mosque(c, w * .02f, h + 1, mw, pal.silhouette, day ? 0 : pal.accent);
         }
 
-        Path hill = new Path();
-        hill.moveTo(0, h * .84f);
-        hill.cubicTo(w * .2f, h * .74f, w * .38f, h * .9f, w * .58f, h * .82f);
-        hill.cubicTo(w * .76f, h * .75f, w * .88f, h * .86f, w, h * .8f);
-        hill.lineTo(w, h);
-        hill.lineTo(0, h);
-        hill.close();
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(pal.hill);
-        c.drawPath(hill, p);
+        if ((layers & STARS) != 0) {
+            float st = starStrength(scene);
+            if (st > 0) stars(c, w, h, t, st);
+        }
 
-        float mw = Math.min(w * .5f, h * 1.25f);
-        boolean day = scene == MORNING || scene == NOON || scene == AFTERNOON;
-        mosque(c, w * .02f, h + 1, mw, pal.silhouette, day ? 0 : pal.accent);
+        if ((layers & MOTION) != 0) {
+            switch (scene) {
+                case MORNING:
+                    cloud(c, w, h, .2f, h * .31f, .5f, .24f);
+                    cloud(c, w, h, .68f, h * .31f, .45f, .18f);
+                    break;
+                case NOON:
+                    cloud(c, w, h, .22f, h * .31f, .5f, .24f);
+                    cloud(c, w, h, .68f, h * .31f, .45f, .18f);
+                    break;
+                case AFTERNOON:
+                    cloud(c, w, h, .5f, h * .31f, .5f, .2f);
+                    break;
+                case ASR:
+                case MAGHRIB:
+                    birds(c, w, h);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     private static void pattern(Canvas c, float w, float h, int color) {
@@ -204,9 +240,9 @@ final class HeroArt {
         c.drawCircle(x, y, r, p);
     }
 
-    private static void cloud(Canvas c, float w, float h, float t, float phase, float y, float s, float a) {
-        float span = w + 140;
-        float x = (float) (((phase * span + t * span) % span) - 70);
+    /** سحابة بموضع ثابت داخل اللوح؛ الحركة تأتي من تحريك الطبقة كلها (سلسة بلا إعادة رسم). */
+    private static void cloud(Canvas c, float w, float h, float phase, float y, float s, float a) {
+        float x = Math.max(48f, Math.min(w - 48f, phase * w));
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(alpha(0xFFFFFFFF, a));
         float u = h * .09f * s;
@@ -215,11 +251,17 @@ final class HeroArt {
         c.drawCircle(x + u * .5f, y - u * .7f, u * 1.1f, p);
     }
 
+    /** نفس شرط hero_scene.dart: لا نجوم خلف الكبسولة ولا كتلة العنوان ولا فوق المسجد. */
     private static void stars(Canvas c, float w, float h, float t, float strength) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        for (int i = 0; i < 26; i++) {
-            float x = (float) (frac(Math.sin(i * 12.9898) * 43758.5453) * w);
-            float y = (float) (frac(Math.sin(i * 78.233) * 12345.6789) * h * .62);
+        int drawn = 0;
+        for (int i = 0; i < 160 && drawn < 26; i++) {
+            double fx = frac(Math.sin(i * 12.9898) * 43758.5453);
+            double fy = frac(Math.sin(i * 78.233) * 12345.6789) * .62;
+            boolean ok = (fx < .30 && fy < .27) || (fx >= .30 && fy > .34 && fy < .40);
+            if (!ok) continue;
+            drawn++;
+            float x = (float) (fx * w), y = (float) (fy * h);
             double tw = .35 + .65 * (.5 + .5 * Math.sin(2 * Math.PI * (t * 3 + i * .137)));
             float r = (float) (.8 + frac(i * .37) * 1.3);
             p.setColor(alpha(0xFFFFF6D8, (float) (tw * strength)));
@@ -239,7 +281,7 @@ final class HeroArt {
         c.drawPath(res, p);
     }
 
-    private static void birds(Canvas c, float w, float h, float t) {
+    private static void birds(Canvas c, float w, float h) {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(1.6f);
@@ -247,8 +289,8 @@ final class HeroArt {
         p.setColor(alpha(0xFF2A1E3F, .7f));
         float span = w + 60;
         for (int i = 0; i < 3; i++) {
-            float x = (float) (((i * .09 + t) % 1) * span - 30);
-            float y = (float) (h * (.28 + i * .07) + Math.sin((t + i) * 2 * Math.PI) * 3);
+            float x = w * .45f + i * .09f * span;
+            float y = h * (.28f + i * .07f);
             Path b = new Path();
             b.moveTo(x - 7, y);
             b.quadTo(x - 3.5f, y - 5, x, y);

@@ -20,6 +20,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugin.common.PluginRegistry;
 
 /**
  * حزمة موارد (أذان + أيقونة + مانيفست) مع أداة تشخيص واحدة: diagnose.
@@ -33,6 +34,27 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
     private MethodChannel channel;
     private Context context;
     private Activity activity;
+    private ActivityPluginBinding activityBinding;
+    /** وجهة طلبها ضغط ودجت (azkar | ayah | prayer) بانتظار أن يقرأها Flutter. */
+    private String pendingTarget;
+
+    private final PluginRegistry.NewIntentListener intentListener = new PluginRegistry.NewIntentListener() {
+        @Override
+        public boolean onNewIntent(android.content.Intent intent) {
+            boolean got = readTarget(intent);
+            if (got && channel != null) channel.invokeMethod("widgetTarget", null);
+            return got;
+        }
+    };
+
+    private boolean readTarget(android.content.Intent i) {
+        if (i == null) return false;
+        String t = i.getStringExtra(WidgetUpdater.EXTRA_TARGET);
+        if (t == null) return false;
+        pendingTarget = t;
+        i.removeExtra(WidgetUpdater.EXTRA_TARGET); // لا تتكرر عند إعادة إنشاء النشاط
+        return true;
+    }
 
     @Override
     public void onAttachedToEngine(FlutterPluginBinding binding) {
@@ -51,20 +73,29 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
     @Override
     public void onAttachedToActivity(ActivityPluginBinding binding) {
         activity = binding.getActivity();
+        activityBinding = binding;
+        binding.addOnNewIntentListener(intentListener);
+        readTarget(activity.getIntent());
     }
 
     @Override
     public void onDetachedFromActivityForConfigChanges() {
+        if (activityBinding != null) activityBinding.removeOnNewIntentListener(intentListener);
+        activityBinding = null;
         activity = null;
     }
 
     @Override
     public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
         activity = binding.getActivity();
+        activityBinding = binding;
+        binding.addOnNewIntentListener(intentListener);
     }
 
     @Override
     public void onDetachedFromActivity() {
+        if (activityBinding != null) activityBinding.removeOnNewIntentListener(intentListener);
+        activityBinding = null;
         activity = null;
     }
 
@@ -94,6 +125,10 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
             } catch (Exception e) {
                 result.error("schedule_failed", String.valueOf(e), null);
             }
+        } else if ("takeWidgetTarget".equals(call.method)) {
+            String t = pendingTarget;
+            pendingTarget = null;
+            result.success(t);
         } else if ("updateWidgets".equals(call.method)) {
             try {
                 String json = call.argument("json");

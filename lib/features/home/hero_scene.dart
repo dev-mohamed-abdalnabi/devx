@@ -237,9 +237,9 @@ class _ScenePainter extends CustomPainter {
     switch (scene) {
       case HeroScene.deepNight:
         _stars(canvas, size, t, 1);
-        _glow(canvas, Offset(w * .8, h * .26), h * .5, const Color(0xFFFFF0B8),
+        _glow(canvas, Offset(w * .19, h * .32), h * .5, const Color(0xFFFFF0B8),
             .2);
-        _crescent(canvas, Offset(w * .8, h * .26), h * .13,
+        _crescent(canvas, Offset(w * .19, h * .32), h * .12,
             const Color(0xFFFFF0B8), 1);
         break;
       case HeroScene.sahar:
@@ -261,23 +261,23 @@ class _ScenePainter extends CustomPainter {
             .6);
         canvas.drawCircle(Offset(w * .24, h * .62), h * .14,
             Paint()..color = const Color(0xFFFFE7A3));
-        _cloud(canvas, size, t, .2, h * .22, .9, .3);
-        _cloud(canvas, size, t, .68, h * .36, .6, .22);
+        _cloud(canvas, size, t, .2, h * .31, .5, .24);
+        _cloud(canvas, size, t, .68, h * .31, .45, .18);
         break;
       case HeroScene.noon:
-        _glow(canvas, Offset(w * .3, h * .32), h * .7, const Color(0xFFFFF1B8),
+        _glow(canvas, Offset(w * .2, h * .36), h * .7, const Color(0xFFFFF1B8),
             .45);
-        canvas.drawCircle(Offset(w * .3, h * .3), h * .12,
+        canvas.drawCircle(Offset(w * .2, h * .34), h * .12,
             Paint()..color = const Color(0xFFFFF1B8));
-        _cloud(canvas, size, t, .12, h * .2, 1.0, .3);
-        _cloud(canvas, size, t, .6, h * .42, .7, .24);
+        _cloud(canvas, size, t, .12, h * .31, .5, .24);
+        _cloud(canvas, size, t, .6, h * .31, .45, .18);
         break;
       case HeroScene.afternoon:
         _glow(canvas, Offset(w * .24, h * .55), h * .8, const Color(0xFFFFD27A),
             .55);
         canvas.drawCircle(Offset(w * .24, h * .52), h * .14,
             Paint()..color = const Color(0xFFFFE6A8));
-        _cloud(canvas, size, t, .5, h * .26, .8, .25);
+        _cloud(canvas, size, t, .5, h * .31, .5, .2);
         break;
       case HeroScene.asr:
         _glow(canvas, Offset(w * .24, h * .78), h * .9, const Color(0xFFFFB347),
@@ -297,14 +297,14 @@ class _ScenePainter extends CustomPainter {
         _stars(canvas, size, t, .45);
         _glow(canvas, Offset(w * .24, h * .98), h * .9, const Color(0xFFFF9A5A),
             .35);
-        _crescent(canvas, Offset(w * .8, h * .24), h * .1,
+        _crescent(canvas, Offset(w * .19, h * .32), h * .1,
             const Color(0xFFFFEBC4), .9);
         break;
       case HeroScene.night:
         _stars(canvas, size, t, 1);
-        _glow(canvas, Offset(w * .2, h * .3), h * .5, const Color(0xFFFFF0B8),
+        _glow(canvas, Offset(w * .19, h * .32), h * .5, const Color(0xFFFFF0B8),
             .22);
-        _crescent(canvas, Offset(w * .2, h * .3), h * .15,
+        _crescent(canvas, Offset(w * .19, h * .32), h * .12,
             const Color(0xFFFFF0B8), 1);
         break;
     }
@@ -386,11 +386,19 @@ class _ScenePainter extends CustomPainter {
     canvas.drawCircle(Offset(x + u * .5, y - u * .7), u * 1.1, p);
   }
 
+  /// النجوم لا تقع أبدًا تحت النص: ممنوعة خلف الكبسولة العلوية وخلف كتلة العنوان
+  /// وفوق المسجد؛ وتبقى في المنطقة اليسرى العليا وشريط ضيّق في المنتصف.
+  /// نفس الشرط في HeroArt.java كي يتطابق الودجت مع التطبيق.
   void _stars(Canvas canvas, Size size, double t, double strength) {
     final p = Paint();
-    for (var i = 0; i < 26; i++) {
-      final x = _frac(math.sin(i * 12.9898) * 43758.5453) * size.width;
-      final y = _frac(math.sin(i * 78.233) * 12345.6789) * size.height * .62;
+    var drawn = 0;
+    for (var i = 0; i < 160 && drawn < 26; i++) {
+      final fx = _frac(math.sin(i * 12.9898) * 43758.5453);
+      final fy = _frac(math.sin(i * 78.233) * 12345.6789) * .62;
+      final ok = (fx < .30 && fy < .27) || (fx >= .30 && fy > .34 && fy < .40);
+      if (!ok) continue;
+      drawn++;
+      final x = fx * size.width, y = fy * size.height;
       final tw =
           .35 + .65 * (.5 + .5 * math.sin(2 * math.pi * (t * 3 + i * .137)));
       final r = .8 + _frac(i * .37) * 1.3;

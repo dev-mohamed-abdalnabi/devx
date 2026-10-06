@@ -19,6 +19,7 @@ import java.util.Calendar;
 /** يبني RemoteViews للودجتس الثلاثة ويحدّثها. لا خدمات دائمة ولا محرّك Flutter. */
 final class WidgetUpdater {
     static final String HERO = "hero", AYAH = "ayah", PRAYER = "prayer";
+    static final String EXTRA_TARGET = "azw_target";
 
     private WidgetUpdater() {}
 
@@ -88,14 +89,16 @@ final class WidgetUpdater {
 
     private static RemoteViews fallback(Context ctx) {
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.azw_loading);
-        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 77));
+        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 77, null));
         return rv;
     }
 
-    private static PendingIntent launchPi(Context ctx, int code) {
+    /** يفتح التطبيق على وجهة محددة (azkar | ayah | prayer) عبر extra يقرؤه Flutter. */
+    private static PendingIntent launchPi(Context ctx, int code, String target) {
         Intent i = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         if (i == null) i = new Intent();
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (target != null) i.putExtra(EXTRA_TARGET, target);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
         return PendingIntent.getActivity(ctx, code, i, flags);
@@ -129,39 +132,56 @@ final class WidgetUpdater {
         float w = sz[0], h = sz[1];
         DisplayMetrics dm = ctx.getResources().getDisplayMetrics();
         float textScale = Math.min(dm.density, 2.5f);
-        // حد ذاكرة الـRemoteViews تقريبًا ٦ بايت × بكسلات الشاشة؛ نستهلك أقل من نصفه.
-        double budget = dm.widthPixels * (double) dm.heightPixels * 4 * 1.5 * 0.45;
-        double textBytes = w * h * textScale * textScale * 4;
-        float artScale = 0;
-        int frames = 3;
-        for (float s = Math.min(dm.density, 2f); s >= 1f; s -= .25f) {
-            if (textBytes + 4 * w * h * s * s * 4 <= budget) { artScale = s; break; }
-        }
-        if (artScale == 0) {
-            frames = 1; // ذاكرة قليلة: صورة ثابتة بدون تبديل إطارات
-            artScale = 1f;
-            if (textBytes + 2 * w * h * 4 > budget) textScale = 1f;
-        }
 
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(now);
         int scene = HeroArt.sceneFor(cal.get(Calendar.HOUR_OF_DAY) + cal.get(Calendar.MINUTE) / 60.0);
-        float t0 = (now % 24000L) / 24000f;
+        boolean stars = HeroArt.starStrength(scene) > 0;
+        boolean motion = HeroArt.hasMotion(scene);
+
+        // حد ذاكرة الـRemoteViews تقريبًا ٦ بايت × بكسلات الشاشة؛ نستهلك ٦٠٪ منه كحد أقصى.
+        double budget = dm.widthPixels * (double) dm.heightPixels * 4 * 1.5 * 0.6;
+        double px = w * h * 4;
+        float baseScale = 1f, layerScale = 1f;
+        boolean animate = true;
+        boolean fit = false;
+        for (float s = Math.min(dm.density, 2f); s >= 1f; s -= .25f) {
+            float ls = Math.min(s, 1.5f);
+            double bytes = px * textScale * textScale + px * s * s
+                    + (stars ? 2 * px * ls * ls : 0) + (motion ? px * ls * ls : 0);
+            if (bytes <= budget) { baseScale = s; layerScale = ls; fit = true; break; }
+        }
+        if (!fit) { // ذاكرة قليلة: صورة ثابتة بدون طبقات متحركة
+            animate = false;
+            textScale = Math.min(textScale, 1.5f);
+        }
 
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.azw_hero);
-        Bitmap a0 = WidgetRenderer.heroArt(w, h, artScale, scene, t0);
-        rv.setImageViewBitmap(R.id.azw_base, a0);
-        if (frames > 1) {
-            rv.setViewVisibility(R.id.azw_flip, View.VISIBLE);
-            rv.setImageViewBitmap(R.id.azw_f0, a0);
-            rv.setImageViewBitmap(R.id.azw_f1, WidgetRenderer.heroArt(w, h, artScale, scene, (t0 + .12f) % 1f));
-            rv.setImageViewBitmap(R.id.azw_f2, WidgetRenderer.heroArt(w, h, artScale, scene, (t0 + .24f) % 1f));
+        // الطبقة الثابتة: عند إيقاف الحركة نضمّ النجوم/السحاب فيها مرة واحدة.
+        int baseLayers = animate ? HeroArt.BASE : (HeroArt.BASE | HeroArt.STARS | HeroArt.MOTION);
+        float t0 = (now % 24000L) / 24000f;
+        rv.setImageViewBitmap(R.id.azw_base, WidgetRenderer.heroLayer(w, h, baseScale, scene, t0, baseLayers));
+
+        // نجوم: إطاران بطورين مختلفين يتبادلان بتلاشي بطيء ← لمعان ناعم.
+        if (animate && stars) {
+            rv.setViewVisibility(R.id.azw_stars, View.VISIBLE);
+            rv.setImageViewBitmap(R.id.azw_s0, WidgetRenderer.heroLayer(w, h, layerScale, scene, t0, HeroArt.STARS));
+            rv.setImageViewBitmap(R.id.azw_s1, WidgetRenderer.heroLayer(w, h, layerScale, scene, (t0 + .17f) % 1f, HeroArt.STARS));
         } else {
-            rv.setViewVisibility(R.id.azw_flip, View.GONE);
+            rv.setViewVisibility(R.id.azw_stars, View.GONE);
+        }
+        // سحاب/طيور: لوحان متطابقان يمرّان بحركة أفقية خطية متصلة داخل اللانشر (بدون إعادة رسم).
+        if (animate && motion) {
+            Bitmap m = WidgetRenderer.heroLayer(w, h, layerScale, scene, t0, HeroArt.MOTION);
+            rv.setViewVisibility(R.id.azw_move, View.VISIBLE);
+            rv.setImageViewBitmap(R.id.azw_m0, m);
+            rv.setImageViewBitmap(R.id.azw_m1, m);
+        } else {
+            rv.setViewVisibility(R.id.azw_move, View.GONE);
         }
         rv.setImageViewBitmap(R.id.azw_text, WidgetRenderer.heroText(ctx, d, w, h, textScale, now));
         rv.setContentDescription(R.id.azw_root, "أذكار الوقت");
-        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 71));
+        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 71, "azkar"));
         return rv;
     }
 
@@ -173,7 +193,7 @@ final class WidgetUpdater {
         rv.setImageViewBitmap(R.id.azw_img, WidgetRenderer.ayah(ctx, d, sz[0], sz[1], scale, now));
         WidgetData.Ayah a = d.ayahFor(WidgetData.dayKey(now));
         rv.setContentDescription(R.id.azw_root, "آية اليوم" + (a == null ? "" : ": " + a.text + " " + a.ref));
-        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 72));
+        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 72, "ayah"));
         return rv;
     }
 
@@ -195,7 +215,7 @@ final class WidgetUpdater {
             rv.setViewVisibility(R.id.azw_chrono, View.GONE);
         }
         rv.setContentDescription(R.id.azw_root, pv.next == null ? "الصلاة القادمة" : "الصلاة القادمة: " + pv.next.name());
-        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 73));
+        rv.setOnClickPendingIntent(R.id.azw_root, launchPi(ctx, 73, "prayer"));
         return rv;
     }
 }

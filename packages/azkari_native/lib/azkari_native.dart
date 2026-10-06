@@ -1,6 +1,7 @@
 /// موارد وإعدادات أندرويد الأصلية + أداة تشخيص تقول بالضبط لماذا لا يظهر إشعار الميديا.
 library azkari_native;
 
+import 'dart:async';
 import 'package:flutter/services.dart';
 
 class AzkariNative {
@@ -75,5 +76,29 @@ class AzkariNative {
     } catch (_) {
       return const {'hero': 0, 'ayah': 0, 'prayer': 0};
     }
+  }
+
+  /// الوجهة التي طلبها ضغط ودجت (azkar | ayah | prayer) أو null. تُقرأ مرة واحدة.
+  static Future<String?> takeWidgetTarget() async {
+    try {
+      return await _channel.invokeMethod<String>('takeWidgetTarget');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static final StreamController<void> _targetPings =
+      StreamController<void>.broadcast();
+  static bool _handlerSet = false;
+
+  /// ينبّه عند ضغط ودجت والتطبيق شغّال (ثم استدعِ [takeWidgetTarget]).
+  static Stream<void> get widgetTargetPings {
+    if (!_handlerSet) {
+      _handlerSet = true;
+      _channel.setMethodCallHandler((call) async {
+        if (call.method == 'widgetTarget') _targetPings.add(null);
+      });
+    }
+    return _targetPings.stream;
   }
 }

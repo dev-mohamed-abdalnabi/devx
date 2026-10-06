@@ -676,7 +676,7 @@ class _AzkarTimeCard extends StatelessWidget {
                             Flexible(
                               child: ConstrainedBox(
                                 constraints:
-                                    BoxConstraints(maxWidth: c.maxWidth * .74),
+                                    BoxConstraints(maxWidth: c.maxWidth * .58),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
@@ -713,8 +713,8 @@ class _AzkarTimeCard extends StatelessWidget {
                                     style: amiriStyle(26,
                                         bold: true,
                                         color: pal.ink,
-                                        height: 1.2)),
-                                const SizedBox(height: 6),
+                                        height: 1.4)),
+                                const SizedBox(height: 9),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(3),
                                   child: Container(

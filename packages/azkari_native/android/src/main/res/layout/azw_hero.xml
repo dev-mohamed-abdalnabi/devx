@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- كارت الرئيسية: طبقة أساس + تبديل إطارات بتلاشي (حركة النجوم والسحاب) + طبقة النص الثابتة فوقها. -->
+<!--
+  كارت الرئيسية بطبقات: ثابت + نجوم (تبادل بطيء بتلاشي = لمعان) + سحاب/طيور (لوحان يمرّان بحركة خطية متصلة)
+  + نص ثابت فوقها. الحركة كلها داخل اللانشر وتتوقف تلقائيًا عند إطفاء الشاشة.
+-->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/azw_root"
     android:layout_width="match_parent"
@@ -13,30 +16,49 @@
         android:scaleType="fitXY" />
 
     <ViewFlipper
-        android:id="@+id/azw_flip"
+        android:id="@+id/azw_stars"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:autoStart="true"
-        android:flipInterval="5000"
+        android:flipInterval="3200"
         android:inAnimation="@anim/azw_fade_in"
-        android:outAnimation="@anim/azw_fade_out">
+        android:outAnimation="@anim/azw_fade_out"
+        android:visibility="gone">
 
         <ImageView
-            android:id="@+id/azw_f0"
+            android:id="@+id/azw_s0"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:importantForAccessibility="no"
             android:scaleType="fitXY" />
 
         <ImageView
-            android:id="@+id/azw_f1"
+            android:id="@+id/azw_s1"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY" />
+    </ViewFlipper>
+
+    <ViewFlipper
+        android:id="@+id/azw_move"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:autoStart="true"
+        android:flipInterval="26000"
+        android:inAnimation="@anim/azw_pan_in"
+        android:outAnimation="@anim/azw_pan_out"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/azw_m0"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:importantForAccessibility="no"
             android:scaleType="fitXY" />
 
         <ImageView
-            android:id="@+id/azw_f2"
+            android:id="@+id/azw_m1"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:importantForAccessibility="no"

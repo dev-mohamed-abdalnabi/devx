@@ -182,12 +182,12 @@ final class WidgetRenderer {
     // =====================================================================
     static final float HERO_RADIUS = 22f;
 
-    /** الخلفية المرسومة (سماء + مشهد + مسجد) بطور حركة t. */
-    static Bitmap heroArt(float w, float h, float scale, int scene, float t) {
+    /** طبقة من الكارت (ثابتة / نجوم / سحاب) بنفس زوايا الكارت المدوّرة. */
+    static Bitmap heroLayer(float w, float h, float scale, int scene, float t, int layers) {
         Bitmap b = newBitmap(w, h, scale);
         Canvas c = new Canvas(b);
         c.scale(scale, scale);
-        HeroArt.draw(c, scene, w, h, t);
+        HeroArt.draw(c, scene, w, h, t, layers);
         maskRounded(c, w, h, HERO_RADIUS);
         return b;
     }
@@ -223,11 +223,12 @@ final class WidgetRenderer {
         float inner = w - padH * 2;
         float rightEdge = w - padH;
 
+        boolean compact = h < 150;
         // الصف العلوي: أيقونة (يمين) + كبسولة النص.
         float iconSize = 22;
         TextPaint hp = tp(cairoSemi, 11.5f, pal.ink);
-        float maxPillW = inner * .74f;
-        StaticLayout hl = layout(hint.text, hp, (int) (maxPillW - 20), Layout.Alignment.ALIGN_NORMAL, 11.5f * 1.35f, 2);
+        float maxPillW = inner * .58f;
+        StaticLayout hl = layout(hint.text, hp, (int) (maxPillW - 20), Layout.Alignment.ALIGN_NORMAL, 11.5f * 1.35f, compact ? 1 : 2);
         float pillW = Math.min(maxPillW, widest(hl) + 20);
         float pillH = hl.getHeight() + 10;
         float rowH = Math.max(iconSize, pillH);
@@ -245,10 +246,9 @@ final class WidgetRenderer {
         // الكتلة السفلية: عرض ٦٢٪ ملاصقة لليمين ومثبّتة بالأسفل.
         float bw = inner * .62f;
         float bx = rightEdge - bw;
-        boolean compact = h < 150;
         TextPaint subP = tp(cairo, 11.5f, pal.sub);
         TextPaint titleP = tp(amiriBold, 26f, pal.ink);
-        float subH = 11.5f * 1.6f, titleH = 26f * 1.2f;
+        float subH = 11.5f * 1.6f, titleH = 26f * 1.4f;
         float y = h - padV;
         // سطر النسبة
         y -= subH;
@@ -266,7 +266,7 @@ final class WidgetRenderer {
             c.drawRoundRect(new RectF(bx + bw - fw, y, bx + bw, y + 6), 3, 3, bar);
         }
         // العنوان
-        y -= 6 + titleH;
+        y -= 9 + titleH;
         StaticLayout tl = layout(titles[slot], titleP, (int) bw, Layout.Alignment.ALIGN_NORMAL, titleH, 1);
         draw(c, tl, bx, y);
         // «حان وقت» / «بعد الفجر»
