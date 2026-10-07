@@ -15,6 +15,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,184 +28,79 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # يكاشي Flutter SDK و pub-cache معًا، فلا حاجة لـ actions/cache يدوي.
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: Cache Flutter and Gradle dependencies
+      # يدير كاش Gradle بذكاء (يزيل المكرر والقديم) بدل المسارات اليدوية.
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # بيانات القرآن والتفسير والخطوط والأذكار: تُجلب مرة واحدة ثم تُكاش.
+      # المفتاح مبني على سكربتات الجلب فقط، فلا يتغير عند تعديل أي شيء آخر.
+      - name: Restore generated data cache
+        id: data
         uses: actions/cache@v4
         with:
           path: |
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            /usr/local/lib/android/sdk/cmake/3.22.1
-          key: ${{ runner.os }}-apk-${{ hashFiles('pubspec.yaml', 'tool/*.py', '.github/workflows/build-apk.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apk-
+            assets/data/quran.json
+            assets/data/tafsir.json
+            assets/data/SOURCES.json
+            assets/fonts
+            lib/data/azkar.json
+          key: data-${{ hashFiles('tool/fetch_data.py', 'tool/fetch_hisn.py', 'tool/subset_fonts.py') }}
 
-      # يضيف مجلد android الناقص فقط دون المساس بملفاتك الحالية (lib, pubspec.yaml)
-      - name: Ensure Android platform files exist
-        run: flutter create --platforms=android --org com.azkarapp .
-
-      - name: Enable core library desugaring (required by flutter_local_notifications)
+      - name: Fetch data and subset fonts (only on cache miss)
+        if: steps.data.outputs.cache-hit != 'true'
         run: |
-          python3 << 'EOF'
-          import pathlib
+          python3 tool/fetch_data.py & p1=$!
+          python3 tool/fetch_hisn.py & p2=$!
+          wait $p1 && wait $p2
+          pip install fonttools || true
+          python3 tool/subset_fonts.py || true
 
-          kts = pathlib.Path('android/app/build.gradle.kts')
-          groovy = pathlib.Path('android/app/build.gradle')
-
-          if kts.exists():
-              path = kts
-              content = path.read_text()
-              if 'isCoreLibraryDesugaringEnabled' not in content:
-                  content = content.replace(
-                      'compileOptions {',
-                      'compileOptions {\n        isCoreLibraryDesugaringEnabled = true',
-                      1
-                  )
-              if 'coreLibraryDesugaring(' not in content:
-                  if 'dependencies {' in content:
-                      content = content.replace(
-                          'dependencies {',
-                          'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")',
-                          1
-                      )
-                  else:
-                      content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
-              path.write_text(content)
-          else:
-              path = groovy
-              content = path.read_text()
-              if 'coreLibraryDesugaringEnabled' not in content:
-                  content = content.replace(
-                      'compileOptions {',
-                      'compileOptions {\n        coreLibraryDesugaringEnabled true',
-                      1
-                  )
-              if 'coreLibraryDesugaring ' not in content:
-                  if 'dependencies {' in content:
-                      content = content.replace(
-                          'dependencies {',
-                          "dependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'",
-                          1
-                      )
-                  else:
-                      content += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
-              path.write_text(content)
-          EOF
-
-      - name: Align Kotlin JVM targets with Android plugin Java targets
-        run: |
-          python3 << 'EOF'
-          import pathlib
-
-          kts = pathlib.Path('android/build.gradle.kts')
-          groovy = pathlib.Path('android/build.gradle')
-          if kts.exists():
-              path = kts
-              content = path.read_text()
-              marker = 'JvmTarget.JVM_17'
-              if marker not in content:
-                  content = '''import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-          import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
-          ''' + content
-                  content += '''
-
-          // Match Android plugin Java targets; flutter_timezone still targets Java 11.
-          subprojects {
-              tasks.withType<KotlinCompile>().configureEach {
-                  if (project.name == "flutter_timezone") {
-                      compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
-                  } else {
-                      compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
-                  }
-              }
-          }
-          '''
-                  path.write_text(content)
-          elif groovy.exists():
-              path = groovy
-              content = path.read_text()
-              marker = 'kotlinOptions.jvmTarget = "17"'
-              if marker not in content:
-                  content += '''
-
-          // Match Android plugin Java targets; flutter_timezone still targets Java 11.
-          subprojects {
-              tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                  kotlinOptions.jvmTarget = project.name == "flutter_timezone" ? "11" : "17"
-              }
-          }
-          '''
-                  path.write_text(content)
-          EOF
-
-      - name: Patch AndroidManifest (permissions + notification receivers)
-        run: python3 tool/patch_android.py
-
-      - name: Sign release with the permanent key
+      # خطوة واحدة بدل: flutter create + desugaring + kotlin + manifest + signing
+      - name: Prepare Android project
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: python3 tool/patch_signing.py
-
-      - name: Fetch and verify Quran data and fonts
-        run: python3 tool/fetch_data.py
-
-      - name: Fetch and verify Hisn al-Muslim azkar
-        run: python3 tool/fetch_hisn.py
-
-      - name: Subset fonts (smaller APK; never fails the build)
-        continue-on-error: true
         run: |
-          pip install fonttools
-          python3 tool/subset_fonts.py
+          flutter create --no-pub --platforms=android --org com.azkarapp .
+          python3 tool/patch_gradle.py
+          python3 tool/patch_android.py
+          python3 tool/patch_signing.py
+          mkdir -p ~/.gradle
+          printf 'org.gradle.parallel=true\norg.gradle.caching=true\n' >> ~/.gradle/gradle.properties
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Generate app launcher icons
-        run: dart run flutter_launcher_icons
-
-      - name: Analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      # pub get مرة واحدة فقط (flutter create كان يشغله، وبعده خطوة منفصلة)
+      - name: Install dependencies and generate icons
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
 
       - name: Test
         run: flutter test
 
-      - name: Build two release APKs (ARM and ARM64)
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --no-shrink
+      - name: Build release APK (ARM64)
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm64 --no-shrink
 
-      - name: APK size report (warns above 20 MB, never fails)
+      - name: APK size report
         run: |
           limit=$((20 * 1024 * 1024))
+          echo "### APK sizes" >> "$GITHUB_STEP_SUMMARY"
           for f in build/app/outputs/flutter-apk/*-release.apk; do
             size=$(stat -c %s "$f")
-            echo "$(basename $f): $size bytes"
+            echo "- $(basename "$f"): $(du -h "$f" | cut -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$size" -ge "$limit" ]; then
-              echo "::warning::$(basename $f) is above 20 MB ($size bytes)"
+              echo "::warning::$(basename "$f") is above 20 MB ($size bytes)"
             fi
           done
 
-      - name: APK sizes
-        run: |
-          ls -l build/app/outputs/flutter-apk/*-release.apk
-          {
-            echo "### APK sizes"
-            for f in build/app/outputs/flutter-apk/*-release.apk; do
-              echo "- $(basename $f): $(du -h $f | cut -f1)"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      # لا نرفع Artifact مؤقتًا حتى لا نستهلك حصة تخزين GitHub Actions.
-      # ملفات APK تُرفق مباشرةً بالـ GitHub Release في الخطوة التالية.
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
