@@ -21,6 +21,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
   bool _posting = false;
   bool _isMember = false;
   bool _isAdmin = false;
+  String? _membershipStatus;
 
   String get _groupId => widget.group['id'].toString();
   String? get _userId => supabase.auth.currentUser?.id;
@@ -49,6 +50,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
       final userId = _userId;
       var member = false;
       var admin = false;
+      String? membershipStatus;
       if (userId != null) {
         final membership = await supabase
             .from('group_members')
@@ -56,6 +58,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
             .eq('group_id', _groupId)
             .eq('user_id', userId)
             .maybeSingle();
+        membershipStatus = membership?['status']?.toString();
         member = membership?['status'] == 'active' ||
             widget.group['owner_id'].toString() == userId;
         final profile = await supabase
@@ -72,6 +75,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
             .toList();
         _isMember = member;
         _isAdmin = admin;
+        _membershipStatus = membershipStatus;
         _loading = false;
       });
     } catch (_) {
@@ -85,7 +89,14 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
           MaterialPageRoute(builder: (_) => const CommunityAuthScreen()));
       if (result == true && mounted) await _load();
     }
-    if (!_isMember) _toast('انضم إلى الجروب أولًا للمشاركة.');
+    if (!_isMember) {
+      final message = switch (_membershipStatus) {
+        'pending' => 'طلبك قيد المراجعة؛ ستتمكن من النشر بعد الموافقة.',
+        'blocked' => 'لا يمكنك النشر في هذا الجروب حاليًا.',
+        _ => 'انضم إلى الجروب أولًا حتى تتمكن من قراءة وكتابة المنشورات.',
+      };
+      _toast(message);
+    }
     return _isMember;
   }
 

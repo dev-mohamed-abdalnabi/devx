@@ -99,15 +99,17 @@ class _GroupsScreenState extends State<GroupsScreen> {
         'user_id': supabase.auth.currentUser!.id,
       });
       _message(group['is_private'] == true
-          ? 'تم إرسال طلب الانضمام.'
-          : 'انضممت إلى الجروب.');
+          ? 'الجروب خاص؛ تم إرسال طلبك للمشرف للمراجعة.'
+          : 'تم انضمامك للجروب الآن، ويمكنك قراءة وكتابة منشوراته.');
       await _load();
     } on PostgrestException catch (e) {
       _message(e.code == pgUniqueViolation
-          ? 'أنت عضو بالفعل أو طلبك قيد المراجعة.'
-          : 'تعذر الانضمام.');
+          ? (group['is_private'] == true
+              ? 'طلبك موجود بالفعل وتحت المراجعة.'
+              : 'أنت عضو بالفعل في هذا الجروب.')
+          : 'تعذر تنفيذ طلب الانضمام الآن.');
     } catch (_) {
-      _message('تعذر الانضمام.');
+      _message('تعذر تنفيذ طلب الانضمام الآن.');
     } finally {
       _busy.remove(id);
       if (mounted) setState(() {});

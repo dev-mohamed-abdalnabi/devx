@@ -63,8 +63,8 @@ class _ForumScreenState extends State<ForumScreen> {
     final base = supabase
         .from('posts')
         .select('*, profiles!posts_author_id_fkey(username, full_name)')
-        // منشورات الجروبات تظهر داخل الجروب فقط وليس في الرئيسية
-        .neq('visibility', 'group');
+        // الفيد العام لا يعرض منشورات الجروبات تحت أي ظرف؛ مكانها داخل الجروب فقط.
+        .inFilter('visibility', ['public', 'followers']);
     final rows = await (authorFilter == null
             ? base
             : base.inFilter('author_id', authorFilter))
