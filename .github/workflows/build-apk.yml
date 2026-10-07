@@ -201,12 +201,8 @@ jobs:
             done
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload APKs as build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: azkar-app-apks
-          path: build/app/outputs/flutter-apk/*-release.apk
-
+      # لا نرفع Artifact مؤقتًا حتى لا نستهلك حصة تخزين GitHub Actions.
+      # ملفات APK تُرفق مباشرةً بالـ GitHub Release في الخطوة التالية.
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
         with:
