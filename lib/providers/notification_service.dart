@@ -243,6 +243,43 @@ class NotificationService {
     );
   }
 
+  // ───────── إشعارات المجتمع (لايك/تعليق/رد/منشور جديد) ─────────
+  static const _communityChannelId = 'community_v1';
+
+  static Future<void> showCommunity(int id, String title, String body,
+      {String? payload}) async {
+    try {
+      await _android
+          ?.createNotificationChannel(const AndroidNotificationChannel(
+        _communityChannelId,
+        'إشعارات المنتدى',
+        description: 'تفاعلات المنتدى ومنشورات من فعّلت لهم الجرس',
+        importance: Importance.high,
+      ));
+      await _plugin.show(
+        id,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _communityChannelId,
+            'إشعارات المنتدى',
+            channelDescription: 'تفاعلات المنتدى ومنشورات من فعّلت لهم الجرس',
+            importance: Importance.high,
+            priority: Priority.high,
+            category: AndroidNotificationCategory.social,
+            color: _brandColor,
+            subText: _brandName,
+            icon: statIconAvailable ? _statIcon : _launcherIcon,
+            styleInformation:
+                BigTextStyleInformation(body, contentTitle: title),
+          ),
+        ),
+        payload: payload ?? 'community',
+      );
+    } catch (_) {}
+  }
+
   static void _onNotificationResponse(NotificationResponse response) {
     final payload = response.payload;
     if (payload == null || !payload.startsWith('adhan:')) return;

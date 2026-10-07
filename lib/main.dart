@@ -1,3 +1,4 @@
+import 'services/community_realtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -41,6 +42,7 @@ Future<void> main() async {
   }
   // خدمة الميديا (إشعار التلاوة). لا ترمي أخطاء: لو فشلت يعمل التشغيل بدون إشعار.
   await QuranAudioService.init();
+  CommunityRealtime.start();
   runApp(const AzkarApp());
 }
 

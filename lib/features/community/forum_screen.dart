@@ -292,6 +292,11 @@ class _ForumScreenState extends State<ForumScreen> {
             .from('follows')
             .insert({'follower_id': userId, 'following_id': authorId});
       }
+      if (mounted) {
+        _toast(wasFollowing
+            ? 'تم إيقاف الجرس.'
+            : 'تم تفعيل الجرس 🔔 هتوصلك إشعارات بمنشوراته.');
+      }
     } on PostgrestException catch (e) {
       if (e.code == pgUniqueViolation && !wasFollowing) return;
       if (mounted) {
@@ -437,8 +442,9 @@ class _ForumScreenState extends State<ForumScreen> {
           hasScrollBody: false,
           child: AppEmptyState(
               icon: Icons.people_outline,
-              title: 'لا توجد منشورات من متابَعيك',
-              message: 'تابع أعضاء من تبويب «الكل» لتظهر منشوراتهم هنا.'));
+              title: 'لا توجد منشورات من حسابات الجرس',
+              message:
+                  'فعّل الجرس 🔔 على أي عضو من تبويب «الكل» لتظهر منشوراته هنا وتصلك إشعارات بها.'));
     }
     return const SliverFillRemaining(
         hasScrollBody: false,
@@ -480,8 +486,9 @@ class _ForumScreenState extends State<ForumScreen> {
                         label: Text('الكل')),
                     ButtonSegment(
                         value: 1,
-                        icon: Icon(Icons.people_alt_outlined, size: 18),
-                        label: Text('المتابَعون')),
+                        icon:
+                            Icon(Icons.notifications_active_outlined, size: 18),
+                        label: Text('جرسي')),
                     ButtonSegment(
                         value: 2,
                         icon: Icon(Icons.groups_rounded, size: 18),
@@ -709,12 +716,19 @@ class _PostCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            CircleAvatar(
-              radius: 21,
-              backgroundColor: scheme.primaryContainer,
-              child: Text(initialOf(name),
-                  style: TextStyle(
-                      color: scheme.primary, fontWeight: FontWeight.bold)),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: scheme.primary.withOpacity(.5), width: 1.5)),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: scheme.primaryContainer,
+                child: Text(initialOf(name),
+                    style: TextStyle(
+                        color: scheme.primary, fontWeight: FontWeight.bold)),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -731,9 +745,17 @@ class _PostCard extends StatelessWidget {
                   ]),
             ),
             if (!isMine)
-              TextButton(
-                  onPressed: onFollow,
-                  child: Text(post['following'] == true ? 'متابَع' : 'متابعة')),
+              IconButton(
+                tooltip: post['following'] == true
+                    ? 'إيقاف إشعارات هذا الحساب'
+                    : 'فعّل الجرس لتصلك منشوراته',
+                onPressed: onFollow,
+                icon: Icon(
+                    post['following'] == true
+                        ? Icons.notifications_active_rounded
+                        : Icons.notifications_none_rounded,
+                    color: post['following'] == true ? scheme.primary : null),
+              ),
             PopupMenuButton<String>(
               onSelected: (v) {
                 switch (v) {
@@ -773,7 +795,9 @@ class _PostCard extends StatelessWidget {
                   .bodyLarge
                   ?.copyWith(height: 1.65)),
           const SizedBox(height: 10),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Divider(height: 1, color: scheme.outlineVariant.withOpacity(.6)),
+          const SizedBox(height: 2),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
             _Action(
                 icon: liked ? Icons.favorite : Icons.favorite_border,
                 label: '${post['like_count'] ?? 0}',
@@ -834,7 +858,10 @@ class _CommentsSheet extends StatefulWidget {
 
 class _CommentsSheetState extends State<_CommentsSheet> {
   final _controller = TextEditingController();
+  final _focus = FocusNode();
   List<Map<String, dynamic>> _comments = [];
+  Set<String> _liked = {};
+  Map<String, dynamic>? _replyTo; // التعليق الذي نرد عليه
   bool _loading = true;
   bool _sending = false;
 
@@ -847,6 +874,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   @override
   void dispose() {
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -857,11 +885,24 @@ class _CommentsSheetState extends State<_CommentsSheet> {
           .select('*, profiles!comments_author_id_fkey(username, full_name)')
           .eq('post_id', widget.post['id'])
           .order('created_at');
+      final list = (data as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      final me = supabase.auth.currentUser?.id;
+      var liked = <String>{};
+      if (me != null && list.isNotEmpty) {
+        final rows = await supabase
+            .from('comment_likes')
+            .select('comment_id')
+            .eq('user_id', me)
+            .inFilter(
+                'comment_id', list.map((c) => c['id'].toString()).toList());
+        liked = (rows as List).map((e) => e['comment_id'].toString()).toSet();
+      }
       if (!mounted) return;
       setState(() {
-        _comments = (data as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
+        _comments = list;
+        _liked = liked;
         _loading = false;
       });
     } catch (_) {
@@ -878,8 +919,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
         'post_id': widget.post['id'],
         'author_id': supabase.auth.currentUser!.id,
         'body': text,
+        if (_replyTo != null) 'parent_id': _replyTo!['id'],
       });
       _controller.clear();
+      _replyTo = null;
       await _load();
     } catch (_) {
       _snack('تعذر نشر التعليق.');
@@ -888,14 +931,61 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     }
   }
 
+  Future<void> _toggleLike(Map<String, dynamic> c) async {
+    final me = supabase.auth.currentUser?.id;
+    if (me == null) return;
+    final id = c['id'].toString();
+    final was = _liked.contains(id);
+    setState(() {
+      was ? _liked.remove(id) : _liked.add(id);
+      c['like_count'] = ((c['like_count'] ?? 0) as int) + (was ? -1 : 1);
+    });
+    try {
+      if (was) {
+        await supabase
+            .from('comment_likes')
+            .delete()
+            .match({'comment_id': id, 'user_id': me});
+      } else {
+        await supabase
+            .from('comment_likes')
+            .insert({'comment_id': id, 'user_id': me});
+      }
+    } on PostgrestException catch (e) {
+      if (e.code == pgUniqueViolation && !was) return;
+      _revertLike(c, id, was);
+    } catch (_) {
+      _revertLike(c, id, was);
+    }
+  }
+
+  void _revertLike(Map<String, dynamic> c, String id, bool was) {
+    if (!mounted) return;
+    setState(() {
+      was ? _liked.add(id) : _liked.remove(id);
+      c['like_count'] = ((c['like_count'] ?? 0) as int) + (was ? 1 : -1);
+    });
+    _snack('تعذر تحديث الإعجاب.');
+  }
+
   Future<void> _deleteComment(Map<String, dynamic> c) async {
     try {
       await supabase.from('comments').delete().eq('id', c['id']);
-      if (mounted)
-        setState(() => _comments.removeWhere((x) => x['id'] == c['id']));
+      await _load();
     } catch (_) {
       _snack('تعذر حذف التعليق.');
     }
+  }
+
+  void _startReply(Map<String, dynamic> c) {
+    // الرد على رد يتجمع تحت التعليق الأصلي (مستوى واحد زي فيسبوك).
+    final root = c['parent_id'] == null
+        ? c
+        : _comments.firstWhere((x) => x['id'] == c['parent_id'],
+            orElse: () => c);
+    final p = (c['profiles'] as Map?)?.cast<String, dynamic>();
+    setState(() => _replyTo = {...root, 'reply_name': displayName(p)});
+    _focus.requestFocus();
   }
 
   void _snack(String text) {
@@ -904,75 +994,169 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     }
   }
 
+  Widget _tile(Map<String, dynamic> c, {required bool isReply}) {
+    final me = supabase.auth.currentUser?.id;
+    final scheme = Theme.of(context).colorScheme;
+    final p = (c['profiles'] as Map?)?.cast<String, dynamic>() ?? {};
+    final name = displayName(p);
+    final liked = _liked.contains(c['id'].toString());
+    final likes = (c['like_count'] ?? 0) as int;
+    final small = TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurfaceVariant);
+    return Padding(
+      padding: EdgeInsets.only(top: 10, right: isReply ? 0 : 0, left: 0),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CircleAvatar(
+          radius: isReply ? 14 : 18,
+          backgroundColor: scheme.primaryContainer,
+          child: Text(initialOf(name),
+              style: TextStyle(
+                  fontSize: isReply ? 11 : 14, color: scheme.primary)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 9),
+              decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withOpacity(.6),
+                  borderRadius: BorderRadius.circular(16)),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(c['body']?.toString() ?? '',
+                        style: const TextStyle(height: 1.5)),
+                  ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 3, right: 6, left: 6),
+              child: Row(children: [
+                Text(timeAgo(c['created_at']?.toString()),
+                    style: TextStyle(
+                        fontSize: 11, color: scheme.onSurfaceVariant)),
+                const SizedBox(width: 14),
+                InkWell(
+                    onTap: () => _toggleLike(c),
+                    child: Text(likes > 0 ? 'أعجبني · $likes' : 'أعجبني',
+                        style: small.copyWith(
+                            color: liked ? scheme.error : null))),
+                const SizedBox(width: 14),
+                InkWell(
+                    onTap: () => _startReply(c),
+                    child: Text('رد', style: small)),
+                if (c['author_id'] == me) ...[
+                  const SizedBox(width: 14),
+                  InkWell(
+                      onTap: () => _deleteComment(c),
+                      child: Text('حذف', style: small)),
+                ],
+              ]),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final screen = MediaQuery.sizeOf(context).height;
-    final me = supabase.auth.currentUser?.id;
     final scheme = Theme.of(context).colorScheme;
+    final roots = _comments.where((c) => c['parent_id'] == null).toList();
+    final replies = <String, List<Map<String, dynamic>>>{};
+    for (final c in _comments) {
+      final pid = c['parent_id']?.toString();
+      if (pid != null) replies.putIfAbsent(pid, () => []).add(c);
+    }
     return Padding(
       // يرفع حقل التعليق فوق الكيبورد بدل ما يختفي خلفه
       padding: EdgeInsets.only(bottom: bottom),
       child: SafeArea(
         child: SizedBox(
-          height: math.min(screen * .72, screen - bottom - 90),
+          height: math.min(screen * .78, screen - bottom - 90),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Column(children: [
-              const Text('التعليقات',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
+              Text('التعليقات (${_comments.length})',
+                  style: const TextStyle(
+                      fontSize: 19, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
               Expanded(
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
-                    : _comments.isEmpty
+                    : roots.isEmpty
                         ? const AppEmptyState(
                             icon: Icons.chat_bubble_outline,
                             title: 'لا توجد تعليقات بعد',
                             message: 'ابدأ نقاشًا نافعًا ومحترمًا.')
                         : ListView.builder(
-                            itemCount: _comments.length,
+                            itemCount: roots.length,
                             itemBuilder: (_, i) {
-                              final c = _comments[i];
-                              final p = (c['profiles'] as Map?)
-                                      ?.cast<String, dynamic>() ??
-                                  {};
-                              final name = displayName(p);
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(
-                                  backgroundColor: scheme.primaryContainer,
-                                  child: Text(initialOf(name),
-                                      style: TextStyle(color: scheme.primary)),
-                                ),
-                                title: Row(children: [
-                                  Flexible(
-                                      child: Text(name,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold))),
-                                  const SizedBox(width: 8),
-                                  Text(timeAgo(c['created_at']?.toString()),
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          color: scheme.onSurfaceVariant)),
-                                ]),
-                                subtitle: Text(c['body']?.toString() ?? ''),
-                                trailing: c['author_id'] == me
-                                    ? IconButton(
-                                        tooltip: 'حذف',
-                                        icon: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            size: 20),
-                                        onPressed: () => _deleteComment(c))
-                                    : null,
-                              );
+                              final c = roots[i];
+                              final kids = replies[c['id'].toString()] ?? [];
+                              return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _tile(c, isReply: false),
+                                    if (kids.isNotEmpty)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                                start: 34),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                              border: BorderDirectional(
+                                                  start: BorderSide(
+                                                      color:
+                                                          scheme.outlineVariant,
+                                                      width: 2))),
+                                          padding:
+                                              const EdgeInsetsDirectional.only(
+                                                  start: 8),
+                                          child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                for (final r in kids)
+                                                  _tile(r, isReply: true),
+                                              ]),
+                                        ),
+                                      ),
+                                  ]);
                             }),
               ),
+              if (_replyTo != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withOpacity(.5),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    Expanded(
+                        child: Text('رد على ${_replyTo!['reply_name']}',
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700))),
+                    InkWell(
+                        onTap: () => setState(() => _replyTo = null),
+                        child: const Icon(Icons.close_rounded, size: 18)),
+                  ]),
+                ),
+              const SizedBox(height: 6),
               Row(children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    focusNode: _focus,
                     minLines: 1,
                     maxLines: 3,
                     maxLength: 2000,
@@ -981,8 +1165,17 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                             required isFocused,
                             maxLength}) =>
                         null,
-                    decoration:
-                        const InputDecoration(hintText: 'اكتب تعليقًا...'),
+                    decoration: InputDecoration(
+                      hintText:
+                          _replyTo == null ? 'اكتب تعليقًا...' : 'اكتب ردك...',
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest.withOpacity(.5),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(22),
+                          borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

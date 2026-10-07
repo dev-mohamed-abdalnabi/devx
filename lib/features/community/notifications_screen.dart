@@ -32,12 +32,14 @@ class _CommunityNotificationsScreenState
     try {
       final data = await supabase
           .from('notifications')
-          .select('*, profiles!notifications_actor_id_fkey(full_name, username)')
+          .select(
+              '*, profiles!notifications_actor_id_fkey(full_name, username)')
           .eq('user_id', userId)
           .order('created_at', ascending: false)
           .limit(50);
-      final items =
-          (data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      final items = (data as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
       if (mounted) {
         setState(() {
           _items = items;
@@ -82,6 +84,12 @@ class _CommunityNotificationsScreenState
         return (Icons.favorite_rounded, 'أعجب بمنشورك');
       case 'comment':
         return (Icons.mode_comment_rounded, 'علّق على منشورك');
+      case 'reply':
+        return (Icons.reply_rounded, 'ردّ على تعليقك');
+      case 'comment_like':
+        return (Icons.favorite_rounded, 'أعجب بتعليقك');
+      case 'new_post':
+        return (Icons.notifications_active_rounded, 'نشر منشورًا جديدًا');
       case 'share':
         return (Icons.repeat_rounded, 'شارك منشورك');
       case 'follow':
@@ -89,7 +97,10 @@ class _CommunityNotificationsScreenState
       case 'group_join':
         return (Icons.groups_rounded, 'طلب الانضمام إلى جروبك أو انضم إليه');
       case 'group_approved':
-        return (Icons.check_circle_rounded, 'تمت الموافقة على انضمامك إلى الجروب');
+        return (
+          Icons.check_circle_rounded,
+          'تمت الموافقة على انضمامك إلى الجروب'
+        );
       case 'mention':
         return (Icons.alternate_email_rounded, 'ذكرك في منشور');
       case 'report_update':
@@ -144,13 +155,16 @@ class _CommunityNotificationsScreenState
                     color: scheme.onErrorContainer)),
             child: AppCard(
               padding: const EdgeInsets.all(14),
-              color: unread ? scheme.primaryContainer.withValues(alpha: .45) : null,
+              color: unread
+                  ? scheme.primaryContainer.withValues(alpha: .45)
+                  : null,
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: AppIconBadge(icon: icon, size: 44),
                 title: Text(hasActor ? '${displayName(p)} $text' : text,
                     style: TextStyle(
-                        fontWeight: unread ? FontWeight.w800 : FontWeight.w600)),
+                        fontWeight:
+                            unread ? FontWeight.w800 : FontWeight.w600)),
                 subtitle: Text(timeAgo(n['created_at']?.toString())),
                 trailing: unread
                     ? Icon(Icons.circle, size: 10, color: scheme.primary)
