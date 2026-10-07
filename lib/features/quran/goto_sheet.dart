@@ -217,8 +217,8 @@ class _GotoBodyState extends State<_GotoBody> {
     return GridView.builder(
       controller: widget.controller,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 150,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
         mainAxisExtent: 68,

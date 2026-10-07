@@ -177,7 +177,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: LayoutBuilder(builder: (context, box) {
                 final fullW = box.maxWidth;
-                final colW = (fullW - 20) / 3;
                 // تصميم ثابت المقاسات: الكروت لا تُضغط أبدًا (كان الضغط يصغّر الخط ويخفي النص).
                 // نحسب معامل تكبير بسيط ليملأ الشاشات الطويلة، والقصيرة تُمرَّر.
                 const baseTotal = 180 + 108 * 4 + 120 + 40.0;
@@ -199,8 +198,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 }
 
                 const gap = SizedBox(height: 10);
-                final grid = Column(
-                  children: [
+                List<Widget> rowsFor(double fullW) {
+                  final colW = (fullW - 20) / 3;
+                  return [
                     row(180, [
                       slotTile(
                         span: 3,
@@ -219,7 +219,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         ),
                       ),
                     ]),
-                    gap,
                     row(108, [
                       slotTile(
                         span: 2,
@@ -255,7 +254,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         ),
                       ),
                     ]),
-                    gap,
                     row(108, [
                       slotTile(
                         span: 1,
@@ -287,7 +285,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         ),
                       ),
                     ]),
-                    gap,
                     row(108, [
                       slotTile(
                         span: 2,
@@ -309,13 +306,12 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         child: HomeTile(
                           tk: tk,
                           compact: compact,
-                          icon: HomeIcons.sparkle,
+                          icon: HomeIcons.misbaha,
                           title: 'الأذكار',
                           onTap: () => _push(const CategoriesScreen()),
                         ),
                       ),
                     ]),
-                    gap,
                     row(108, [
                       slotTile(
                         span: 1,
@@ -347,7 +343,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         ),
                       ),
                     ]),
-                    gap,
                     row(120, [
                       slotTile(
                         span: 3,
@@ -367,8 +362,32 @@ class _HomeDashboardState extends State<HomeDashboard> {
                         ),
                       ),
                     ]),
-                  ],
-                );
+                  ];
+                }
+
+                Widget stack(List<Widget> rs) => Column(children: [
+                      for (var i = 0; i < rs.length; i++) ...[
+                        if (i > 0) gap,
+                        rs[i],
+                      ],
+                    ]);
+                // أفقي (هاتف مقلوب/تابلت): لوحتان — الكارت الرئيسي والآية يمين، البلاطات شمال.
+                final landscape = fullW >= 600 && fullW > box.maxHeight * 1.15;
+                final Widget grid;
+                if (landscape) {
+                  final paneW = (fullW - 12) / 2;
+                  final rs = rowsFor(paneW);
+                  grid = Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: stack([rs.first, rs.last])),
+                      const SizedBox(width: 12),
+                      Expanded(child: stack(rs.sublist(1, rs.length - 1))),
+                    ],
+                  );
+                } else {
+                  grid = stack(rowsFor(fullW));
+                }
                 final header = _HomeHeader(
                   tk: tk,
                   compact: compact,
@@ -590,7 +609,7 @@ _Hint _hintFor(DateTime n, NextPrayer? next) {
   if ((n.weekday == DateTime.monday || n.weekday == DateTime.thursday) &&
       h >= 3 &&
       h < 12) {
-    return _Hint(HomeIcons.sparkle,
+    return _Hint(HomeIcons.moon,
         'اليوم ${n.weekday == DateTime.monday ? 'الإثنين' : 'الخميس'} · يُستحب صيامه');
   }
   if (h >= 3 && h < 6)

@@ -40,7 +40,7 @@ IconData _catIcon(String cat) {
     case 'quran':
       return Icons.menu_book_rounded;
     case 'dhikr':
-      return Icons.auto_awesome_rounded;
+      return Icons.circle_outlined;
     case 'prayer':
       return Icons.mosque_rounded;
     case 'worship':
@@ -547,13 +547,16 @@ class _ChallengeCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(_catIcon(c.cat), size: 14, color: tk.muted),
+                          c.cat == 'dhikr'
+                              ? HomeIcon(HomeIcons.misbaha,
+                                  size: 14, color: tk.muted)
+                              : Icon(_catIcon(c.cat), size: 14, color: tk.muted),
                           const SizedBox(width: 4),
                           Text(c.catName,
                               style: cairoStyle(11.5, color: tk.muted)),
                           if (auto) ...[
                             const SizedBox(width: 10),
-                            Icon(Icons.bolt_rounded, size: 14, color: tk.gold),
+                            Icon(Icons.sync_rounded, size: 14, color: tk.gold),
                             Text('تلقائي',
                                 style: cairoStyle(11.5, color: tk.muted)),
                           ],

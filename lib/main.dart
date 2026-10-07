@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'services/community_realtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/home_tokens.dart';
 import 'core/theme.dart';
 import 'providers/quran_provider.dart';
 import 'providers/quran_audio_provider.dart';
@@ -28,6 +31,8 @@ Future<void> main() async {
     systemStatusBarContrastEnforced: false,
     systemNavigationBarContrastEnforced: false,
   ));
+  // كل الاتجاهات مدعومة: الشاشات تتكيّف مع الأفقي (لوحتان) والعمودي.
+  await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
   SupabaseConfig.validate();
   await Supabase.initialize(
     url: SupabaseConfig.url,
@@ -80,6 +85,26 @@ class AzkarApp extends StatelessWidget {
                 final mq = MediaQuery.of(context);
                 final scale =
                     (mq.size.shortestSide / 392).clamp(0.88, 1.15).toDouble();
+                // عمود المحتوى: على التابلت لا يتجاوز 600dp، وعلى الهاتف يملأ الشاشة. نمرّر للشاشات
+                // العرض الحقيقي للعمود (وليس عرض الجهاز) حتى تحسب تخطيطها صح،
+                // ونصفّر حواف الشاشة الجانبية لأن العمود لا يلمسها.
+                // الهاتف يملأ الشاشة كلها؛ الحد الأقصى للعرض للتابلت فقط.
+                final isTablet = mq.size.shortestSide >= 600;
+                final landscape = mq.size.width > mq.size.height;
+                final colW = isTablet
+                    ? math.min(mq.size.width, landscape ? 1000.0 : 600.0)
+                    : mq.size.width;
+                final narrowed = mq.size.width > colW;
+                final fitted = mq.copyWith(
+                  size: Size(colW, mq.size.height),
+                  textScaler: TextScaler.linear(scale),
+                  padding:
+                      narrowed ? mq.padding.copyWith(left: 0, right: 0) : null,
+                  viewPadding: narrowed
+                      ? mq.viewPadding.copyWith(left: 0, right: 0)
+                      : null,
+                );
+                final sideBg = HomeTokens.of(context).bg;
                 final dark = Theme.of(context).brightness == Brightness.dark;
                 final icons = dark ? Brightness.light : Brightness.dark;
                 return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -94,13 +119,19 @@ class AzkarApp extends StatelessWidget {
                     systemNavigationBarContrastEnforced: false,
                   ),
                   child: MediaQuery(
-                    data: mq.copyWith(textScaler: TextScaler.linear(scale)),
+                    data: fitted,
                     child: Directionality(
                       textDirection: TextDirection.rtl,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 600),
-                          child: child!,
+                      // خلفية تملأ الجانبين على التابلت بدل الفراغ الأسود/الأبيض.
+                      child: ColoredBox(
+                        color: sideBg,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: SizedBox(
+                            width: colW,
+                            height: mq.size.height,
+                            child: child!,
+                          ),
                         ),
                       ),
                     ),

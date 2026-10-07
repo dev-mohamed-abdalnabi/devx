@@ -79,7 +79,8 @@ class _SplashScreenState extends State<SplashScreen>
     // الشعار الأصلي كريمي (شفاف الخلفية): نلوّنه بحسب الوضع ليظهر على خلفية الرئيسية.
     final logoColor = dark ? tk.ink : const Color(0xFF08302D);
     final size = MediaQuery.of(context).size;
-    final logoW = math.min(210.0, size.shortestSide * .5);
+    final logoW =
+        math.min(210.0, math.min(size.shortestSide * .5, size.height * .3));
     final logo = _iv(.05, .6, Curves.easeOutCubic);
     final line = _iv(.5, .75);
     final verse = _iv(.6, .9);

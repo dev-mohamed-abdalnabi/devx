@@ -151,15 +151,15 @@ class _QuranHomeScreenState extends State<QuranHomeScreen> {
   }
 }
 
-const _grid = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 2,
+const _grid = SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 240,
   mainAxisSpacing: 10,
   crossAxisSpacing: 10,
   mainAxisExtent: 112,
 );
 
-const _surahGrid = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 2,
+const _surahGrid = SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 240,
   mainAxisSpacing: 10,
   crossAxisSpacing: 10,
   mainAxisExtent: 84,

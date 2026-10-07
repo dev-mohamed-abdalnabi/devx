@@ -43,7 +43,9 @@ class ZikrIcons {
   static const plane = '<path d="M21 4L3 11l7 3 3 7zM10 14L21 4"/>';
   static const store =
       '<path d="M3 9l2-5h14l2 5M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v8h14v-8M10 20v-4h4v4"/>';
-  static const medical = '<path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"/>';
+  /// شفاء: كفّان مبسوطتان للدعاء وفوقهما قلب (بدل الشكل الشبيه بالصليب).
+  static const medical =
+      '<path d="M12 10.8s-3.2-2-3.2-4.3a1.9 1.9 0 0 1 3.2-1.3 1.9 1.9 0 0 1 3.2 1.3c0 2.3-3.2 4.3-3.2 4.3z"/><path d="M3.5 14c.5 4 3.800 6.500 8.500 6.500s8-2.500 8.500-6.500M3.5 14c2.200.9 4.800 1.400 8.500 1.400s6.300-.5 8.500-1.400"/>';
   static const cloud =
       '<path d="M7 18a4 4 0 0 1-.5-7.9 5.5 5.5 0 0 1 10.6-1.1A4.5 4.5 0 0 1 17 18z"/>';
   static const storm =

@@ -273,15 +273,16 @@ class _FeatureList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
-      (Icons.menu_book_rounded, 'المصحف', 'قراءة واستماع وتفسير'),
-      (Icons.auto_awesome_rounded, 'الأذكار', 'أذكار الصباح والمساء وغيرها'),
+    const items = <(IconData?, String?, String, String)>[
+      (Icons.menu_book_rounded, null, 'المصحف', 'قراءة واستماع وتفسير'),
+      (null, HomeIcons.misbaha, 'الأذكار', 'أذكار الصباح والمساء وغيرها'),
       (
         Icons.access_time_rounded,
+        null,
         'الصلاة والقبلة',
         'مواقيت دقيقة واتجاه القبلة'
       ),
-      (Icons.touch_app_rounded, 'التسبيح', 'عدّاد بسيط يحفظ تقدّمك'),
+      (Icons.touch_app_rounded, null, 'التسبيح', 'عدّاد بسيط يحفظ تقدّمك'),
     ];
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 400),
@@ -293,15 +294,15 @@ class _FeatureList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(children: [
-                KitIcon(icon: items[i].$1, size: 44),
+                KitIcon(icon: items[i].$1, svg: items[i].$2, size: 44),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(items[i].$2,
-                          style: cairoStyle(15, weight: 700, color: tk.ink)),
                       Text(items[i].$3,
+                          style: cairoStyle(15, weight: 700, color: tk.ink)),
+                      Text(items[i].$4,
                           style: cairoStyle(12.5, color: tk.muted)),
                     ],
                   ),

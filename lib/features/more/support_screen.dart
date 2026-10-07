@@ -301,7 +301,7 @@ class _DuaCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, size: 18, color: tk.gold),
+              HomeIcon(HomeIcons.hand, size: 18, color: tk.gold),
               const SizedBox(width: 8),
               Expanded(
                 child: Text('ادعُ لنا بظهر الغيب',

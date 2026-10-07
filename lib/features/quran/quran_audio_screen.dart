@@ -138,8 +138,8 @@ class _QuranAudioScreenState extends State<QuranAudioScreen> {
                       else
                         SliverGrid(
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 240,
                             mainAxisSpacing: 10,
                             crossAxisSpacing: 10,
                             mainAxisExtent: 112,

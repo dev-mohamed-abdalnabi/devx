@@ -54,7 +54,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     } else if (provider.categories.isEmpty) {
       body = HomeEmpty(
         tk: tk,
-        icon: HomeIcons.sparkle,
+        icon: HomeIcons.misbaha,
         title: 'لا توجد أذكار متاحة حاليًا',
         message: provider.error?.toString(),
       );
@@ -126,7 +126,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 SliverToBoxAdapter(
                   child: HomeHeroCard(
                     tk: tk,
-                    icon: HomeIcons.sparkle,
+                    icon: HomeIcons.misbaha,
                     eyebrow: 'اختر بابًا للبدء',
                     title: 'حفظكم الله بذكره',
                     caption:
@@ -146,8 +146,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 )
               else
                 SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+  maxCrossAxisExtent: 240,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
                     mainAxisExtent: 112,

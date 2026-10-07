@@ -163,13 +163,15 @@ class KitCard extends StatelessWidget {
 
 /// دائرة أيقونة بخلفية نعناعية.
 class KitIcon extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? svg; // أيقونة SVG مخصّصة (من HomeIcons) بدل IconData
   final double size;
   final Color? background;
   final Color? foreground;
   const KitIcon(
       {super.key,
-      required this.icon,
+      this.icon,
+      this.svg,
       this.size = 44,
       this.background,
       this.foreground});
@@ -177,12 +179,15 @@ class KitIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
+    final fg = foreground ?? tk.mintInk;
     return Container(
       width: size,
       height: size,
       decoration:
           BoxDecoration(color: background ?? tk.mint, shape: BoxShape.circle),
-      child: Icon(icon, size: size * .5, color: foreground ?? tk.mintInk),
+      child: svg != null
+          ? Center(child: HomeIcon(svg!, size: size * .5, color: fg))
+          : Icon(icon, size: size * .5, color: fg),
     );
   }
 }

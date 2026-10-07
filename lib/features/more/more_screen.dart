@@ -38,13 +38,15 @@ class MoreScreen extends StatelessWidget {
     final tk = HomeTokens.of(context);
     final mq = MediaQuery.of(context);
 
-    Widget grid(List<_Item> items) => GridView.count(
+    Widget grid(List<_Item> items) => GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          mainAxisExtent: 84,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 240,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            mainAxisExtent: 84,
+          ),
           padding: EdgeInsets.zero,
           children: [for (final i in items) _MoreCard(tk: tk, item: i)],
         );
@@ -66,8 +68,9 @@ class MoreScreen extends StatelessWidget {
             grid([
               _Item(Icons.task_alt_rounded, 'التحديات', 'أهدافك وإنجازاتك',
                   () => _go(context, const ChallengesScreen())),
-              _Item(Icons.auto_awesome_outlined, 'الأذكار', 'حصن المسلم',
-                  () => _go(context, const CategoriesScreen())),
+              _Item(null, 'الأذكار', 'حصن المسلم',
+                  () => _go(context, const CategoriesScreen()),
+                  svg: HomeIcons.misbaha),
               _Item(Icons.touch_app_rounded, 'التسبيح', 'سبحة إلكترونية',
                   () => _go(context, const TasbeehScreen())),
               _Item(
@@ -128,10 +131,11 @@ class MoreScreen extends StatelessWidget {
 }
 
 class _Item {
-  final IconData icon;
+  final IconData? icon;
+  final String? svg; // أيقونة SVG مخصّصة بدل IconData
   final String title, subtitle;
   final VoidCallback onTap;
-  const _Item(this.icon, this.title, this.subtitle, this.onTap);
+  const _Item(this.icon, this.title, this.subtitle, this.onTap, {this.svg});
 }
 
 class _Heading extends StatelessWidget {
@@ -180,7 +184,10 @@ class _MoreCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(color: tk.mint, shape: BoxShape.circle),
-              child: Icon(item.icon, size: 21, color: tk.mintInk),
+              child: item.svg != null
+                  ? Center(
+                      child: HomeIcon(item.svg!, size: 21, color: tk.mintInk))
+                  : Icon(item.icon, size: 21, color: tk.mintInk),
             ),
             const SizedBox(width: 10),
             Expanded(

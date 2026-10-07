@@ -46,7 +46,7 @@ class AboutScreen extends StatelessWidget {
           children: [
             HomeHeroCard(
               tk: tk,
-              icon: HomeIcons.sparkle,
+              icon: HomeIcons.crescentStar,
               eyebrow: 'عبادة يومية بهدوء ووضوح',
               title: 'ذِكر',
               caption: 'الإصدار $_version',
@@ -62,17 +62,19 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             const KitSectionTitle(text: 'ماذا تجد فيه'),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              mainAxisExtent: 76,
-              padding: EdgeInsets.zero,
+            GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 240,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            mainAxisExtent: 76,
+          ),
+          padding: EdgeInsets.zero,
               children: const [
                 _Feature(
-                    icon: Icons.auto_awesome_outlined,
+                    svg: HomeIcons.misbaha,
                     title: 'الأذكار',
                     sub: 'من حصن المسلم'),
                 _Feature(
@@ -133,9 +135,11 @@ class AboutScreen extends StatelessWidget {
 }
 
 class _Feature extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? svg;
   final String title, sub;
-  const _Feature({required this.icon, required this.title, required this.sub});
+  const _Feature(
+      {this.icon, this.svg, required this.title, required this.sub});
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +149,7 @@ class _Feature extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          KitIcon(icon: icon, size: 40),
+          KitIcon(icon: icon, svg: svg, size: 40),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

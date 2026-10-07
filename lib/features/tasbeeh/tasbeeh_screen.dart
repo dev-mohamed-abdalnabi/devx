@@ -134,8 +134,10 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              children: [
+            // الشاشات القصيرة (أو الأفقي): نعطي المحتوى ارتفاعًا أدنى ويُمرَّر،
+            // بدل overflow عند ضغط منطقة العدّ.
+            child: LayoutBuilder(builder: (context, box) {
+              final top = <Widget>[
                 _Header(
                   tk: tk,
                   total: a.today.tasbeehTotal,
@@ -205,6 +207,8 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
                   ),
                 ),
 
+];
+              final cnt = <Widget>[
                 // ── منطقة العدّ: الضغط في أي مكان فيها يسبّح ──
                 Expanded(
                   child: GestureDetector(
@@ -256,6 +260,8 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
                   ),
                 ),
 
+];
+              final bottom = <Widget>[
                 // ── أزرار الإجراءات ──
                 Row(
                   children: [
@@ -327,8 +333,34 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-              ],
-            ),
+];
+              // أفقي (هاتف مقلوب أو تابلت): لوحتان — التحكم يمين والعدّاد شمال.
+              final landscape =
+                  box.maxWidth > 560 && box.maxWidth > box.maxHeight * 1.25;
+              if (landscape) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Column(children: [...top, ...bottom]),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(child: Column(children: cnt)),
+                  ],
+                );
+              }
+              // عمودي: ارتفاع أدنى ويُمرَّر على الشاشات القصيرة.
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: SizedBox(
+                  height: math.max(box.maxHeight, 560.0),
+                  child: Column(children: [...top, ...cnt, ...bottom]),
+                ),
+              );
+            }),
           ),
         ),
       ),
