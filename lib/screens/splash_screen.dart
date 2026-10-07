@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/home_tokens.dart';
 import '../core/text_utils.dart';
 import '../core/page_background.dart';
+import '../services/update_service.dart';
 import '../services/widget_sync.dart' show WidgetLinks;
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
@@ -55,6 +56,10 @@ class _SplashScreenState extends State<SplashScreen>
           FadeTransition(opacity: a, child: child),
     ));
     if (done) WidgetLinks.homeReady.value = true;
+    final navigatorContext = Navigator.of(context).context;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.checkAndShow(navigatorContext);
+    });
   }
 
   @override
