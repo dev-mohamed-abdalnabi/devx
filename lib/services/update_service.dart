@@ -80,16 +80,9 @@ class _UpdateDialog extends StatelessWidget {
   final AppRelease release;
   const _UpdateDialog({required this.release});
 
-  Future<void> _openDownload() async {
-    final apkUri = Uri.tryParse(release.apkUrl);
-    if (apkUri != null &&
-        await launchUrl(apkUri, mode: LaunchMode.externalApplication)) {
-      return;
-    }
-    final pageUri = Uri.tryParse(release.downloadPageUrl);
-    if (pageUri != null) {
-      await launchUrl(pageUri, mode: LaunchMode.externalApplication);
-    }
+  Future<void> _openDownloadPage() async {
+    final uri = Uri.tryParse(release.downloadPageUrl);
+    if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -123,7 +116,7 @@ class _UpdateDialog extends StatelessWidget {
                 child: const Text('لاحقًا')),
           FilledButton.icon(
             onPressed: () async {
-              await _openDownload();
+              await _openDownloadPage();
               if (context.mounted && !release.required) Navigator.pop(context);
             },
             icon: const Icon(Icons.download_rounded),
