@@ -6,6 +6,8 @@ import '../core/dates.dart';
 import '../core/hijri.dart';
 import '../core/prayer_times.dart';
 import '../data/cities.dart';
+import '../features/prayer/adhan_styles.dart';
+import '../services/adhan_sounds.dart';
 import 'notification_service.dart';
 
 class NextPrayer {
@@ -31,6 +33,23 @@ class PrayerProvider extends ChangeNotifier {
   bool loading = true;
   bool locating = false;
 
+  // ===== إعدادات الأذان المتقدمة =====
+  /// شكل شاشة الأذان (0..4).
+  int adhanStyle = 0;
+
+  /// معرّف صوت الأذان المختار (انظر AdhanSounds.all).
+  String adhanSoundId = AdhanSounds.defaultId;
+  String adhanSoundPath = '';
+
+  /// أين تظهر شاشة الأذان: adhanDisplayOverApps / adhanDisplayLockOnly.
+  int adhanDisplay = adhanDisplayLockOnly;
+
+  /// تذكير قبل الصلاة بعدد دقائق (0 = مغلق).
+  int preReminderMinutes = 0;
+
+  /// تقدّم تحميل الأصوات (id → 0..1).
+  final Map<String, double> downloading = {};
+
   SharedPreferences? _prefs;
   final Set<String> _done = {};
   static const _doneKey = 'prayer_done_v1';
@@ -55,6 +74,10 @@ class PrayerProvider extends ChangeNotifier {
         hanafi = (j['hanafi'] as bool?) ?? false;
         adhanEnabled = (j['adhan'] as bool?) ?? true;
         hijriAdjust = (j['hijri'] as int?) ?? 0;
+        adhanStyle = ((j['style'] as int?) ?? 0).clamp(0, 4);
+        adhanSoundId = (j['sound'] as String?) ?? AdhanSounds.defaultId;
+        adhanDisplay = (j['display'] as int?) ?? adhanDisplayLockOnly;
+        preReminderMinutes = (j['pre'] as int?) ?? 0;
         final m = j['modes'];
         if (m is Map) {
           prayerModes = {
@@ -65,6 +88,11 @@ class PrayerProvider extends ChangeNotifier {
       } catch (_) {
         await _prefs!.setString('${_key}_corrupt', raw);
       }
+    }
+    // لو الصوت المختار لم يعد موجودًا على الجهاز نرجع للأساسي.
+    adhanSoundPath = await AdhanSounds.localPath(adhanSoundId) ?? '';
+    if (!AdhanSounds.byId(adhanSoundId).bundled && adhanSoundPath.isEmpty) {
+      adhanSoundId = AdhanSounds.defaultId;
     }
     loading = false;
     if (adhanEnabled && hasLocation) await syncAdhan();
@@ -84,8 +112,16 @@ class PrayerProvider extends ChangeNotifier {
         'adhan': adhanEnabled,
         'hijri': hijriAdjust,
         'modes': prayerModes,
+        'style': adhanStyle,
+        'sound': adhanSoundId,
+        'display': adhanDisplay,
+        'pre': preReminderMinutes,
       }),
     );
+    // مفاتيح مسطّحة تقرأها الخدمة الأصلية (FlutterSharedPreferences: flutter.adhan_*).
+    await _prefs?.setInt('adhan_style', adhanStyle);
+    await _prefs?.setInt('adhan_display', adhanDisplay);
+    await _prefs?.setString('adhan_sound_path', adhanSoundPath);
   }
 
   // ===== تتبّع الصلوات (صليت / لم أصلِّ) =====
@@ -224,6 +260,63 @@ class PrayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setAdhanStyle(int v) async {
+    adhanStyle = v.clamp(0, 4);
+    notifyListeners();
+    await _save();
+  }
+
+  Future<void> setAdhanDisplay(int v) async {
+    adhanDisplay = v;
+    notifyListeners();
+    await _save();
+    if (adhanEnabled) await syncAdhan();
+  }
+
+  Future<void> setPreReminder(int minutes) async {
+    preReminderMinutes = minutes;
+    notifyListeners();
+    await _save();
+    if (adhanEnabled) await syncAdhan();
+  }
+
+  /// يختار صوتًا (لازم يكون محمَّلًا أو مدمجًا).
+  Future<bool> selectSound(String id) async {
+    final path = await AdhanSounds.localPath(id);
+    if (!AdhanSounds.byId(id).bundled && path == null) return false;
+    adhanSoundId = id;
+    adhanSoundPath = path ?? '';
+    notifyListeners();
+    await _save();
+    if (adhanEnabled) await syncAdhan();
+    return true;
+  }
+
+  /// يحمّل صوتًا؛ يعيد null عند النجاح أو رسالة الخطأ.
+  Future<String?> downloadSound(String id) async {
+    if (downloading.containsKey(id)) return null;
+    downloading[id] = 0;
+    notifyListeners();
+    try {
+      await AdhanSounds.download(id, onProgress: (v) {
+        downloading[id] = v;
+        notifyListeners();
+      });
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      downloading.remove(id);
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteSound(String id) async {
+    await AdhanSounds.delete(id);
+    if (adhanSoundId == id) await selectSound(AdhanSounds.defaultId);
+    notifyListeners();
+  }
+
   Future<bool> setAdhanEnabled(bool value) async {
     if (value) {
       if (!await NotificationService.requestPermission()) return false;
@@ -251,7 +344,14 @@ class PrayerProvider extends ChangeNotifier {
         final day = timesFor(DateTime(today.year, today.month, today.day + i));
         if (day != null) entries.addAll(day.prayers);
       }
-      await NotificationService.scheduleAdhan(entries, modes: prayerModes);
+      await NotificationService.scheduleAdhan(
+        entries,
+        modes: prayerModes,
+        style: adhanStyle,
+        display: adhanDisplay,
+        soundPath: adhanSoundPath,
+        preMinutes: preReminderMinutes,
+      );
     } catch (_) {
       // فشل الجدولة لا يجب أن يغلق التطبيق، ويمكن إعادة المحاولة عند تغيير المدينة.
     }

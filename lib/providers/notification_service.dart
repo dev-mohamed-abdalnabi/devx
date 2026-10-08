@@ -8,6 +8,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/reminder.dart';
 import '../core/prayer_times.dart';
+import '../core/text_utils.dart' show formatClock;
 import '../features/prayer/adhan_screen.dart';
 import '../widgets/support_app_button.dart';
 
@@ -315,12 +316,21 @@ class NotificationService {
         await _plugin.cancel(70000 + i);
       } catch (_) {}
     }
+    for (var i = 0; i < 42; i++) {
+      try {
+        await _plugin.cancel(_preBase + i);
+      } catch (_) {}
+    }
     if (Platform.isAndroid) await AzkariNative.cancelAdhan();
   }
 
   /// [modes]: لكل صلاة (بالمعرّف) 0 = أذان بصوت، 1 = بدون صوت، 2 = بدون تنبيه.
   static Future<void> scheduleAdhan(Iterable<PrayerEntry> entries,
-      {Map<String, int> modes = const {}}) async {
+      {Map<String, int> modes = const {},
+      int style = 0,
+      int display = 1,
+      String soundPath = '',
+      int preMinutes = 0}) async {
     final list = entries
         .where((e) =>
             e.isPrayer &&
@@ -339,6 +349,10 @@ class NotificationService {
               'id': 80000 + i,
               'time': list[i].time.millisecondsSinceEpoch,
               'name': list[i].name,
+              // إعدادات تقرؤها الخدمة الأصلية (تتجاهلها الإصدارات القديمة منها).
+              'style': style,
+              'display': display,
+              'soundPath': soundPath,
             }
       ];
       if (loud.isEmpty) return false;
@@ -378,12 +392,62 @@ class NotificationService {
 
     try {
       await run(exact: await canScheduleExact(), custom: true);
+      try {
+        await _schedulePreReminders(list, modes, preMinutes);
+      } catch (_) {}
     } catch (_) {
       // لا يجوز أن ينهار التطبيق إذا رفض الجهاز صوت الأذان أو المنبه الدقيق.
       // نعيد المحاولة بإشعار عادي وصوت النظام.
       try {
         await run(exact: false, custom: false);
       } catch (_) {}
+    }
+  }
+
+  static const _preBase = 71000;
+
+  /// تذكير قبل الصلاة (مثلًا بساعة): إشعار هادئ بدون أذان.
+  static Future<void> _schedulePreReminders(
+      List<PrayerEntry> list, Map<String, int> modes, int minutes) async {
+    if (minutes <= 0) return;
+    final exact = await canScheduleExact();
+    var index = 0;
+    for (final e in list) {
+      if (index >= 42) break;
+      final at = e.time.subtract(Duration(minutes: minutes));
+      if (!at.isAfter(DateTime.now())) continue;
+      final when = minutes == 60
+          ? 'ساعة'
+          : minutes == 30
+              ? 'نصف ساعة'
+              : '$minutes دقيقة';
+      final body =
+          'تبقّى $when على أذان ${e.name} (${formatClock(e.time)}). جهّز نفسك للصلاة.';
+      await _scheduleOne(
+        _preBase + index++,
+        'اقترب موعد صلاة ${e.name}',
+        body,
+        tz.TZDateTime.from(at, tz.local),
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'prayer_pre_v1',
+            'التذكير قبل الصلاة',
+            channelDescription: 'تنبيه هادئ قبل دخول وقت الصلاة',
+            importance: Importance.high,
+            priority: Priority.high,
+            category: AndroidNotificationCategory.reminder,
+            color: _brandColor,
+            subText: _brandName,
+            styleInformation:
+                BigTextStyleInformation(body, summaryText: _brandName),
+          ),
+        ),
+        mode: exact
+            ? AndroidScheduleMode.alarmClock
+            : AndroidScheduleMode.inexactAllowWhileIdle,
+        match: null,
+        payload: 'prayer:${e.name}',
+      );
     }
   }
 

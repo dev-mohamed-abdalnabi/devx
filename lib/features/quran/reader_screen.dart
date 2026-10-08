@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -11,9 +10,12 @@ import '../../core/text_utils.dart';
 import '../../core/theme.dart';
 import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
+import '../../providers/quran_audio_provider.dart';
 import '../../providers/quran_provider.dart';
 import '../home/home_art.dart';
+import 'ayah_marker.dart';
 import 'goto_sheet.dart';
+import 'mushaf_layout.dart';
 import 'quran_ui.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -143,6 +145,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
         act.addPage(page);
       }
     });
+  }
+
+  double get _refHeight {
+    final mq = MediaQuery.of(context);
+    return mq.size.height - mq.padding.top - mq.padding.bottom - 8;
   }
 
   HomeTokens get _tk => readerTokens(
@@ -291,23 +298,59 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         onTap: () => q.setPageMode('continuous')),
                   ]),
                   const SizedBox(height: 14),
-                  Text('حجم الخط',
-                      style: cairoStyle(12.5, weight: 700, color: tk.gold)),
-                  SliderTheme(
-                    data: SliderTheme.of(ctx).copyWith(
-                        activeTrackColor: tk.gold,
-                        inactiveTrackColor: tk.line,
-                        thumbColor: tk.gold,
-                        trackHeight: 3),
-                    child: Slider(
-                      value: q.fontSize,
-                      min: 20,
-                      max: 44,
-                      divisions: 12,
-                      label: toArabicDigits(q.fontSize.round()),
-                      onChanged: q.setFontSize,
+                  Row(children: [
+                    Text('حجم الخط',
+                        style: cairoStyle(12.5, weight: 700, color: tk.gold)),
+                    const SizedBox(width: 8),
+                    Text(
+                        q.isFitToPage
+                            ? 'ملء الصفحة'
+                            : '${toArabicDigits((q.fontScale * 100).round())}٪',
+                        style: cairoStyle(12, color: tk.muted)),
+                  ]),
+                  Row(children: [
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(ctx).copyWith(
+                            activeTrackColor: tk.gold,
+                            inactiveTrackColor: tk.line,
+                            thumbColor: tk.gold,
+                            trackHeight: 3),
+                        child: Slider(
+                          value: q.fontScale.clamp(0.8, 2.0).toDouble(),
+                          min: 0.8,
+                          max: 2.0,
+                          divisions: 12,
+                          onChanged: q.setFontScale,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    Opacity(
+                      opacity: q.isFitToPage ? .4 : 1,
+                      child: GestureDetector(
+                        onTap: q.isFitToPage ? null : q.resetFontScale,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: tk.card,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: tk.line),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.restart_alt_rounded,
+                                size: 18, color: tk.mintInk),
+                            const SizedBox(width: 4),
+                            Text('إعادة',
+                                style: cairoStyle(12.5,
+                                    weight: 600, color: tk.ink)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ]),
                   const SizedBox(height: 14),
                   Text('لون الصفحة',
                       style: cairoStyle(12.5, weight: 700, color: tk.gold)),
@@ -371,6 +414,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               tk: tk,
               flash: _flash,
               selected: _sel,
+              refHeight: _refHeight,
               onAyahTap: _onAyah,
               onAyahLong: _openAyahMenu,
               onBlankTap: _toggleChrome,
@@ -456,6 +500,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           tk: tk,
                           flash: _flash,
                           selected: _sel,
+                          refHeight: _refHeight,
                           onAyahTap: _onAyah,
                           onAyahLong: _openAyahMenu,
                           onBlankTap: _toggleChrome,
@@ -608,31 +653,15 @@ class _TrackedState extends State<_Tracked> {
   Widget build(BuildContext context) => widget.child;
 }
 
-enum _K { banner, basmala, para }
-
-class _Seg {
-  final _K kind;
-  final int surah;
-  final List<Ayah> ayahs;
-  const _Seg.banner(this.surah)
-      : kind = _K.banner,
-        ayahs = const [];
-  const _Seg.basmala()
-      : kind = _K.basmala,
-        surah = 0,
-        ayahs = const [];
-  const _Seg.para(this.ayahs)
-      : kind = _K.para,
-        surah = 0;
-}
-
-/// صفحة من المصحف بنص حر الحجم (يتحكم فيه حجم الخط من الإعدادات).
-class _MushafPage extends StatefulWidget {
+/// صفحة من المصحف: ١٥ سطرًا مضبوطة على عرض الصفحة وتظهر كاملة بدون سكرول،
+/// وعند تغيير حجم الخط من الإعدادات تصبح الصفحة قابلة للتمرير.
+class _MushafPage extends StatelessWidget {
   final QuranProvider q;
   final int page;
   final HomeTokens tk;
   final String? flash;
   final Set<String> selected;
+  final double refHeight; // الارتفاع المرجعي في وضع التمرير المستمر
   final void Function(Ayah) onAyahTap;
   final void Function(Ayah) onAyahLong;
   final VoidCallback onBlankTap;
@@ -643,164 +672,215 @@ class _MushafPage extends StatefulWidget {
     required this.tk,
     required this.flash,
     required this.selected,
+    required this.refHeight,
     required this.onAyahTap,
     required this.onAyahLong,
     required this.onBlankTap,
   });
 
-  @override
-  State<_MushafPage> createState() => _MushafPageState();
-}
+  static const double _hPad = 12, _headerH = 24, _footerH = 38;
 
-class _MushafPageState extends State<_MushafPage> {
-  final List<GestureRecognizer> _recs = [];
-
-  void _disposeRecs() {
-    for (final r in _recs) {
-      r.dispose();
+  Color? _bgOf(Ayah a) {
+    Color? bg;
+    final mark = q.markOf(a.key);
+    if (mark != null) {
+      bg = kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
     }
-    _recs.clear();
+    if (flash == a.key) bg = tk.gold.withValues(alpha: .28);
+    if (selected.contains(a.key)) bg = tk.leaf.withValues(alpha: .34);
+    return bg;
   }
 
-  @override
-  void dispose() {
-    _disposeRecs();
-    super.dispose();
-  }
-
-  TextStyle _base(double fs) => TextStyle(
+  TextStyle _base(double f) => TextStyle(
         fontFamily: AppTheme.quranFont,
-        fontSize: fs,
-        height: 1.85,
-        color: widget.tk.ink,
+        fontSize: f,
+        height: 1.0,
+        color: tk.ink,
       );
 
-  List<_Seg> _segments(List<Ayah> ayahs) {
-    final out = <_Seg>[];
-    var cur = <Ayah>[];
-    void flush() {
-      if (cur.isNotEmpty) {
-        out.add(_Seg.para(cur));
-        cur = <Ayah>[];
-      }
-    }
-
-    for (final a in ayahs) {
-      if (a.number == 1) {
-        flush();
-        out.add(_Seg.banner(a.surah));
-        if (a.surah != 1 && a.surah != 9) out.add(const _Seg.basmala());
-      }
-      cur.add(a);
-    }
-    flush();
-    return out;
+  Widget _item(MItem it, double f) {
+    final bg = _bgOf(it.ayah);
+    final selecting = selected.isNotEmpty;
+    final word = Text.rich(
+      TextSpan(children: [
+        if (it.lead > 0)
+          TextSpan(
+              text: '\u06DE ',
+              style: TextStyle(
+                  color: tk.gold, fontSize: f * (it.lead == 2 ? 1.0 : .72))),
+        TextSpan(text: it.text),
+      ]),
+      style: _base(f),
+      textDirection: TextDirection.rtl,
+      textScaler: TextScaler.noScaling,
+      softWrap: false,
+    );
+    final child = Container(
+      height: f * kLineH,
+      alignment: Alignment.center,
+      color: bg,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        word,
+        if (it.end) ...[
+          SizedBox(width: f * kMarkerGap),
+          if (it.sajda)
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: f * .1),
+              child: Text('\u06E9',
+                  textScaler: TextScaler.noScaling,
+                  style: _base(f * .8).copyWith(color: tk.gold)),
+            ),
+          AyahMarker(number: it.ayah.number, size: f * kMarkerSize, tk: tk),
+        ],
+      ]),
+    );
+    // الضغطة العادية تُظهر/تخفي الأزرار (تمرّ للصفحة)؛ المطوّلة تفتح قائمة الآية؛
+    // أثناء التحديد المتعدد تصبح الضغطة العادية لتبديل التحديد.
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: selecting ? () => onAyahTap(it.ayah) : null,
+      onLongPress: selecting ? null : () => onAyahLong(it.ayah),
+      child: child,
+    );
   }
 
-  List<InlineSpan> _spans(List<Ayah> list, double fs) {
-    final tk = widget.tk;
-    final q = widget.q;
-    final data = q.data!;
-    final selecting = widget.selected.isNotEmpty;
-    final out = <InlineSpan>[];
-    for (final a in list) {
-      final idx = q.ayahIndex(a);
-      final prevHq = idx > 0 ? data.ayahs[idx - 1].hizbQuarter : 0;
-      if (a.hizbQuarter != prevHq) {
-        final isHizb = (a.hizbQuarter - 1) % 4 == 0;
-        out.add(TextSpan(
-            text: '\u06DE ',
-            style: TextStyle(
-                color: tk.gold, fontSize: fs * (isHizb ? 1.0 : .72))));
+  Widget _line(MLine l, double f, double slotH, double w) {
+    final kids = <Widget>[];
+    for (var i = 0; i < l.items.length; i++) {
+      final it = l.items[i];
+      kids.add(_item(it, f));
+      if (i < l.items.length - 1) {
+        // المسافة بين كلمتين من نفس الآية تُلوَّن مع التظليل ليبقى متصلًا.
+        final bg = it.end ? null : _bgOf(it.ayah);
+        final gap = Container(height: f * kLineH, color: bg);
+        kids.add(l.justify
+            ? Expanded(child: gap)
+            : SizedBox(width: f * kCenterGap, child: gap));
       }
-      Color? bg;
-      final mark = q.markOf(a.key);
-      if (mark != null)
-        bg =
-            kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
-      if (widget.flash == a.key) bg = tk.gold.withValues(alpha: .28);
-      if (widget.selected.contains(a.key)) bg = tk.leaf.withValues(alpha: .34);
-      // الضغطة العادية تمرّ إلى إظهار/إخفاء الأزرار؛ الضغطة المطوّلة تفتح قائمة الآية.
-      // أثناء التحديد المتعدد تصبح الضغطة العادية لتبديل التحديد.
-      final GestureRecognizer rec;
-      if (selecting) {
-        rec = TapGestureRecognizer()..onTap = () => widget.onAyahTap(a);
-      } else {
-        rec = LongPressGestureRecognizer()
-          ..onLongPress = () => widget.onAyahLong(a);
-      }
-      _recs.add(rec);
-      out.add(TextSpan(
-        text: a.text,
-        recognizer: rec,
-        style: bg == null ? null : TextStyle(backgroundColor: bg),
-      ));
-      out.add(TextSpan(
-        text:
-            ' \uFD3F${toArabicDigits(a.number)}\uFD3E${a.sajda ? ' \u06E9' : ''} ',
-        style: TextStyle(color: tk.gold, fontSize: fs * .78),
-      ));
     }
-    return out;
+    return SizedBox(
+      height: slotH,
+      child: Center(
+        child: SizedBox(
+          width: w,
+          child: Row(
+            mainAxisAlignment:
+                l.justify ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: kids,
+          ),
+        ),
+      ),
+    );
   }
 
-  List<Widget> _content(List<_Seg> segs, double fs) {
-    final tk = widget.tk;
-    final data = widget.q.data!;
-    return [
-      for (final s in segs)
-        switch (s.kind) {
-          _K.banner => _SurahBanner(surah: s.surah, tk: tk),
-          _K.basmala => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text(data.basmala,
-                  textAlign: TextAlign.center,
+  Widget _row(MRow r, MPageLayout lay, double w) {
+    final f = lay.font, slotH = lay.slotH;
+    switch (r.kind) {
+      case MRowKind.banner:
+        return SizedBox(
+          height: slotH,
+          child: Center(
+              child: _SurahBanner(
+                  surah: r.surah, tk: tk, height: math.min(44, slotH * .84))),
+        );
+      case MRowKind.basmala:
+        return SizedBox(
+          height: slotH,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(q.data!.basmala,
                   textDirection: TextDirection.rtl,
-                  style: _base(fs * .95)),
+                  textScaler: TextScaler.noScaling,
+                  style: _base(f * 1.05)),
             ),
-          _K.para => Text.rich(
-              TextSpan(children: _spans(s.ayahs, fs), style: _base(fs)),
-              textAlign: TextAlign.justify,
-              textDirection: TextDirection.rtl,
-            ),
-        },
-    ];
+          ),
+        );
+      case MRowKind.line:
+        return _line(r.line!, f, slotH, w);
+    }
   }
+
+  Widget _header(List<Ayah> ayahs) {
+    if (ayahs.isEmpty) return const SizedBox(height: _headerH);
+    final names = <int>[];
+    for (final a in ayahs) {
+      if (!names.contains(a.surah)) names.add(a.surah);
+    }
+    final st = cairoStyle(12, weight: 600, color: tk.muted);
+    return SizedBox(
+      height: _headerH,
+      child: Row(children: [
+        Text(names.map(QuranAudioProvider.surahName).join('  '),
+            textScaler: TextScaler.noScaling, style: st),
+        const Spacer(),
+        Text('الجزء ${toArabicDigits(ayahs.first.juz)}',
+            textScaler: TextScaler.noScaling, style: st),
+      ]),
+    );
+  }
+
+  Widget _footer() => SizedBox(
+        height: _footerH,
+        child: Center(
+          child: IslamicStar(
+            size: 30,
+            color: tk.mint,
+            child: Text(toArabicDigits(page),
+                textScaler: TextScaler.noScaling,
+                style: cairoStyle(11, weight: 700, color: tk.mintInk)),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
-    _disposeRecs();
-    final tk = widget.tk;
-    final data = widget.q.data!;
-    final ayahs = data.byPage[widget.page] ?? const <Ayah>[];
-    final segs = _segments(ayahs);
-    final continuous = widget.q.pageMode == 'continuous';
-
-    final footer = Center(
-      child: IslamicStar(
-        size: 30,
-        color: tk.mint,
-        child: Text(toArabicDigits(widget.page),
-            style: cairoStyle(11, weight: 700, color: tk.mintInk)),
-      ),
-    );
-
-    final col = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ..._content(segs, widget.q.fontSize),
-        const SizedBox(height: 12),
-        footer,
-      ],
-    );
-    const pad = EdgeInsets.fromLTRB(22, 8, 22, 28);
+    final data = q.data!;
+    final ayahs = data.byPage[page] ?? const <Ayah>[];
+    final continuous = q.pageMode == 'continuous';
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onBlankTap,
-      child: continuous
-          ? Padding(padding: pad, child: col)
-          : SingleChildScrollView(padding: pad, child: col),
+      onTap: onBlankTap,
+      child: LayoutBuilder(builder: (ctx, c) {
+        final w = c.maxWidth - _hPad * 2;
+        final fullH = c.hasBoundedHeight ? c.maxHeight : refHeight;
+        final avail = math.max(120.0, fullH - _headerH - _footerH - 4);
+        final lay = layoutPage(
+          data: data,
+          page: page,
+          indexOf: q.ayahIndex,
+          width: w,
+          height: avail,
+          scale: q.fontScale,
+        );
+        final body = Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _hPad),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(ayahs),
+                for (final r in lay.rows) _row(r, lay, w),
+                if (!lay.fits) const SizedBox(height: 12),
+                _footer(),
+              ],
+            ),
+          ),
+        );
+        if (lay.fits) {
+          // صفحة كاملة بدون سكرول.
+          return SizedBox(
+              height: continuous ? fullH : null,
+              child: Align(alignment: Alignment.topCenter, child: body));
+        }
+        return continuous
+            ? body
+            : SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 16), child: body);
+      }),
     );
   }
 }
@@ -808,13 +888,14 @@ class _MushafPageState extends State<_MushafPage> {
 class _SurahBanner extends StatelessWidget {
   final int surah;
   final HomeTokens tk;
-  const _SurahBanner({required this.surah, required this.tk});
+  final double height;
+  const _SurahBanner(
+      {required this.surah, required this.tk, this.height = 44});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      height: height,
       decoration: BoxDecoration(
         color: tk.mint,
         borderRadius: BorderRadius.circular(12),
@@ -826,7 +907,8 @@ class _SurahBanner extends StatelessWidget {
           IslamicStar(size: 14, color: tk.gold),
           const SizedBox(width: 10),
           Text(surahTitle(surah),
-              style: amiriStyle(21, bold: true, color: tk.mintInk)),
+              style: amiriStyle(math.min(21, height * .5),
+                  bold: true, color: tk.mintInk)),
           const SizedBox(width: 10),
           IslamicStar(size: 14, color: tk.gold),
         ],

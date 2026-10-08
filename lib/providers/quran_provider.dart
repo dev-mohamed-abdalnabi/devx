@@ -23,7 +23,8 @@ class QuranProvider extends ChangeNotifier {
   String? lastAyahKey;
   String readerTheme = 'auto'; // auto | light | dark | sepia
   String pageMode = 'page'; // page (مصحف: صفحة بصفحة) | continuous (تمرير مستمر)
-  double fontSize = 28;
+  /// 1.0 = الصفحة كاملة على الشاشة بدون سكرول (الافتراضي). غير ذلك = تكبير/تصغير يدوي.
+  double fontScale = 1.0;
   final Set<String> bookmarks = <String>{};
   final Map<String, AyahMark> marks = <String, AyahMark>{};
   final Set<int> readPages = <int>{};
@@ -31,7 +32,7 @@ class QuranProvider extends ChangeNotifier {
   static const _kLastPage = 'quran_last_page';
   static const _kLastAyah = 'quran_last_ayah';
   static const _kTheme = 'quran_reader_theme';
-  static const _kFont = 'quran_font_size';
+  static const _kFont = 'quran_font_scale';
   static const _kBookmarks = 'quran_bookmarks';
   static const _kMarks = 'quran_marks_meta';
   static const _kMode = 'quran_page_mode';
@@ -54,7 +55,7 @@ class QuranProvider extends ChangeNotifier {
     lastAyahKey = p.getString(_kLastAyah);
     readerTheme = p.getString(_kTheme) ?? 'auto';
     pageMode = p.getString(_kMode) == 'continuous' ? 'continuous' : 'page';
-    fontSize = p.getDouble(_kFont) ?? 28;
+    fontScale = (p.getDouble(_kFont) ?? 1.0).clamp(0.8, 2.0).toDouble();
     bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
     final rawMarks = p.getString(_kMarks);
     if (rawMarks != null) {
@@ -184,11 +185,17 @@ class QuranProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setFontSize(double v) async {
-    fontSize = v;
+  bool get isFitToPage => (fontScale - 1).abs() < .005;
+
+  Future<void> setFontScale(double v) async {
+    v = (v.clamp(0.8, 2.0) * 100).round() / 100;
+    if ((v - 1).abs() < .01) v = 1.0;
+    fontScale = v;
     await _prefs?.setDouble(_kFont, v);
     notifyListeners();
   }
+
+  Future<void> resetFontScale() => setFontScale(1.0);
 
   // ───────── التفسير (الميسّر) ─────────
 

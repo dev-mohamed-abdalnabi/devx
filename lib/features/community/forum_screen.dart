@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/supabase_config.dart';
+import '../../core/home_tokens.dart';
 import '../../widgets/app_ui.dart';
 import 'account_screen.dart';
 import 'auth_screen.dart';
@@ -31,11 +32,26 @@ class _ForumScreenState extends State<ForumScreen> {
   int _loadToken = 0;
   List<Map<String, dynamic>> _posts = [];
   final _composer = TextEditingController();
+  Map<String, dynamic>? _myProfile;
 
   @override
   void initState() {
     super.initState();
     _loadFeed();
+    _loadMe();
+  }
+
+  Future<void> _loadMe() async {
+    final id = supabase.auth.currentUser?.id;
+    if (id == null) return;
+    try {
+      final r = await supabase
+          .from('profiles')
+          .select('username, full_name')
+          .eq('id', id)
+          .maybeSingle();
+      if (mounted && r != null) setState(() => _myProfile = Map.from(r));
+    } catch (_) {}
   }
 
   @override
@@ -457,7 +473,10 @@ class _ForumScreenState extends State<ForumScreen> {
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
-    return SafeArea(
+    final tk = HomeTokens.of(context);
+    return ColoredBox(
+      color: tk.bg,
+      child: SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
           if (_section == 2) return;
@@ -477,26 +496,7 @@ class _ForumScreenState extends State<ForumScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: SegmentedButton<int>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(
-                        value: 0,
-                        icon: Icon(Icons.public_rounded, size: 18),
-                        label: Text('الكل')),
-                    ButtonSegment(
-                        value: 1,
-                        icon:
-                            Icon(Icons.notifications_active_outlined, size: 18),
-                        label: Text('جرسي')),
-                    ButtonSegment(
-                        value: 2,
-                        icon: Icon(Icons.groups_rounded, size: 18),
-                        label: Text('الجروبات')),
-                  ],
-                  selected: {_section},
-                  onSelectionChanged: (s) => _changeSection(s.first),
-                ),
+                child: _Tabs(value: _section, onChanged: _changeSection),
               ),
             ),
             if (_section == 2)
@@ -510,6 +510,7 @@ class _ForumScreenState extends State<ForumScreen> {
                     onPost: _createPost,
                     loading: _posting,
                     signedIn: user != null,
+                    name: displayName(_myProfile),
                     onSignIn: () => _requireAuth(signUp: true),
                   ),
                 ),
@@ -559,6 +560,44 @@ class _ForumScreenState extends State<ForumScreen> {
           ],
         ),
       ),
+    ));
+  }
+}
+
+// ───────────────────────── مكوّنات الواجهة الجديدة ─────────────────────────
+
+const _avatarPalette = [
+  Color(0xFF2F5A2A),
+  Color(0xFFB8923A),
+  Color(0xFF3B7A6B),
+  Color(0xFF8A5A3C),
+  Color(0xFF4A6FA5),
+  Color(0xFF7A4E7E),
+];
+
+class _Avatar extends StatelessWidget {
+  final String name;
+  final double size;
+  const _Avatar({required this.name, this.size = 42});
+
+  @override
+  Widget build(BuildContext context) {
+    final seed = name.runes.fold<int>(0, (a, b) => a + b);
+    final c = _avatarPalette[seed % _avatarPalette.length];
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [c.withOpacity(.85), c],
+        ),
+      ),
+      child: Text(initialOf(name),
+          style: cairoStyle(size * .42, weight: 700, color: Colors.white)),
     );
   }
 }
@@ -577,49 +616,109 @@ class _ForumHeader extends StatelessWidget {
     required this.onRefresh,
   });
 
+  Widget _round(HomeTokens t, Widget child, VoidCallback onTap, String tip) {
+    return Tooltip(
+      message: tip,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+              color: t.card,
+              shape: BoxShape.circle,
+              border: Border.all(color: t.line)),
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final t = HomeTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Row(children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(16)),
-          child: Icon(Icons.forum_rounded, color: scheme.primary, size: 27),
-        ),
-        const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('المنتدى',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-            SizedBox(height: 3),
-            Text('كلمة طيبة، أثر جميل', style: TextStyle(fontSize: 13)),
+            Text('المنتدى', style: cairoStyle(26, weight: 700, color: t.ink)),
+            Text('كلمة طيبة، أثر جميل',
+                style: cairoStyle(12.5, color: t.muted)),
           ]),
         ),
-        IconButton(
-          tooltip: 'الإشعارات',
-          onPressed: onNotifications,
-          icon: Badge(
-            isLabelVisible: unread > 0,
-            label: Text(unread > 99 ? '99+' : '$unread'),
-            child: const Icon(Icons.notifications_none_rounded),
+        _round(
+            t,
+            Badge(
+              isLabelVisible: unread > 0,
+              label: Text(unread > 99 ? '99+' : '$unread'),
+              child: Icon(Icons.notifications_none_rounded, color: t.ink),
+            ),
+            onNotifications,
+            'الإشعارات'),
+        const SizedBox(width: 8),
+        _round(t, Icon(Icons.refresh_rounded, color: t.ink), onRefresh, 'تحديث'),
+        const SizedBox(width: 8),
+        _round(
+            t,
+            Icon(
+                user == null
+                    ? Icons.login_rounded
+                    : Icons.person_outline_rounded,
+                color: t.ink),
+            onProfile,
+            user == null ? 'دخول' : 'حسابي'),
+      ]),
+    );
+  }
+}
+
+class _Tabs extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+  const _Tabs({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = HomeTokens.of(context);
+    const items = [
+      (Icons.public_rounded, 'الكل'),
+      (Icons.notifications_active_outlined, 'جرسي'),
+      (Icons.groups_rounded, 'الجروبات'),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+          color: t.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: t.line)),
+      child: Row(children: [
+        for (var i = 0; i < items.length; i++)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                    color: value == i ? t.mint : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(items[i].$1,
+                      size: 18, color: value == i ? t.mintInk : t.muted),
+                  const SizedBox(width: 6),
+                  Text(items[i].$2,
+                      style: cairoStyle(13.5,
+                          weight: value == i ? 700 : 600,
+                          color: value == i ? t.mintInk : t.muted)),
+                ]),
+              ),
+            ),
           ),
-        ),
-        IconButton(
-            tooltip: 'تحديث',
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh_rounded)),
-        IconButton(
-            tooltip: user == null ? 'دخول' : 'حسابي',
-            onPressed: onProfile,
-            icon: Icon(user == null
-                ? Icons.login_rounded
-                : Icons.account_circle_outlined)),
       ]),
     );
   }
@@ -631,56 +730,97 @@ class _Composer extends StatelessWidget {
   final VoidCallback onSignIn;
   final bool loading;
   final bool signedIn;
+  final String name;
   const _Composer({
     required this.controller,
     required this.onPost,
     required this.loading,
     required this.signedIn,
     required this.onSignIn,
+    required this.name,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return AppCard(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 6,
-          maxLength: 5000,
-          enabled: signedIn,
-          buildCounter: (_,
-                  {required currentLength, required isFocused, maxLength}) =>
-              null,
-          decoration: InputDecoration(
-            hintText: signedIn
-                ? 'شارك ما ينفع الناس...'
-                : 'سجّل دخولك لتكتب في المنتدى',
-            filled: true,
-            fillColor: scheme.surfaceContainerHighest.withOpacity(.5),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none),
+    final t = HomeTokens.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      decoration: BoxDecoration(
+          color: t.card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: t.line)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: _Avatar(name: signedIn ? name : '؟', size: 40),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            minLines: 1,
+            maxLines: 6,
+            maxLength: 5000,
+            enabled: signedIn,
+            style: cairoStyle(14.5, color: t.ink, height: 1.6),
+            buildCounter: (_,
+                    {required currentLength, required isFocused, maxLength}) =>
+                null,
+            decoration: InputDecoration(
+              hintText: signedIn
+                  ? 'شارك ما ينفع الناس...'
+                  : 'سجّل دخولك لتكتب في المنتدى',
+              hintStyle: cairoStyle(14, color: t.muted),
+              filled: true,
+              fillColor: t.bg,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none),
+              disabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: FilledButton.icon(
-            onPressed: signedIn ? (loading ? null : onPost) : onSignIn,
-            icon: Icon(signedIn ? Icons.send_rounded : Icons.login_rounded,
-                size: 18),
-            label: Text(signedIn ? (loading ? 'ينشر...' : 'نشر') : 'دخول'),
-          ),
+        const SizedBox(width: 8),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (_, v, __) {
+            final ready = !signedIn || v.text.trim().isNotEmpty;
+            return AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: ready ? 1 : .45,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: signedIn ? (loading || !ready ? null : onPost) : onSignIn,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration:
+                      BoxDecoration(color: t.mintInk, shape: BoxShape.circle),
+                  child: loading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Icon(
+                          signedIn ? Icons.send_rounded : Icons.login_rounded,
+                          size: 19,
+                          color: Colors.white),
+                ),
+              ),
+            );
+          },
         ),
       ]),
     );
   }
 }
 
-class _PostCard extends StatelessWidget {
+class _PostCard extends StatefulWidget {
   final Map<String, dynamic> post;
   final bool isMine;
   final VoidCallback onLike;
@@ -704,32 +844,38 @@ class _PostCard extends StatelessWidget {
   });
 
   @override
+  State<_PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<_PostCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+    final t = HomeTokens.of(context);
     final profile = (post['profiles'] as Map?)?.cast<String, dynamic>() ?? {};
     final name = displayName(profile);
-    final scheme = Theme.of(context).colorScheme;
-    final muted = TextStyle(fontSize: 12, color: scheme.onSurfaceVariant);
     final liked = post['liked'] == true;
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: AppCard(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: scheme.primary.withOpacity(.5), width: 1.5)),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: scheme.primaryContainer,
-                child: Text(initialOf(name),
-                    style: TextStyle(
-                        color: scheme.primary, fontWeight: FontWeight.bold)),
-              ),
-            ),
+    final following = post['following'] == true;
+    final likes = (post['like_count'] as int?) ?? 0;
+    final comments = (post['comment_count'] as int?) ?? 0;
+    final shares = (post['share_count'] as int?) ?? 0;
+    final body = post['body']?.toString() ?? '';
+    final long = body.length > 280 || '\n'.allMatches(body).length > 6;
+    final statStyle = cairoStyle(12, weight: 600, color: t.muted);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      decoration: BoxDecoration(
+          color: t.card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: t.line)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 8, 0),
+          child: Row(children: [
+            _Avatar(name: name),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -738,33 +884,51 @@ class _PostCard extends StatelessWidget {
                     Text(name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                        style: cairoStyle(14.5, weight: 700, color: t.ink)),
                     Text(
                         '@${profile['username'] ?? 'member'} · ${timeAgo(post['created_at']?.toString())}',
-                        style: muted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: cairoStyle(11.5, color: t.muted)),
                   ]),
             ),
-            if (!isMine)
-              IconButton(
-                tooltip: post['following'] == true
-                    ? 'إيقاف إشعارات هذا الحساب'
-                    : 'فعّل الجرس لتصلك منشوراته',
-                onPressed: onFollow,
-                icon: Icon(
-                    post['following'] == true
-                        ? Icons.notifications_active_rounded
-                        : Icons.notifications_none_rounded,
-                    color: post['following'] == true ? scheme.primary : null),
+            if (!widget.isMine)
+              GestureDetector(
+                onTap: widget.onFollow,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: following ? t.mint : Colors.transparent,
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                          color: following ? t.mint : t.gold.withOpacity(.6))),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                        following
+                            ? Icons.notifications_active_rounded
+                            : Icons.notifications_none_rounded,
+                        size: 15,
+                        color: following ? t.mintInk : t.gold),
+                    const SizedBox(width: 4),
+                    Text(following ? 'مُفعّل' : 'تابع',
+                        style: cairoStyle(11.5,
+                            weight: 700,
+                            color: following ? t.mintInk : t.gold)),
+                  ]),
+                ),
               ),
             PopupMenuButton<String>(
+              icon: Icon(Icons.more_horiz_rounded, color: t.muted),
               onSelected: (v) {
                 switch (v) {
                   case 'copy':
-                    onCopy();
+                    widget.onCopy();
                   case 'report':
-                    onReport();
+                    widget.onReport();
                   case 'delete':
-                    onDelete();
+                    widget.onDelete();
                 }
               },
               itemBuilder: (_) => [
@@ -773,7 +937,7 @@ class _PostCard extends StatelessWidget {
                     child: ListTile(
                         leading: Icon(Icons.copy_rounded),
                         title: Text('نسخ النص'))),
-                if (isMine)
+                if (widget.isMine)
                   const PopupMenuItem(
                       value: 'delete',
                       child: ListTile(
@@ -788,32 +952,73 @@ class _PostCard extends StatelessWidget {
               ],
             ),
           ]),
-          const SizedBox(height: 14),
-          Text(post['body']?.toString() ?? '',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(height: 1.65)),
-          const SizedBox(height: 10),
-          Divider(height: 1, color: scheme.outlineVariant.withOpacity(.6)),
-          const SizedBox(height: 2),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(body,
+                maxLines: (long && !_expanded) ? 6 : null,
+                overflow: (long && !_expanded) ? TextOverflow.fade : null,
+                style: cairoStyle(15, color: t.ink, height: 1.75)),
+            if (long)
+              GestureDetector(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(_expanded ? 'عرض أقل' : 'عرض المزيد',
+                      style: cairoStyle(13, weight: 700, color: t.gold)),
+                ),
+              ),
+          ]),
+        ),
+        if (likes + comments + shares > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(children: [
+              if (likes > 0) ...[
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFE5484D), shape: BoxShape.circle),
+                  child: const Icon(Icons.favorite,
+                      size: 10, color: Colors.white),
+                ),
+                const SizedBox(width: 5),
+                Text('$likes', style: statStyle),
+              ],
+              const Spacer(),
+              if (comments > 0) Text('$comments تعليق', style: statStyle),
+              if (comments > 0 && shares > 0)
+                Text('  ·  ', style: statStyle),
+              if (shares > 0) Text('$shares مشاركة', style: statStyle),
+            ]),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+          child: Divider(height: 1, color: t.line),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 2, 6, 4),
+          child: Row(children: [
             _Action(
                 icon: liked ? Icons.favorite : Icons.favorite_border,
-                label: '${post['like_count'] ?? 0}',
-                active: liked,
-                onTap: onLike),
+                label: 'أعجبني',
+                color: liked ? const Color(0xFFE5484D) : t.muted,
+                onTap: widget.onLike),
             _Action(
                 icon: Icons.mode_comment_outlined,
-                label: '${post['comment_count'] ?? 0}',
-                onTap: onComment),
+                label: 'تعليق',
+                color: t.muted,
+                onTap: widget.onComment),
             _Action(
                 icon: Icons.repeat_rounded,
-                label: '${post['share_count'] ?? 0}',
-                onTap: onShare),
+                label: 'مشاركة',
+                color: t.muted,
+                onTap: widget.onShare),
           ]),
-        ]),
-      ),
+        ),
+      ]),
     );
   }
 }
@@ -821,29 +1026,29 @@ class _PostCard extends StatelessWidget {
 class _Action extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color color;
   final VoidCallback onTap;
-  final bool active;
   const _Action(
       {required this.icon,
       required this.label,
-      required this.onTap,
-      this.active = false});
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? Theme.of(context).colorScheme.error : null;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Row(children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 5),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
-        ]),
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 6),
+            Text(label,
+                style: cairoStyle(12.5, weight: 600, color: color)),
+          ]),
+        ),
       ),
     );
   }
@@ -1022,8 +1227,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 9),
               decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest.withOpacity(.6),
-                  borderRadius: BorderRadius.circular(16)),
+                  color: HomeTokens.of(context).bg,
+                  borderRadius: BorderRadius.circular(18)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
