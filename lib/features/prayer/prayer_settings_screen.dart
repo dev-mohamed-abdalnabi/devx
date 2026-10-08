@@ -67,7 +67,18 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
       await AzkariNative.requestFullScreenIntent();
     }
     final name = p.nextPrayer(DateTime.now())?.name ?? 'الظهر';
-    if (!await AzkariNative.testAdhan(name)) _toast('تعذّر تشغيل الأذان التجريبي.');
+    if (p.adhanDisplay == adhanDisplayOverApps &&
+        !await AzkariNative.canDrawOverlays()) {
+      _toast('فعّل «العرض فوق التطبيقات» ليظهر الأذان فوق أي تطبيق مفتوح.');
+      await AzkariNative.requestOverlay();
+      return;
+    }
+    if (!await AzkariNative.testAdhan(name,
+        style: p.adhanStyle,
+        display: p.adhanDisplay,
+        soundPath: p.adhanSoundPath)) {
+      _toast('تعذّر تشغيل الأذان التجريبي.');
+    }
   }
 
   void _pickMethod(PrayerProvider p) {
@@ -343,7 +354,15 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     Widget opt(int v, IconData icon, String title, String sub, {bool rec = false}) {
       final sel = p.adhanDisplay == v;
       return KitCard(
-        onTap: () => p.setAdhanDisplay(v),
+        onTap: () async {
+          if (v == adhanDisplayOverApps &&
+              Platform.isAndroid &&
+              !await AzkariNative.canDrawOverlays()) {
+            _toast('فعّل «العرض فوق التطبيقات» لتطبيق ذكر ثم ارجع.');
+            await AzkariNative.requestOverlay();
+          }
+          await p.setAdhanDisplay(v);
+        },
         borderColor: sel ? tk.gold : null,
         color: sel ? tk.mint : null,
         child: Row(

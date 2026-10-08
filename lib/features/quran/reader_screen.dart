@@ -478,8 +478,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
         body: Stack(
           children: [
             const Positioned.fill(
-                child:
-                    CustomPaint(painter: IslamicPatternPainter(opacity: .06))),
+                child: RepaintBoundary(
+                    child: CustomPaint(
+                        painter: IslamicPatternPainter(opacity: .06)))),
             Positioned.fill(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -494,7 +495,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           setState(() => _page = i + 1);
                           _onPage(i + 1);
                         },
-                        itemBuilder: (ctx, i) => _MushafPage(
+                        itemBuilder: (ctx, i) => RepaintBoundary(
+                            child: _MushafPage(
                           q: q,
                           page: i + 1,
                           tk: tk,
@@ -504,7 +506,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           onAyahTap: _onAyah,
                           onAyahLong: _openAyahMenu,
                           onBlankTap: _toggleChrome,
-                        ),
+                        )),
                       ),
               ),
             ),
@@ -678,7 +680,7 @@ class _MushafPage extends StatelessWidget {
     required this.onBlankTap,
   });
 
-  static const double _hPad = 12, _headerH = 24, _footerH = 38;
+  static const double _hPad = 8, _headerH = 24, _footerH = 38;
 
   Color? _bgOf(Ayah a) {
     Color? bg;
@@ -847,6 +849,14 @@ class _MushafPage extends StatelessWidget {
         final fullH = c.hasBoundedHeight ? c.maxHeight : refHeight;
         final avail = math.max(120.0, fullH - _headerH - _footerH - 4);
         final lay = layoutPage(
+          data: data,
+          page: page,
+          indexOf: q.ayahIndex,
+          width: w,
+          height: avail,
+          scale: q.fontScale,
+        );
+        warmNeighbors(
           data: data,
           page: page,
           indexOf: q.ayahIndex,

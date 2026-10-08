@@ -37,6 +37,9 @@ public class AdhanService extends Service {
     private AudioFocusRequest focusRequest;
     private BroadcastReceiver volumeReceiver;
     private long startedAt;
+    private int style = 0;
+    private int display = 1;
+    private String soundPath = "";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -52,9 +55,16 @@ public class AdhanService extends Service {
         String name = intent == null ? null : intent.getStringExtra(AdhanScheduler.EXTRA_NAME);
         if (name == null || name.isEmpty()) name = "الصلاة";
         boolean direct = intent != null && intent.getBooleanExtra(EXTRA_DIRECT, false);
+        if (intent != null) {
+            style = intent.getIntExtra(AdhanScheduler.EXTRA_STYLE, style);
+            display = intent.getIntExtra(AdhanScheduler.EXTRA_DISPLAY, display);
+            String sp = intent.getStringExtra(AdhanScheduler.EXTRA_SOUND);
+            if (sp != null) soundPath = sp;
+        }
         startForegroundCompat(name);
-        if (direct) {
-            // تجربة من داخل التطبيق (التطبيق ظاهر): افتح الشاشة الكاملة مباشرة.
+        // «فوق كل التطبيقات» (display == 0) أو تجربة من داخل التطبيق: افتح الشاشة الكاملة مباشرة.
+        // (يحتاج إذن «العرض فوق التطبيقات»؛ بدونه يبقى إشعار ملء الشاشة فقط.)
+        if (direct || display == 0) {
             try {
                 startActivity(activityIntent(name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (Exception ignored) {
@@ -67,6 +77,7 @@ public class AdhanService extends Service {
     private Intent activityIntent(String name) {
         Intent i = new Intent(this, AdhanActivity.class);
         i.putExtra(AdhanActivity.EXTRA_NAME, name);
+        i.putExtra(AdhanActivity.EXTRA_STYLE, style);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return i;
@@ -163,13 +174,27 @@ public class AdhanService extends Service {
             }
         } catch (Exception ignored) {
         }
-        int id = getResources().getIdentifier("adhan", "raw", getPackageName());
-        if (id == 0) {
-            stopSelf();
-            return;
+        // الصوت المحمَّل من التطبيق إن وُجد، وإلا الأذان المدمج.
+        if (soundPath != null && !soundPath.isEmpty() && new java.io.File(soundPath).exists()) {
+            try {
+                MediaPlayer mp = new MediaPlayer();
+                mp.setAudioAttributes(attrs);
+                mp.setDataSource(soundPath);
+                mp.prepare();
+                player = mp;
+            } catch (Exception e) {
+                player = null;
+            }
         }
-        int session = audio != null ? audio.generateAudioSessionId() : 0;
-        player = MediaPlayer.create(this, id, attrs, session);
+        if (player == null) {
+            int id = getResources().getIdentifier("adhan", "raw", getPackageName());
+            if (id == 0) {
+                stopSelf();
+                return;
+            }
+            int session = audio != null ? audio.generateAudioSessionId() : 0;
+            player = MediaPlayer.create(this, id, attrs, session);
+        }
         if (player == null) {
             stopSelf();
             return;

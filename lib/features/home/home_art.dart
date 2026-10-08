@@ -124,7 +124,10 @@ class IslamicPatternPainter extends CustomPainter {
       ..color = HomeTokens.patternGold.withValues(alpha: opacity);
     for (double y = 0; y < size.height; y += 44) {
       for (double x = 0; x < size.width; x += 44) {
-        canvas.drawPath(_star.shift(Offset(x, y)), paint);
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.drawPath(_star, paint);
+        canvas.restore();
       }
     }
   }

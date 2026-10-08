@@ -15,13 +15,23 @@ final class AdhanScheduler {
     private static final String PREFS = "azkari_adhan";
     private static final String KEY = "entries";
     static final String EXTRA_NAME = "name";
+    static final String EXTRA_STYLE = "style";
+    static final String EXTRA_DISPLAY = "display";
+    static final String EXTRA_SOUND = "soundPath";
 
     private AdhanScheduler() {}
 
     private static PendingIntent pending(Context ctx, int id, String name) {
+        return pending(ctx, id, name, 0, 1, "");
+    }
+
+    private static PendingIntent pending(Context ctx, int id, String name, int style, int display, String sound) {
         Intent i = new Intent(ctx, AdhanReceiver.class);
         i.setAction("com.azkar.azkari_native.ADHAN." + id);
         i.putExtra(EXTRA_NAME, name);
+        i.putExtra(EXTRA_STYLE, style);
+        i.putExtra(EXTRA_DISPLAY, display);
+        i.putExtra(EXTRA_SOUND, sound == null ? "" : sound);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
         return PendingIntent.getBroadcast(ctx, id, i, flags);
@@ -68,7 +78,8 @@ final class AdhanScheduler {
                 if (t <= now) continue;
                 int id = o.getInt("id");
                 String name = o.optString("name");
-                PendingIntent pi = pending(ctx, id, name);
+                PendingIntent pi = pending(ctx, id, name, o.optInt("style", 0), o.optInt("display", 1),
+                        o.optString("soundPath", ""));
                 try {
                     Intent show = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
                     int flags = PendingIntent.FLAG_UPDATE_CURRENT;

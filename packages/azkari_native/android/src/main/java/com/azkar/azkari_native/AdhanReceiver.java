@@ -11,6 +11,9 @@ public class AdhanReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Intent svc = new Intent(context, AdhanService.class);
         svc.putExtra(AdhanScheduler.EXTRA_NAME, intent.getStringExtra(AdhanScheduler.EXTRA_NAME));
+        svc.putExtra(AdhanScheduler.EXTRA_STYLE, intent.getIntExtra(AdhanScheduler.EXTRA_STYLE, 0));
+        svc.putExtra(AdhanScheduler.EXTRA_DISPLAY, intent.getIntExtra(AdhanScheduler.EXTRA_DISPLAY, 1));
+        svc.putExtra(AdhanScheduler.EXTRA_SOUND, intent.getStringExtra(AdhanScheduler.EXTRA_SOUND));
         try {
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(svc);
             else context.startService(svc);

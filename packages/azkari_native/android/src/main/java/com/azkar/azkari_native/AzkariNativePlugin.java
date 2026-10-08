@@ -117,6 +117,10 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
                         o.put("id", ((Number) m.get("id")).intValue());
                         o.put("time", ((Number) m.get("time")).longValue());
                         o.put("name", String.valueOf(m.get("name")));
+                        Object st = m.get("style"), di = m.get("display"), sp = m.get("soundPath");
+                        o.put("style", st instanceof Number ? ((Number) st).intValue() : 0);
+                        o.put("display", di instanceof Number ? ((Number) di).intValue() : 1);
+                        o.put("soundPath", sp == null ? "" : String.valueOf(sp));
                         arr.put(o);
                     }
                 }
@@ -174,9 +178,31 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
                 android.content.Intent svc = new android.content.Intent(context, AdhanService.class);
                 svc.putExtra(AdhanScheduler.EXTRA_NAME, name == null ? "الصلاة" : name);
                 svc.putExtra(AdhanService.EXTRA_DIRECT, true);
+                Integer st = call.argument("style"), di = call.argument("display");
+                String sp = call.argument("soundPath");
+                svc.putExtra(AdhanScheduler.EXTRA_STYLE, st == null ? 0 : st);
+                svc.putExtra(AdhanScheduler.EXTRA_DISPLAY, di == null ? 1 : di);
+                svc.putExtra(AdhanScheduler.EXTRA_SOUND, sp == null ? "" : sp);
                 if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(svc);
                 else context.startService(svc);
                 result.success(true);
+            } catch (Exception e) {
+                result.success(false);
+            }
+        } else if ("canDrawOverlays".equals(call.method)) {
+            result.success(Build.VERSION.SDK_INT < 23 || android.provider.Settings.canDrawOverlays(context));
+        } else if ("requestOverlay".equals(call.method)) {
+            try {
+                if (Build.VERSION.SDK_INT >= 23 && !android.provider.Settings.canDrawOverlays(context)) {
+                    android.content.Intent i = new android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:" + context.getPackageName()));
+                    i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(i);
+                    result.success(false);
+                } else {
+                    result.success(true);
+                }
             } catch (Exception e) {
                 result.success(false);
             }

@@ -34,8 +34,18 @@ class AzkariNative {
       _bool('scheduleAdhan', {'entries': entries});
 
   /// تجربة الأذان الآن: يفتح شاشة الأذان الكاملة ويشغّل الصوت والفيديو معًا.
-  static Future<bool> testAdhan(String name) =>
-      _bool('testAdhan', {'name': name});
+  static Future<bool> testAdhan(String name,
+          {int style = 0, int display = 1, String soundPath = ''}) =>
+      _bool('testAdhan', {
+        'name': name,
+        'style': style,
+        'display': display,
+        'soundPath': soundPath,
+      });
+
+  /// إذن «العرض فوق التطبيقات» اللازم لظهور شاشة الأذان فوق أي تطبيق مفتوح.
+  static Future<bool> canDrawOverlays() => _bool('canDrawOverlays');
+  static Future<bool> requestOverlay() => _bool('requestOverlay');
 
   /// أندرويد 14+: هل يسمح النظام بعرض الأذان بملء الشاشة فوق القفل؟
   static Future<bool> canUseFullScreenIntent() =>

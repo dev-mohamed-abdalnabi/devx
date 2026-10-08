@@ -7,13 +7,13 @@ import '../../data/quran_data.dart';
 /// كل سطر مضبوط على عرض الصفحة (توزيع المسافات بين الكلمات) مثل مصحف المدينة.
 /// اللافتة والبسملة تأخذ كل واحدة سطرًا كاملًا.
 
-const double kMarkerSize = 1.3; // قطر علامة الآية × حجم الخط
+const double kMarkerSize = 1.15; // قطر علامة الآية × حجم الخط
 const double kMarkerGap = .18; // المسافة بين الكلمة والعلامة
 const double kSajdaW = .85; // عرض علامة السجدة
-const double kMinGap = .2; // أقل مسافة بين كلمتين
-const double kCenterGap = .3; // المسافة في الأسطر القصيرة (تتوسّط)
+const double kMinGap = .14; // أقل مسافة بين كلمتين
+const double kCenterGap = .24; // المسافة في الأسطر القصيرة (تتوسّط)
 const double kSafety = .985; // هامش أمان ضد فروق القياس
-const double kLineH = 1.7; // ارتفاع السطر × حجم الخط
+const double kLineH = 1.4; // ارتفاع السطر × حجم الخط
 
 enum MRowKind { banner, basmala, line }
 
@@ -232,6 +232,39 @@ List<MLine> _toLines(List<MItem> items, List<int> ends, double f, double width) 
 }
 
 final Map<String, MPageLayout> _cache = <String, MPageLayout>{};
+final Set<String> _warming = <String>{};
+
+String _keyOf(int page, double width, double height, double scale) =>
+    '$page|${width.round()}|${height.round()}|${(scale * 100).round()}';
+
+/// يحسب ترتيب الصفحات المجاورة مسبقًا (صفحة كل ~50ms) حتى لا يحدث تقطيع وقت السحب.
+void warmNeighbors({
+  required QuranData data,
+  required int page,
+  required int Function(Ayah) indexOf,
+  required double width,
+  required double height,
+  required double scale,
+}) {
+  var delay = 0;
+  for (final p in [page + 1, page - 1, page + 2, page - 2]) {
+    if (p < 1 || p > data.pageCount) continue;
+    final key = _keyOf(p, width, height, scale);
+    if (_cache.containsKey(key) || !_warming.add(key)) continue;
+    delay += 50;
+    Future.delayed(Duration(milliseconds: delay), () {
+      _warming.remove(key);
+      if (_cache.containsKey(key)) return;
+      layoutPage(
+          data: data,
+          page: p,
+          indexOf: indexOf,
+          width: width,
+          height: height,
+          scale: scale);
+    });
+  }
+}
 
 /// يرتّب صفحة داخل [width]×[height]. [scale]==1 => صفحة كاملة بدون سكرول،
 /// غير ذلك => حجم الخط = حجم الملاءمة × [scale] والصفحة قابلة للتمرير.
@@ -243,7 +276,7 @@ MPageLayout layoutPage({
   required double height,
   required double scale,
 }) {
-  final key = '$page|${width.round()}|${height.round()}|${(scale * 100).round()}';
+  final key = _keyOf(page, width, height, scale);
   final hit = _cache[key];
   if (hit != null) return hit;
 
@@ -261,7 +294,7 @@ MPageLayout layoutPage({
 
   // أكبر خط يجعل كل النص في عدد الأسطر المتاح.
   var lo = 8.0;
-  var hi = math.max(lo, math.min(baseSlot / kLineH, width / 10));
+  var hi = math.max(lo, math.min(baseSlot / kLineH, width / 7.5));
   var overflow = false;
   double fit;
   if (total(hi) <= r) {
