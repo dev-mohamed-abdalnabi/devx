@@ -101,9 +101,9 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build release APK (ARM64)
+      - name: Build release APK (ARM64 + ARM32)
         # R8 يحذف كود Android غير المستخدم؛ ملفات المصحف تبقى Offline كما هي.
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm64 --shrink
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --shrink
 
       - name: APK size report
         run: |

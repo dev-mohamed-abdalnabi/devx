@@ -205,6 +205,33 @@ def pick_font_url():
     raise RuntimeError("لا رابط خطوط يعمل: " + " | ".join(errs))
 
 
+def compact_ttf(raw, needed):
+    """يحتفظ بجليفات الصفحة فقط ويحذف جداول hinting الثقيلة.
+
+    رموز QCF في التخطيط هي codepoints جاهزة للرسم، لذلك لا نحتاج جليفات
+    الصفحات الأخرى أو جداول التلميح التي ترفع الحجم ولا تفيد على شاشات الهاتف.
+    عند فشل الضغط نعيد الخط الأصلي بدل كسر البناء.
+    """
+    try:
+        from fontTools.ttLib import TTFont
+        from fontTools.subset import Options, Subsetter
+        font = TTFont(io.BytesIO(raw))
+        options = Options()
+        options.hinting = False
+        options.desubroutinize = True
+        options.drop_tables = ['DSIG', 'fpgm', 'prep', 'cvt ', 'feat', 'just', 'morx', 'prop']
+        subsetter = Subsetter(options=options)
+        subsetter.populate(unicodes=needed)
+        subsetter.subset(font)
+        out = io.BytesIO()
+        font.save(out)
+        compact = out.getvalue()
+        return compact if len(compact) < len(raw) else raw
+    except Exception as exc:  # noqa: BLE001
+        print(f"تنبيه: تعذر ضغط خط QCF: {exc}")
+        return raw
+
+
 def fetch_fonts(pages_rows):
     os.makedirs(FONT_DIR, exist_ok=True)
     tpl = pick_font_url()
@@ -222,12 +249,15 @@ def fetch_fonts(pages_rows):
             ttf = to_ttf(get(tpl.format(p=p)))
             with open(dst, "wb") as f:
                 f.write(ttf)
-        if TTFont is not None:  # تأكد أن الخط يغطي رموز الصفحة
-            cmap = TTFont(io.BytesIO(ttf)).getBestCmap()
+        if TTFont is not None:  # تأكد أن الخط يغطي رموز الصفحة ثم اضغطه
             need = {ord(c) for r in pages_rows[p - 1] if r[0] == "t" for w in r[1] for c in w[1]}
+            cmap = TTFont(io.BytesIO(ttf)).getBestCmap()
             miss = [c for c in need if c not in cmap]
             if miss:
                 raise RuntimeError(f"خط صفحة {p} ينقصه {len(miss)} رمزًا")
+            ttf = compact_ttf(ttf, need)
+            with open(dst, "wb") as f:
+                f.write(ttf)
         return p
 
     with cf.ThreadPoolExecutor(max_workers=6) as ex:
