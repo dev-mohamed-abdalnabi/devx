@@ -62,15 +62,14 @@ jobs:
           pip install fonttools || true
           python3 tool/subset_fonts.py || true
 
-      # مصحف المدينة (تخطيط ١٥ سطرًا + خطوط صفحات QCF): كاش مستقل.
-      # السكربت يتخطى لو البيانات سليمة، ولو فشل الجلب يكتب ملفًا فارغًا
-      # فيعمل التطبيق بالمحرك القديم بدل أن يفشل البناء.
+      # مصحف المدينة (تخطيط ١٥ سطرًا + حزمة خطوط QCF): كاش مستقل.
+      # فشل الجلب يوقف البناء حتى لا تُنتج نسخة بلا مصحف QCF.
       - name: Restore mushaf cache
         uses: actions/cache@v4
         with:
           path: |
             assets/data/mushaf.json
-            assets/qcf
+            assets/qcf_fonts.zip
           key: mushaf-${{ hashFiles('tool/fetch_mushaf.py') }}
 
       - name: Fetch Madani mushaf layout and page fonts

@@ -22,10 +22,12 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_FILE = os.path.join(ROOT, "assets", "data", "mushaf.json")
 FONT_DIR = os.path.join(ROOT, "assets", "qcf")
+FONT_BUNDLE = os.path.join(ROOT, "assets", "qcf_fonts.zip")
 PAGES = 604
 
 API_BASES = [b for b in [
@@ -232,8 +234,12 @@ def fetch_fonts(pages_rows):
 
     with cf.ThreadPoolExecutor(max_workers=6) as ex:
         list(ex.map(work, range(1, PAGES + 1)))
-    # .keep حتى يبقى المجلد أصلًا صالحًا في pubspec
-    open(os.path.join(FONT_DIR, ".keep"), "w").close()
+    # ملف واحد يقلل وقت aapt2/Gradle مقارنة بإدخال 604 أصلًا منفصلًا.
+    tmp = FONT_BUNDLE + ".tmp"
+    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for p in range(1, PAGES + 1):
+            z.write(os.path.join(FONT_DIR, f"p{pad(p)}.ttf"), f"p{pad(p)}.ttf")
+    os.replace(tmp, FONT_BUNDLE)
 
 
 # ───────────────────────── الرئيسي
@@ -243,7 +249,7 @@ def valid_existing():
         j = json.load(open(DATA_FILE, encoding="utf-8"))
         if j.get("v") != 1 or len(j.get("pages", [])) != PAGES:
             return False
-        return all(os.path.exists(os.path.join(FONT_DIR, f"p{pad(p)}.ttf")) for p in range(1, PAGES + 1))
+        return os.path.exists(FONT_BUNDLE) and os.path.getsize(FONT_BUNDLE) > 1000
     except Exception:  # noqa: BLE001
         return False
 
@@ -266,8 +272,7 @@ def main():
         os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump({"v": 1, "pages": pages}, f, ensure_ascii=False, separators=(",", ":"))
-        total = sum(os.path.getsize(os.path.join(FONT_DIR, x)) for x in os.listdir(FONT_DIR))
-        print(f"mushaf ok: {PAGES} pages, fonts {total // 1024} KB")
+        print(f"mushaf ok: {PAGES} pages, bundle {os.path.getsize(FONT_BUNDLE) // 1024} KB")
     except Exception as e:  # noqa: BLE001
         print(f"::error::تعذر جلب مصحف المدينة وخطوط QCF: {e}")
         return 1
