@@ -77,12 +77,8 @@ class QcfPageBody extends StatefulWidget {
   State<QcfPageBody> createState() => _QcfPageBodyState();
 }
 
-class _QcfPageBodyState extends State<QcfPageBody>
-    with AutomaticKeepAliveClientMixin<QcfPageBody> {
+class _QcfPageBodyState extends State<QcfPageBody> {
   bool _ready = false;
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -115,7 +111,6 @@ class _QcfPageBodyState extends State<QcfPageBody>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final w = widget.width, slotH = widget.slotH;
     if (!_ready) {
       return SizedBox(

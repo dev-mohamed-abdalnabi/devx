@@ -69,7 +69,7 @@ jobs:
         with:
           path: |
             assets/data/mushaf.json
-            assets/qcf_fonts.zip
+            assets/qcf
           key: mushaf-${{ hashFiles('tool/fetch_mushaf.py') }}
 
       - name: Fetch Madani mushaf layout and page fonts
@@ -102,7 +102,8 @@ jobs:
         run: flutter test
 
       - name: Build release APK (ARM64)
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm64 --no-shrink
+        # R8 يحذف كود Android غير المستخدم؛ ملفات المصحف تبقى Offline كما هي.
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm64 --shrink
 
       - name: APK size report
         run: |
