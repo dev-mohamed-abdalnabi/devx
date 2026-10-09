@@ -7,9 +7,24 @@ import '../features/home/home_art.dart';
 import '../features/reminders/reminders_screen.dart';
 import 'about_screen.dart';
 import 'privacy_screen.dart';
+import '../services/update_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // لا نفحص الخادم عند تشغيل التطبيق؛ الفحص مقصود فقط عند دخول الإعدادات.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) UpdateService.checkAndShow(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

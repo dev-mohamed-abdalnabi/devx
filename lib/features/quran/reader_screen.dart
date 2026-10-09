@@ -495,6 +495,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     : PageView.builder(
                         key: const ValueKey('pages'),
                         controller: _controller,
+                        allowImplicitScrolling: true,
                         itemCount: data.pageCount,
                         onPageChanged: (i) {
                           setState(() => _page = i + 1);

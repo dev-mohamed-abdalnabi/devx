@@ -36,7 +36,11 @@ _Metrics _metricsOf(int page, List<QcfRow> rows) {
     h = tp.height;
     tp.dispose();
   }
-  if (_metricsCache.length > 40) _metricsCache.clear();
+  // القياسات صغيرة مقارنة بالخطوط؛ نحتفظ بعدد أكبر من الصفحات لتفادي TextPainter
+  // متكرر عند الرجوع والتمرير بين الصفحات.
+  if (_metricsCache.length > 120) {
+    _metricsCache.remove(_metricsCache.keys.first);
+  }
   return _metricsCache[page] = _Metrics(nat, h);
 }
 
@@ -73,8 +77,12 @@ class QcfPageBody extends StatefulWidget {
   State<QcfPageBody> createState() => _QcfPageBodyState();
 }
 
-class _QcfPageBodyState extends State<QcfPageBody> {
+class _QcfPageBodyState extends State<QcfPageBody>
+    with AutomaticKeepAliveClientMixin<QcfPageBody> {
   bool _ready = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -107,6 +115,7 @@ class _QcfPageBodyState extends State<QcfPageBody> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final w = widget.width, slotH = widget.slotH;
     if (!_ready) {
       return SizedBox(

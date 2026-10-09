@@ -17,6 +17,15 @@ class CommunityRealtime {
     _resubscribe();
   }
 
+  /// يوقف الاستماع عند مغادرة المنتدى حتى لا تبقى قناة الشبكة مفتوحة في بقية التطبيق.
+  static Future<void> stop() async {
+    await _auth?.cancel();
+    _auth = null;
+    final old = _channel;
+    _channel = null;
+    if (old != null) await supabase.removeChannel(old);
+  }
+
   static Future<void> _resubscribe() async {
     final old = _channel;
     _channel = null;

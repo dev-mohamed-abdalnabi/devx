@@ -8,6 +8,7 @@ class QcfFonts {
   QcfFonts._();
   static final Map<int, Future<bool>> _loading = {};
   static final Set<int> _ready = {};
+  static final Set<int> _warming = {};
   static Future<Archive>? _bundle;
 
   static String family(int page) => 'QCF_P${page.toString().padLeft(3, '0')}';
@@ -43,11 +44,23 @@ class QcfFonts {
     }
   }
 
-  /// يحمّل الصفحات المجاورة بالتتابع بدون ازدحام.
-  static Future<void> warm(int page, {int radius = 2}) async {
+  /// يجهز الصفحات المجاورة بعد هدوء أول إطار، حتى لا ينافس الخط الحالي أثناء السحب.
+  /// نبدأ بالصفحتين الأقرب فقط بدل تحميل أربع صفحات دفعة واحدة.
+  static void warm(int page, {int radius = 1}) {
+    final targets = <int>[];
     for (var d = 1; d <= radius; d++) {
-      await load(page + d);
-      await load(page - d);
+      targets..add(page + d)..add(page - d);
     }
+    Future<void>.delayed(const Duration(milliseconds: 180), () async {
+      for (final target in targets) {
+        if (target < 1 || target > 604 ||
+            _ready.contains(target) || !_warming.add(target)) continue;
+        try {
+          await load(target);
+        } finally {
+          _warming.remove(target);
+        }
+      }
+    });
   }
 }

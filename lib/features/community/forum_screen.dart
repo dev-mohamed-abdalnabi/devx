@@ -12,6 +12,7 @@ import 'auth_screen.dart';
 import 'community_utils.dart';
 import 'groups_screen.dart';
 import 'notifications_screen.dart';
+import '../../services/community_realtime.dart';
 
 class ForumScreen extends StatefulWidget {
   const ForumScreen({super.key});
@@ -37,6 +38,8 @@ class _ForumScreenState extends State<ForumScreen> {
   @override
   void initState() {
     super.initState();
+    // اتصال المنتدى لا يبدأ مع التطبيق؛ يفتح فقط عند دخول هذه الشاشة.
+    CommunityRealtime.start();
     _loadFeed();
     _loadMe();
   }
@@ -56,6 +59,7 @@ class _ForumScreenState extends State<ForumScreen> {
 
   @override
   void dispose() {
+    CommunityRealtime.stop();
     _composer.dispose();
     super.dispose();
   }

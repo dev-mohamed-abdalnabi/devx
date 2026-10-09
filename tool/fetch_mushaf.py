@@ -236,7 +236,8 @@ def fetch_fonts(pages_rows):
         list(ex.map(work, range(1, PAGES + 1)))
     # ملف واحد يقلل وقت aapt2/Gradle مقارنة بإدخال 604 أصلًا منفصلًا.
     tmp = FONT_BUNDLE + ".tmp"
-    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+    # الخطوط تبقى TTF الأصلية تمامًا؛ نرفع ضغط الحاوية فقط لتقليل APK.
+    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for p in range(1, PAGES + 1):
             z.write(os.path.join(FONT_DIR, f"p{pad(p)}.ttf"), f"p{pad(p)}.ttf")
     os.replace(tmp, FONT_BUNDLE)
