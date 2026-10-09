@@ -46,6 +46,8 @@ flutter:
     - lib/data/azkar.json
     - assets/data/quran.json
     - assets/data/tafsir.json
+    - assets/data/mushaf.json
+    - assets/qcf/
     - assets/data/challenges.json
     - assets/brand/app_icon.png
     - assets/brand/logo_mark.png

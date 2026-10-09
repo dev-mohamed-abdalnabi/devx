@@ -8,6 +8,7 @@ import '../../core/home_tokens.dart';
 import '../../core/star_shape.dart';
 import '../../core/text_utils.dart';
 import '../../core/theme.dart';
+import '../../data/mushaf_data.dart';
 import '../../data/quran_data.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/quran_audio_provider.dart';
@@ -16,6 +17,7 @@ import '../home/home_art.dart';
 import 'ayah_marker.dart';
 import 'goto_sheet.dart';
 import 'mushaf_layout.dart';
+import 'qcf_page.dart';
 import 'quran_ui.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -246,7 +248,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final r = await showGotoSheet(context, _tk, currentPage: _page);
     if (r == null || !mounted) return;
     setState(() => _flash = r.ayahKey);
-    _goPage(r.page);
+    final k = r.ayahKey;
+    _goPage((k != null ? q.mushaf?.pageOfKey(k) : null) ?? r.page);
   }
 
   void _showSettings() {
@@ -317,10 +320,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             thumbColor: tk.gold,
                             trackHeight: 3),
                         child: Slider(
-                          value: q.fontScale.clamp(0.8, 2.0).toDouble(),
+                          value: q.fontScale
+                              .clamp(0.8, q.mushaf != null ? 1.0 : 2.0)
+                              .toDouble(),
                           min: 0.8,
-                          max: 2.0,
-                          divisions: 12,
+                          max: q.mushaf != null ? 1.0 : 2.0,
+                          divisions: q.mushaf != null ? 4 : 12,
                           onChanged: q.setFontScale,
                         ),
                       ),
@@ -682,15 +687,84 @@ class _MushafPage extends StatelessWidget {
 
   static const double _hPad = 8, _headerH = 24, _footerH = 38;
 
-  Color? _bgOf(Ayah a) {
+  Color? _bgOf(Ayah a) => _bgOfKey(a.key);
+
+  Color? _bgOfKey(String key) {
     Color? bg;
-    final mark = q.markOf(a.key);
+    final mark = q.markOf(key);
     if (mark != null) {
       bg = kMarkColors[mark.color % kMarkColors.length].withValues(alpha: .22);
     }
-    if (flash == a.key) bg = tk.gold.withValues(alpha: .28);
-    if (selected.contains(a.key)) bg = tk.leaf.withValues(alpha: .34);
+    if (flash == key) bg = tk.gold.withValues(alpha: .28);
+    if (selected.contains(key)) bg = tk.leaf.withValues(alpha: .34);
     return bg;
+  }
+
+  /// مصحف المدينة: أسطر ثابتة بخط الصفحة (QCF) بدل محرك التوزيع القديم.
+  Widget _buildQcf(MushafData mu) {
+    final data = q.data!;
+    final rows = mu.pages[page - 1];
+    final continuous = q.pageMode == 'continuous';
+    // رأس الصفحة: السور وأول جزء من واقع تخطيط المصحف نفسه.
+    final ayahs = <Ayah>[];
+    final seen = <int>{};
+    for (final r in rows) {
+      if (r.words.isEmpty) continue;
+      final a = data.ayahByKey(r.words.first.key);
+      if (a != null && seen.add(a.surah)) ayahs.add(a);
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onBlankTap,
+      child: LayoutBuilder(builder: (ctx, c) {
+        final sc = q.fontScale.clamp(0.8, 1.0).toDouble();
+        final fullH = c.hasBoundedHeight ? c.maxHeight : refHeight;
+        final w = (c.maxWidth - _hPad * 2) * sc;
+        final avail = math.max(120.0, fullH - _headerH - _footerH - 4) * sc;
+        final slotH = avail / rows.length;
+        final body = Directionality(
+          textDirection: TextDirection.rtl,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _hPad),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(ayahs),
+                Center(
+                  child: QcfPageBody(
+                    key: ValueKey('qcf$page'),
+                    page: page,
+                    rows: rows,
+                    width: w,
+                    slotH: slotH,
+                    ink: tk.ink,
+                    bgOf: _bgOfKey,
+                    selecting: selected.isNotEmpty,
+                    onTapKey: (k) {
+                      final a = data.ayahByKey(k);
+                      if (a != null) onAyahTap(a);
+                    },
+                    onLongKey: (k) {
+                      final a = data.ayahByKey(k);
+                      if (a != null) onAyahLong(a);
+                    },
+                    banner: (s, h) => _SurahBanner(surah: s, tk: tk, height: h),
+                    basmala: (f) => Text(data.basmala,
+                        textScaler: TextScaler.noScaling,
+                        style: _base(f)),
+                  ),
+                ),
+                _footer(),
+              ],
+            ),
+          ),
+        );
+        return SizedBox(
+            height: continuous ? fullH : null,
+            child: Align(alignment: Alignment.topCenter, child: body));
+      }),
+    );
   }
 
   TextStyle _base(double f) => TextStyle(
@@ -838,6 +912,8 @@ class _MushafPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = q.data!;
+    final mu = q.mushaf;
+    if (mu != null && page >= 1 && page <= mu.pages.length) return _buildQcf(mu);
     final ayahs = data.byPage[page] ?? const <Ayah>[];
     final continuous = q.pageMode == 'continuous';
 

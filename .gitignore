@@ -13,3 +13,6 @@ android/local.properties
 *.jks
 *.keystore
 key.properties
+
+# خطوط صفحات المصحف تُجلب وقت البناء (tool/fetch_mushaf.py)
+assets/qcf/*.ttf

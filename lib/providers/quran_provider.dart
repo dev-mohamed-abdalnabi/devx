@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/mushaf_data.dart';
 import '../data/quran_data.dart';
 
 /// لون (فهرس 0–4) وملاحظة اختيارية على آية محفوظة.
@@ -16,6 +17,8 @@ List<String> _parseStrings(String raw) =>
 
 class QuranProvider extends ChangeNotifier {
   QuranData? data;
+  /// تخطيط مصحف المدينة؛ null = المحرك القديم.
+  MushafData? mushaf;
   bool loading = true;
   Object? error;
 
@@ -48,6 +51,12 @@ class QuranProvider extends ChangeNotifier {
       data = await compute(parseQuran, raw);
     } catch (e) {
       error = e;
+    }
+    try {
+      final rawM = await rootBundle.loadString('assets/data/mushaf.json');
+      mushaf = await compute(parseMushaf, rawM);
+    } catch (_) {
+      mushaf = null;
     }
     _prefs = await SharedPreferences.getInstance();
     final p = _prefs!;
