@@ -91,6 +91,10 @@ def patch_gradle() -> None:
     if 'signingConfigs.getByName("release")' not in c and 'signingConfigs.release' not in c:
         print('ERROR: لم أجد سطر signingConfig داخل buildTypes.release', file=sys.stderr)
         sys.exit(1)
+    required = ('enableV1Signing = true', 'enableV2Signing = true') if kts else ('v1SigningEnabled true', 'v2SigningEnabled true')
+    if not all(item in c for item in required):
+        print('ERROR: إعدادات توقيع V1 وV2 لم تُطبّق بالكامل', file=sys.stderr)
+        sys.exit(1)
     path.write_text(c, encoding='utf-8')
     print(f'تم ربط توقيع release بالمفتاح الثابت في {path}')
 
