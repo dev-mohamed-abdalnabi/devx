@@ -269,8 +269,8 @@ def main():
         total = sum(os.path.getsize(os.path.join(FONT_DIR, x)) for x in os.listdir(FONT_DIR))
         print(f"mushaf ok: {PAGES} pages, fonts {total // 1024} KB")
     except Exception as e:  # noqa: BLE001
-        print(f"::warning::تعذر جلب مصحف المدينة، سيُستخدم المحرك القديم: {e}")
-        write_stub()
+        print(f"::error::تعذر جلب مصحف المدينة وخطوط QCF: {e}")
+        return 1
     return 0
 
 

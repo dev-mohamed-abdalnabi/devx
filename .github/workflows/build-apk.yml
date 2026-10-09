@@ -62,6 +62,22 @@ jobs:
           pip install fonttools || true
           python3 tool/subset_fonts.py || true
 
+      # مصحف المدينة (تخطيط ١٥ سطرًا + خطوط صفحات QCF): كاش مستقل.
+      # السكربت يتخطى لو البيانات سليمة، ولو فشل الجلب يكتب ملفًا فارغًا
+      # فيعمل التطبيق بالمحرك القديم بدل أن يفشل البناء.
+      - name: Restore mushaf cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            assets/data/mushaf.json
+            assets/qcf
+          key: mushaf-${{ hashFiles('tool/fetch_mushaf.py') }}
+
+      - name: Fetch Madani mushaf layout and page fonts
+        run: |
+          pip install fonttools brotli || true
+          python3 tool/fetch_mushaf.py
+
       # خطوة واحدة بدل: flutter create + desugaring + kotlin + manifest + signing
       - name: Prepare Android project
         env:
