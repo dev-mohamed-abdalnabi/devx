@@ -44,6 +44,9 @@ KTS_BLOCK = '''    signingConfigs {
             keyPassword = props.getProperty("keyPassword")
             storeFile = file(props.getProperty("storeFile"))
             storePassword = props.getProperty("storePassword")
+            // التوقيع المزدوج مطلوب للتوافق مع Android القديم والجديد.
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
@@ -57,6 +60,9 @@ GROOVY_BLOCK = '''    signingConfigs {
             keyPassword props['keyPassword']
             storeFile file(props['storeFile'])
             storePassword props['storePassword']
+            // التوقيع المزدوج مطلوب للتوافق مع Android القديم والجديد.
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
 
