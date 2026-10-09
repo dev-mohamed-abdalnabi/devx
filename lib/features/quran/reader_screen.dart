@@ -249,7 +249,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (r == null || !mounted) return;
     setState(() => _flash = r.ayahKey);
     final k = r.ayahKey;
-    _goPage((k != null ? q.mushaf?.pageOfKey(k) : null) ?? r.page);
+    _goPage((k != null ? _q.mushaf?.pageOfKey(k) : null) ?? r.page);
   }
 
   void _showSettings() {
