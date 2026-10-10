@@ -21,6 +21,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
   bool _posting = false;
   bool _isMember = false;
   bool _isAdmin = false;
+  bool _isModerator = false;
   String? _membershipStatus;
   List<Map<String, dynamic>> _pendingMembers = [];
 
@@ -49,11 +50,13 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
       if (userId != null) {
         final membership = await supabase
             .from('group_members')
-            .select('status')
+            .select('status, role')
             .eq('group_id', _groupId)
             .eq('user_id', userId)
             .maybeSingle();
         membershipStatus = membership?['status']?.toString();
+        _isModerator = membership?['status'] == 'active' &&
+            membership?['role'] == 'moderator';
         member = membership?['status'] == 'active' ||
             widget.group['owner_id'].toString() == userId;
         final profile = await supabase
@@ -75,7 +78,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
               .limit(100)
           : <Map<String, dynamic>>[];
       final isOwner = widget.group['owner_id'].toString() == userId;
-      if (isOwner || admin) {
+      if (isOwner || _isModerator) {
         final pendingRows = await supabase
             .from('group_members')
             .select('user_id, role, status, profiles!group_members_user_id_fkey(username, full_name)')
@@ -109,14 +112,15 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
 
   Future<void> _setMemberStatus(String userId, String status) async {
     final isOwner = widget.group['owner_id'].toString() == _userId;
-    if (!isOwner && !_isAdmin) {
+    if (!isOwner && !_isModerator) {
       _toast('لا تملك صلاحية مراجعة طلبات الانضمام.', error: true);
       return;
     }
     try {
-      await supabase.from('group_members').update({'status': status}).match({
-        'group_id': _groupId,
-        'user_id': userId,
+      await supabase.rpc('approve_group_membership', params: {
+        'p_group_id': _groupId,
+        'p_target_user_id': userId,
+        'p_status': status,
       });
       await _load();
       _toast(status == 'active' ? 'تمت الموافقة على طلب الانضمام.' : 'تم رفض الطلب.');
@@ -250,7 +254,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
         title: Text(name),
         actions: [
           if (widget.group['is_private'] == true &&
-              (widget.group['owner_id']?.toString() == _userId || _isAdmin))
+              (widget.group['owner_id']?.toString() == _userId || _isModerator))
             IconButton(
               tooltip: 'كود الجروب اليوم',
               onPressed: _showPrivateCode,
