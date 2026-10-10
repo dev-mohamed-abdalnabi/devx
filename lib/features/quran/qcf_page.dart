@@ -248,27 +248,26 @@ class _QcfLineState extends State<_QcfLine> {
         children: spans,
       ),
     );
+    // القياس محسوب مسبقًا في QcfPageBody؛ تجنب FittedBox هنا لأنه يعيد
+    // layout كل سطر أثناء السحب ويضاعف كلفة الانتقال بين الصفحات.
     return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: widget.selecting
-              ? (d) {
-                  final k = _keyAt(d.localPosition);
-                  if (k != null) widget.onTapKey(k);
-                }
-              : null,
-          onLongPressStart: widget.selecting
-              ? null
-              : (d) {
-                  final k = _keyAt(d.localPosition);
-                  if (k != null) widget.onLongKey(k);
-                },
-          child: text,
-        ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: widget.selecting
+            ? (d) {
+                final k = _keyAt(d.localPosition);
+                if (k != null) widget.onTapKey(k);
+              }
+            : null,
+        onLongPressStart: widget.selecting
+            ? null
+            : (d) {
+                final k = _keyAt(d.localPosition);
+                if (k != null) widget.onLongKey(k);
+              },
+        child: text,
       ),
     );
   }

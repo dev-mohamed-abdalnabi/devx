@@ -34,9 +34,12 @@ class QcfFonts {
     }
   }
 
-  /// يجهز الصفحة التالية بعد هدوء أول إطار، حتى لا ينافس الخط الحالي أثناء السحب.
+  /// يجهز الصفحة السابقة والقادمة بعد هدوء أول إطار، حتى لا يتوقف السحب في أي اتجاه.
   static void warm(int page, {int radius = 1}) {
-    final targets = [for (var d = 1; d <= radius; d++) page + d];
+    final targets = <int>[];
+    for (var d = 1; d <= radius; d++) {
+      targets..add(page - d)..add(page + d);
+    }
     Future<void>.delayed(const Duration(milliseconds: 180), () async {
       for (final target in targets) {
         if (target < 1 || target > 604 ||
