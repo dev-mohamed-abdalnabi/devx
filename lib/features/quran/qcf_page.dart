@@ -134,7 +134,7 @@ class _QcfPageBodyState extends State<QcfPageBody> {
     if (rowsOf == null) return;
     // القياسات للصفحات المجاورة تتجهز في الخلفية (بعد الخط) بدل ما تتحسب وقت الفتح.
     Future<void>.delayed(const Duration(milliseconds: 250), () async {
-      for (final t in [p + 1, p - 1, p + 2, p - 2]) {
+      for (final t in [p + 1, p - 1, p + 2, p - 2, p + 3, p - 3]) {
         final r = rowsOf(t);
         if (r == null) continue;
         await qcfPrepare(t, r);

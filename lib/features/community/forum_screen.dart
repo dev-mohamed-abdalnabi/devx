@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/supabase_config.dart';
 import '../../core/home_tokens.dart';
-import '../../widgets/app_ui.dart';
+import '../../widgets/home_style.dart';
+import '../home/home_art.dart';
 import 'account_screen.dart';
 import 'auth_screen.dart';
 import 'community_utils.dart';
@@ -334,9 +335,7 @@ class _ForumScreenState extends State<ForumScreen> {
   Future<void> _report(Map<String, dynamic> post) async {
     if (!await _requireAuth()) return;
     if (!mounted) return;
-    final reason = await showModalBottomSheet<String>(
-        context: context,
-        showDragHandle: true,
+    final reason = await showHomeSheet<String>(context,
         builder: (_) => const _ReportSheet());
     if (reason == null) return;
     try {
@@ -359,22 +358,11 @@ class _ForumScreenState extends State<ForumScreen> {
   }
 
   Future<void> _delete(Map<String, dynamic> post) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('حذف المنشور؟'),
-        content: const Text('سيُحذف المنشور وتعليقاته نهائيًا.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('حذف')),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    final ok = await _confirmDialog(context,
+        title: 'حذف المنشور؟',
+        message: 'سيُحذف المنشور وتعليقاته نهائيًا.',
+        confirmLabel: 'حذف');
+    if (!ok) return;
     try {
       await supabase.from('posts').delete().eq('id', post['id']);
       if (!mounted) return;
@@ -394,11 +382,7 @@ class _ForumScreenState extends State<ForumScreen> {
   Future<void> _openComments(Map<String, dynamic> post) async {
     if (!await _requireAuth()) return;
     if (!mounted) return;
-    await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        showDragHandle: true,
-        builder: (_) => _CommentsSheet(post: post));
+    await showHomeSheet(context, builder: (_) => _CommentsSheet(post: post));
     // عدّاد التعليقات فقط، بدون إعادة تحميل الصفحة كلها.
     try {
       final row = await supabase
@@ -414,9 +398,8 @@ class _ForumScreenState extends State<ForumScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-          content: Text(message),
-          backgroundColor: error ? Theme.of(context).colorScheme.error : null));
+      ..showSnackBar(
+          _forumSnack(HomeTokens.of(context), message, error: error));
   }
 
   Future<void> _openAccount() async {
@@ -438,38 +421,45 @@ class _ForumScreenState extends State<ForumScreen> {
 
   // ───────────────────────── الواجهة ─────────────────────────
 
-  Widget _emptyForSection() {
+  Widget _emptyForSection(HomeTokens tk) {
     if (_section == 1 && supabase.auth.currentUser == null) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
+          padding: const EdgeInsets.symmetric(vertical: 24),
           child: Column(children: [
-            const AppEmptyState(
-                icon: Icons.person_add_alt_1_outlined,
+            HomeEmpty(
+                tk: tk,
+                icon: _Ic.bell,
                 title: 'تابع من تهتم بكلامهم',
                 message: 'سجّل دخولك لترى منشورات من تتابعهم هنا.'),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-                onPressed: () => _requireAuth(signUp: true),
-                icon: const Icon(Icons.login_rounded),
-                label: const Text('دخول')),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: 200,
+              child: HomeButton(
+                  tk: tk,
+                  label: 'دخول',
+                  primary: true,
+                  onTap: () => _requireAuth(signUp: true)),
+            ),
           ]),
         ),
       );
     }
     if (_section == 1) {
-      return const SliverFillRemaining(
+      return SliverFillRemaining(
           hasScrollBody: false,
-          child: AppEmptyState(
-              icon: Icons.people_outline,
+          child: HomeEmpty(
+              tk: tk,
+              icon: _Ic.bell,
               title: 'لا توجد منشورات من حسابات الجرس',
               message:
-                  'فعّل الجرس 🔔 على أي عضو من تبويب «الكل» لتظهر منشوراته هنا وتصلك إشعارات بها.'));
+                  'فعّل الجرس على أي عضو من تبويب «الكل» لتظهر منشوراته هنا وتصلك إشعارات بها.'));
     }
-    return const SliverFillRemaining(
+    return SliverFillRemaining(
         hasScrollBody: false,
-        child: AppEmptyState(
-            icon: Icons.forum_outlined,
+        child: HomeEmpty(
+            tk: tk,
+            icon: HomeIcons.forum,
             title: 'المنتدى ينتظر كلمتك',
             message: 'كن أول من يشارك فكرة طيبة أو فائدة نافعة.'));
   }
@@ -478,107 +468,129 @@ class _ForumScreenState extends State<ForumScreen> {
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
     final tk = HomeTokens.of(context);
-    return ColoredBox(
-      color: tk.bg,
+    final mq = MediaQuery.of(context);
+    // بدون خلفية خاصة: النقش والخلفية يأتيان من PatternedBackground تحت التابات.
+    return MediaQuery(
+      data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
       child: SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () async {
-          if (_section == 2) return;
-          await _loadFeed(silent: true);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-                child: _ForumHeader(
-              user: user,
-              unread: _unread,
-              onProfile: _openAccount,
-              onNotifications: _openNotifications,
-              onRefresh: () => _loadFeed(),
-            )),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: _Tabs(value: _section, onChanged: _changeSection),
-              ),
-            ),
-            if (_section == 2)
-              const SliverFillRemaining(child: GroupsScreen())
-            else ...[
+        bottom: false,
+        child: RefreshIndicator(
+          color: tk.gold,
+          backgroundColor: tk.card,
+          onRefresh: () async {
+            if (_section == 2) return;
+            await _loadFeed(silent: true);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                  child: _ForumHeader(
+                user: user,
+                unread: _unread,
+                onProfile: _openAccount,
+                onNotifications: _openNotifications,
+                onRefresh: () => _loadFeed(),
+              )),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-                  child: _Composer(
-                    controller: _composer,
-                    onPost: _createPost,
-                    loading: _posting,
-                    signedIn: user != null,
-                    name: displayName(_myProfile),
-                    onSignIn: () => _requireAuth(signUp: true),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                  child: _Tabs(value: _section, onChanged: _changeSection),
                 ),
               ),
-              if (_loading)
-                const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(child: CircularProgressIndicator()))
-              else if (_posts.isEmpty)
-                _emptyForSection()
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                  sliver: SliverList.builder(
-                    itemCount: _posts.length + (_hasMore ? 1 : 0),
-                    itemBuilder: (_, i) {
-                      if (i == _posts.length) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 14),
-                          child: Center(
-                            child: _loadingMore
-                                ? const CircularProgressIndicator()
-                                : OutlinedButton.icon(
-                                    onPressed: _loadMore,
-                                    icon: const Icon(Icons.expand_more_rounded),
-                                    label: const Text('تحميل المزيد')),
-                          ),
-                        );
-                      }
-                      final post = _posts[i];
-                      return _PostCard(
-                        key: ValueKey(post['id']),
-                        post: post,
-                        isMine: post['author_id'] == user?.id,
-                        onLike: () => _toggleLike(post),
-                        onComment: () => _openComments(post),
-                        onShare: () => _share(post),
-                        onReport: () => _report(post),
-                        onFollow: () => _toggleFollow(post),
-                        onDelete: () => _delete(post),
-                        onCopy: () => _copy(post),
-                      );
-                    },
+              if (_section == 2)
+                const SliverFillRemaining(child: GroupsScreen())
+              else ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+                    child: _Composer(
+                      controller: _composer,
+                      onPost: _createPost,
+                      loading: _posting,
+                      signedIn: user != null,
+                      name: displayName(_myProfile),
+                      onSignIn: () => _requireAuth(signUp: true),
+                    ),
                   ),
                 ),
+                if (_loading)
+                  SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: tk.gold)))
+                else if (_posts.isEmpty)
+                  _emptyForSection(tk)
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 28),
+                    sliver: SliverList.builder(
+                      itemCount: _posts.length + (_hasMore ? 1 : 0),
+                      itemBuilder: (_, i) {
+                        if (i == _posts.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: Center(
+                              child: _loadingMore
+                                  ? CircularProgressIndicator(
+                                      strokeWidth: 2.5, color: tk.gold)
+                                  : SizedBox(
+                                      width: 200,
+                                      child: HomeButton(
+                                          tk: tk,
+                                          label: 'تحميل المزيد',
+                                          onTap: _loadMore)),
+                            ),
+                          );
+                        }
+                        final post = _posts[i];
+                        return _PostCard(
+                          key: ValueKey(post['id']),
+                          post: post,
+                          isMine: post['author_id'] == user?.id,
+                          onLike: () => _toggleLike(post),
+                          onComment: () => _openComments(post),
+                          onShare: () => _share(post),
+                          onReport: () => _report(post),
+                          onFollow: () => _toggleFollow(post),
+                          onDelete: () => _delete(post),
+                          onCopy: () => _copy(post),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }
 
-// ───────────────────────── مكوّنات الواجهة الجديدة ─────────────────────────
+// ───────────────────────── أيقونات إضافية (نفس أسلوب أيقونات الرئيسية) ─────────────────────────
 
-const _avatarPalette = [
-  Color(0xFF2F5A2A),
-  Color(0xFFB8923A),
-  Color(0xFF3B7A6B),
-  Color(0xFF8A5A3C),
-  Color(0xFF4A6FA5),
-  Color(0xFF7A4E7E),
-];
+class _Ic {
+  _Ic._();
+  static const bell =
+      '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4"/>';
+  static const login = '<path d="M14 4h5v16h-5M10 8l4 4-4 4M14 12H4"/>';
+  static const send = '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>';
+  static const globe =
+      '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>';
+  static const users =
+      '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .6 3.5 2.2 3.5 5"/>';
+  static const trash =
+      '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>';
+  static const flag = '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>';
+}
 
+const _heartRed = Color(0xFFE5484D);
+
+// ───────────────────────── مكوّنات الواجهة ─────────────────────────
+
+/// أفاتار نعناعي بحدّ ذهبي رفيع (بدل التدرّجات الملوّنة).
 class _Avatar extends StatelessWidget {
   final String name;
   final double size;
@@ -586,22 +598,18 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seed = name.runes.fold<int>(0, (a, b) => a + b);
-    final c = _avatarPalette[seed % _avatarPalette.length];
+    final t = HomeTokens.of(context);
     return Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
+        color: t.mint,
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [c.withOpacity(.85), c],
-        ),
+        border: Border.all(color: t.gold.withValues(alpha: .55)),
       ),
       child: Text(initialOf(name),
-          style: cairoStyle(size * .42, weight: 700, color: Colors.white)),
+          style: cairoStyle(size * .42, weight: 700, color: t.mintInk)),
     );
   }
 }
@@ -620,65 +628,41 @@ class _ForumHeader extends StatelessWidget {
     required this.onRefresh,
   });
 
-  Widget _round(HomeTokens t, Widget child, VoidCallback onTap, String tip) {
-    return Tooltip(
-      message: tip,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-              color: t.card,
-              shape: BoxShape.circle,
-              border: Border.all(color: t.line)),
-          child: Center(child: child),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = HomeTokens.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Row(children: [
-        Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('المنتدى', style: cairoStyle(26, weight: 700, color: t.ink)),
-            Text('كلمة طيبة، أثر جميل',
-                style: cairoStyle(12.5, color: t.muted)),
-          ]),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        PageHeader(title: 'المنتدى', actions: [
+          Badge(
+            isLabelVisible: unread > 0,
+            backgroundColor: t.gold,
+            textColor: Colors.white,
+            label: Text(unread > 99 ? '99+' : '$unread'),
+            child: HeaderButton(
+                icon: _Ic.bell,
+                label: 'الإشعارات',
+                onTap: onNotifications),
+          ),
+          HeaderButton(
+              icon: ZikrIcons.refresh, label: 'تحديث', onTap: onRefresh),
+          HeaderButton(
+              icon: user == null ? _Ic.login : ZikrIcons.child,
+              label: user == null ? 'دخول' : 'حسابي',
+              onTap: onProfile),
+        ]),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 0, 2, 12),
+          child: Text('كلمة طيبة، أثر جميل',
+              style: cairoStyle(13.5, color: t.muted)),
         ),
-        _round(
-            t,
-            Badge(
-              isLabelVisible: unread > 0,
-              label: Text(unread > 99 ? '99+' : '$unread'),
-              child: Icon(Icons.notifications_none_rounded, color: t.ink),
-            ),
-            onNotifications,
-            'الإشعارات'),
-        const SizedBox(width: 8),
-        _round(t, Icon(Icons.refresh_rounded, color: t.ink), onRefresh, 'تحديث'),
-        const SizedBox(width: 8),
-        _round(
-            t,
-            Icon(
-                user == null
-                    ? Icons.login_rounded
-                    : Icons.person_outline_rounded,
-                color: t.ink),
-            onProfile,
-            user == null ? 'دخول' : 'حسابي'),
       ]),
     );
   }
 }
 
+/// تبويبات بشكل شرائح الرئيسية (HomeChip) بعرض متساوٍ.
 class _Tabs extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
@@ -687,44 +671,19 @@ class _Tabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = HomeTokens.of(context);
-    const items = [
-      (Icons.public_rounded, 'الكل'),
-      (Icons.notifications_active_outlined, 'جرسي'),
-      (Icons.groups_rounded, 'الجروبات'),
-    ];
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-          color: t.card,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: t.line)),
-      child: Row(children: [
-        for (var i = 0; i < items.length; i++)
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onChanged(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                    color: value == i ? t.mint : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(items[i].$1,
-                      size: 18, color: value == i ? t.mintInk : t.muted),
-                  const SizedBox(width: 6),
-                  Text(items[i].$2,
-                      style: cairoStyle(13.5,
-                          weight: value == i ? 700 : 600,
-                          color: value == i ? t.mintInk : t.muted)),
-                ]),
-              ),
-            ),
-          ),
-      ]),
-    );
+    const labels = ['الكل', 'جرسي', 'الجروبات'];
+    return Row(children: [
+      for (var i = 0; i < labels.length; i++) ...[
+        if (i > 0) const SizedBox(width: 8),
+        Expanded(
+          child: HomeChip(
+              tk: t,
+              label: labels[i],
+              selected: value == i,
+              onTap: () => onChanged(i)),
+        ),
+      ],
+    ]);
   }
 }
 
@@ -751,12 +710,12 @@ class _Composer extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
       decoration: BoxDecoration(
           color: t.card,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: t.line)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 2),
-          child: _Avatar(name: signedIn ? name : '؟', size: 40),
+          child: _Avatar(name: signedIn ? name : '؟', size: 38),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -766,6 +725,7 @@ class _Composer extends StatelessWidget {
             maxLines: 6,
             maxLength: 5000,
             enabled: signedIn,
+            cursorColor: t.gold,
             style: cairoStyle(14.5, color: t.ink, height: 1.6),
             buildCounter: (_,
                     {required currentLength, required isFocused, maxLength}) =>
@@ -781,10 +741,16 @@ class _Composer extends StatelessWidget {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: t.gold.withValues(alpha: .7))),
               disabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none),
             ),
           ),
@@ -797,23 +763,24 @@ class _Composer extends StatelessWidget {
             return AnimatedOpacity(
               duration: const Duration(milliseconds: 180),
               opacity: ready ? 1 : .45,
-              child: InkWell(
-                customBorder: const CircleBorder(),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: signedIn ? (loading || !ready ? null : onPost) : onSignIn,
                 child: Container(
                   width: 42,
                   height: 42,
-                  decoration:
-                      BoxDecoration(color: t.mintInk, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                      color: t.mint,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.leaf)),
                   child: loading
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
+                      ? Padding(
+                          padding: const EdgeInsets.all(12),
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Icon(
-                          signedIn ? Icons.send_rounded : Icons.login_rounded,
-                          size: 19,
-                          color: Colors.white),
+                              strokeWidth: 2, color: t.mintInk))
+                      : Center(
+                          child: StyledIcon(signedIn ? _Ic.send : _Ic.login,
+                              size: 19, color: t.mintInk)),
                 ),
               ),
             );
@@ -854,6 +821,42 @@ class _PostCard extends StatefulWidget {
 class _PostCardState extends State<_PostCard> {
   bool _expanded = false;
 
+  void _menu() {
+    final t = HomeTokens.of(context);
+    showHomeSheet(
+      context,
+      builder: (ctx) => Column(children: [
+        HomeSheetRow(
+            tk: t,
+            icon: ZikrIcons.copy,
+            label: 'نسخ النص',
+            onTap: () {
+              Navigator.pop(ctx);
+              widget.onCopy();
+            }),
+        if (widget.isMine)
+          HomeSheetRow(
+              tk: t,
+              icon: _Ic.trash,
+              iconColor: _heartRed,
+              label: 'حذف المنشور',
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onDelete();
+              })
+        else
+          HomeSheetRow(
+              tk: t,
+              icon: _Ic.flag,
+              label: 'إبلاغ عن المنشور',
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onReport();
+              }),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -870,14 +873,14 @@ class _PostCardState extends State<_PostCard> {
     final statStyle = cairoStyle(12, weight: 600, color: t.muted);
 
     return Container(
-      margin: const EdgeInsets.only(top: 12),
+      margin: const EdgeInsets.only(top: 10),
       decoration: BoxDecoration(
           color: t.card,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: t.line)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 8, 0),
+          padding: const EdgeInsets.fromLTRB(14, 12, 6, 0),
           child: Row(children: [
             _Avatar(name: name),
             const SizedBox(width: 10),
@@ -898,23 +901,24 @@ class _PostCardState extends State<_PostCard> {
             ),
             if (!widget.isMine)
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: widget.onFollow,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: 150),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                       color: following ? t.mint : Colors.transparent,
                       borderRadius: BorderRadius.circular(99),
                       border: Border.all(
-                          color: following ? t.mint : t.gold.withOpacity(.6))),
+                          color: following
+                              ? t.gold
+                              : t.gold.withValues(alpha: .55))),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(
-                        following
-                            ? Icons.notifications_active_rounded
-                            : Icons.notifications_none_rounded,
-                        size: 15,
-                        color: following ? t.mintInk : t.gold),
+                    StyledIcon(_Ic.bell,
+                        size: 14,
+                        color: following ? t.mintInk : t.gold,
+                        fill: following ? t.mintInk : null),
                     const SizedBox(width: 4),
                     Text(following ? 'مُفعّل' : 'تابع',
                         style: cairoStyle(11.5,
@@ -923,42 +927,20 @@ class _PostCardState extends State<_PostCard> {
                   ]),
                 ),
               ),
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_horiz_rounded, color: t.muted),
-              onSelected: (v) {
-                switch (v) {
-                  case 'copy':
-                    widget.onCopy();
-                  case 'report':
-                    widget.onReport();
-                  case 'delete':
-                    widget.onDelete();
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                    value: 'copy',
-                    child: ListTile(
-                        leading: Icon(Icons.copy_rounded),
-                        title: Text('نسخ النص'))),
-                if (widget.isMine)
-                  const PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                          leading: Icon(Icons.delete_outline_rounded),
-                          title: Text('حذف المنشور')))
-                else
-                  const PopupMenuItem(
-                      value: 'report',
-                      child: ListTile(
-                          leading: Icon(Icons.flag_outlined),
-                          title: Text('إبلاغ عن المنشور'))),
-              ],
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _menu,
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                    child: StyledIcon(ZikrIcons.dots, size: 20, color: t.muted)),
+              ),
             ),
           ]),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(body,
@@ -967,6 +949,7 @@ class _PostCardState extends State<_PostCard> {
                 style: cairoStyle(15, color: t.ink, height: 1.75)),
             if (long)
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -982,41 +965,43 @@ class _PostCardState extends State<_PostCard> {
             child: Row(children: [
               if (likes > 0) ...[
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  width: 18,
+                  height: 18,
                   decoration: const BoxDecoration(
-                      color: Color(0xFFE5484D), shape: BoxShape.circle),
-                  child: const Icon(Icons.favorite,
-                      size: 10, color: Colors.white),
+                      color: _heartRed, shape: BoxShape.circle),
+                  child: const Center(
+                      child: StyledIcon(HomeIcons.heart,
+                          size: 10, color: Colors.white, fill: Colors.white)),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 6),
                 Text('$likes', style: statStyle),
               ],
               const Spacer(),
               if (comments > 0) Text('$comments تعليق', style: statStyle),
-              if (comments > 0 && shares > 0)
-                Text('  ·  ', style: statStyle),
+              if (comments > 0 && shares > 0) Text('  ·  ', style: statStyle),
               if (shares > 0) Text('$shares مشاركة', style: statStyle),
             ]),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
           child: Divider(height: 1, color: t.line),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(6, 2, 6, 4),
           child: Row(children: [
             _Action(
-                icon: liked ? Icons.favorite : Icons.favorite_border,
+                icon: HomeIcons.heart,
+                fill: liked ? _heartRed : null,
                 label: 'أعجبني',
-                color: liked ? const Color(0xFFE5484D) : t.muted,
+                color: liked ? _heartRed : t.muted,
                 onTap: widget.onLike),
             _Action(
-                icon: Icons.mode_comment_outlined,
+                icon: HomeIcons.forum,
                 label: 'تعليق',
                 color: t.muted,
                 onTap: widget.onComment),
             _Action(
-                icon: Icons.repeat_rounded,
+                icon: ZikrIcons.share,
                 label: 'مشاركة',
                 color: t.muted,
                 onTap: widget.onShare),
@@ -1028,12 +1013,14 @@ class _PostCardState extends State<_PostCard> {
 }
 
 class _Action extends StatelessWidget {
-  final IconData icon;
+  final String icon;
+  final Color? fill;
   final String label;
   final Color color;
   final VoidCallback onTap;
   const _Action(
       {required this.icon,
+      this.fill,
       required this.label,
       required this.color,
       required this.onTap});
@@ -1047,15 +1034,60 @@ class _Action extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, size: 20, color: color),
+            StyledIcon(icon, size: 19, color: color, fill: fill),
             const SizedBox(width: 6),
-            Text(label,
-                style: cairoStyle(12.5, weight: 600, color: color)),
+            Text(label, style: cairoStyle(12.5, weight: 600, color: color)),
           ]),
         ),
       ),
     );
   }
+}
+
+/// حوار تأكيد بنفس لغة الكروت (بدل AlertDialog الافتراضي).
+Future<bool> _confirmDialog(BuildContext context,
+    {required String title,
+    required String message,
+    required String confirmLabel}) async {
+  final t = HomeTokens.of(context);
+  final r = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: t.card,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: t.line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(title, style: cairoStyle(16.5, weight: 700, color: t.ink)),
+          const SizedBox(height: 6),
+          Text(message,
+              textAlign: TextAlign.center,
+              style: cairoStyle(13, color: t.muted, height: 1.6)),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(
+                child: HomeButton(
+                    tk: t,
+                    label: 'إلغاء',
+                    onTap: () => Navigator.pop(ctx, false))),
+            const SizedBox(width: 10),
+            Expanded(
+                child: HomeButton(
+                    tk: t,
+                    label: confirmLabel,
+                    primary: true,
+                    onTap: () => Navigator.pop(ctx, true))),
+          ]),
+        ]),
+      ),
+    ),
+  );
+  return r == true;
 }
 
 class _CommentsSheet extends StatefulWidget {
@@ -1199,31 +1231,25 @@ class _CommentsSheetState extends State<_CommentsSheet> {
 
   void _snack(String text) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      final t = HomeTokens.of(context);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(_forumSnack(t, text, error: true));
     }
   }
 
   Widget _tile(Map<String, dynamic> c, {required bool isReply}) {
     final me = supabase.auth.currentUser?.id;
-    final scheme = Theme.of(context).colorScheme;
+    final t = HomeTokens.of(context);
     final p = (c['profiles'] as Map?)?.cast<String, dynamic>() ?? {};
     final name = displayName(p);
     final liked = _liked.contains(c['id'].toString());
     final likes = (c['like_count'] ?? 0) as int;
-    final small = TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: scheme.onSurfaceVariant);
+    final small = cairoStyle(12, weight: 700, color: t.muted);
     return Padding(
-      padding: EdgeInsets.only(top: 10, right: isReply ? 0 : 0, left: 0),
+      padding: const EdgeInsets.only(top: 10),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CircleAvatar(
-          radius: isReply ? 14 : 18,
-          backgroundColor: scheme.primaryContainer,
-          child: Text(initialOf(name),
-              style: TextStyle(
-                  fontSize: isReply ? 11 : 14, color: scheme.primary)),
-        ),
+        _Avatar(name: name, size: isReply ? 28 : 36),
         const SizedBox(width: 8),
         Expanded(
           child:
@@ -1231,38 +1257,40 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 9),
               decoration: BoxDecoration(
-                  color: HomeTokens.of(context).bg,
-                  borderRadius: BorderRadius.circular(18)),
+                  color: t.bg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: t.line)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 13)),
+                        style: cairoStyle(13, weight: 700, color: t.ink)),
                     const SizedBox(height: 2),
                     Text(c['body']?.toString() ?? '',
-                        style: const TextStyle(height: 1.5)),
+                        style: cairoStyle(14, color: t.ink, height: 1.55)),
                   ]),
             ),
             Padding(
-              padding: const EdgeInsets.only(top: 3, right: 6, left: 6),
+              padding: const EdgeInsets.only(top: 4, right: 6, left: 6),
               child: Row(children: [
                 Text(timeAgo(c['created_at']?.toString()),
-                    style: TextStyle(
-                        fontSize: 11, color: scheme.onSurfaceVariant)),
+                    style: cairoStyle(11, color: t.muted)),
                 const SizedBox(width: 14),
-                InkWell(
+                GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => _toggleLike(c),
                     child: Text(likes > 0 ? 'أعجبني · $likes' : 'أعجبني',
                         style: small.copyWith(
-                            color: liked ? scheme.error : null))),
+                            color: liked ? _heartRed : t.muted))),
                 const SizedBox(width: 14),
-                InkWell(
+                GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => _startReply(c),
                     child: Text('رد', style: small)),
                 if (c['author_id'] == me) ...[
                   const SizedBox(width: 14),
-                  InkWell(
+                  GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => _deleteComment(c),
                       child: Text('حذف', style: small)),
                 ],
@@ -1278,7 +1306,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final screen = MediaQuery.sizeOf(context).height;
-    final scheme = Theme.of(context).colorScheme;
+    final t = HomeTokens.of(context);
     final roots = _comments.where((c) => c['parent_id'] == null).toList();
     final replies = <String, List<Map<String, dynamic>>>{};
     for (final c in _comments) {
@@ -1288,113 +1316,131 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     return Padding(
       // يرفع حقل التعليق فوق الكيبورد بدل ما يختفي خلفه
       padding: EdgeInsets.only(bottom: bottom),
-      child: SafeArea(
-        child: SizedBox(
-          height: math.min(screen * .78, screen - bottom - 90),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Column(children: [
-              Text('التعليقات (${_comments.length})',
-                  style: const TextStyle(
-                      fontSize: 19, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : roots.isEmpty
-                        ? const AppEmptyState(
-                            icon: Icons.chat_bubble_outline,
-                            title: 'لا توجد تعليقات بعد',
-                            message: 'ابدأ نقاشًا نافعًا ومحترمًا.')
-                        : ListView.builder(
-                            itemCount: roots.length,
-                            itemBuilder: (_, i) {
-                              final c = roots[i];
-                              final kids = replies[c['id'].toString()] ?? [];
-                              return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _tile(c, isReply: false),
-                                    if (kids.isNotEmpty)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsetsDirectional.only(
-                                                start: 34),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                              border: BorderDirectional(
-                                                  start: BorderSide(
-                                                      color:
-                                                          scheme.outlineVariant,
-                                                      width: 2))),
-                                          padding:
-                                              const EdgeInsetsDirectional.only(
-                                                  start: 8),
-                                          child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                for (final r in kids)
-                                                  _tile(r, isReply: true),
-                                              ]),
-                                        ),
-                                      ),
-                                  ]);
-                            }),
-              ),
-              if (_replyTo != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withOpacity(.5),
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    Expanded(
-                        child: Text('رد على ${_replyTo!['reply_name']}',
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w700))),
-                    InkWell(
-                        onTap: () => setState(() => _replyTo = null),
-                        child: const Icon(Icons.close_rounded, size: 18)),
-                  ]),
-                ),
-              const SizedBox(height: 6),
-              Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focus,
-                    minLines: 1,
-                    maxLines: 3,
-                    maxLength: 2000,
-                    buildCounter: (_,
-                            {required currentLength,
-                            required isFocused,
-                            maxLength}) =>
-                        null,
-                    decoration: InputDecoration(
-                      hintText:
-                          _replyTo == null ? 'اكتب تعليقًا...' : 'اكتب ردك...',
-                      filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withOpacity(.5),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22),
-                          borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                    onPressed: _sending ? null : _send,
-                    icon: const Icon(Icons.send_rounded)),
-              ]),
-            ]),
+      child: SizedBox(
+        height: math.min(screen * .72, screen - bottom - 140),
+        child: Column(children: [
+          Text('التعليقات (${_comments.length})',
+              style: cairoStyle(16.5, weight: 700, color: t.ink)),
+          const SizedBox(height: 4),
+          Expanded(
+            child: _loading
+                ? Center(
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: t.gold))
+                : roots.isEmpty
+                    ? HomeEmpty(
+                        tk: t,
+                        icon: HomeIcons.forum,
+                        title: 'لا توجد تعليقات بعد',
+                        message: 'ابدأ نقاشًا نافعًا ومحترمًا.')
+                    : ListView.builder(
+                        itemCount: roots.length,
+                        itemBuilder: (_, i) {
+                          final c = roots[i];
+                          final kids = replies[c['id'].toString()] ?? [];
+                          return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _tile(c, isReply: false),
+                                if (kids.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsetsDirectional.only(
+                                        start: 30),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                          border: BorderDirectional(
+                                              start: BorderSide(
+                                                  color: t.line, width: 2))),
+                                      padding:
+                                          const EdgeInsetsDirectional.only(
+                                              start: 8),
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            for (final r in kids)
+                                              _tile(r, isReply: true),
+                                          ]),
+                                    ),
+                                  ),
+                              ]);
+                        }),
           ),
-        ),
+          if (_replyTo != null)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                  color: t.mint, borderRadius: BorderRadius.circular(12)),
+              child: Row(children: [
+                Expanded(
+                    child: Text('رد على ${_replyTo!['reply_name']}',
+                        style: cairoStyle(12, weight: 700, color: t.mintInk))),
+                GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _replyTo = null),
+                    child:
+                        StyledIcon(ZikrIcons.close, size: 16, color: t.mintInk)),
+              ]),
+            ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focus,
+                minLines: 1,
+                maxLines: 3,
+                maxLength: 2000,
+                cursorColor: t.gold,
+                style: cairoStyle(14, color: t.ink, height: 1.5),
+                buildCounter: (_,
+                        {required currentLength,
+                        required isFocused,
+                        maxLength}) =>
+                    null,
+                decoration: InputDecoration(
+                  hintText: _replyTo == null ? 'اكتب تعليقًا...' : 'اكتب ردك...',
+                  hintStyle: cairoStyle(14, color: t.muted),
+                  filled: true,
+                  fillColor: t.bg,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(color: t.line)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide(color: t.line)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide:
+                          BorderSide(color: t.gold.withValues(alpha: .7))),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _sending ? null : _send,
+              child: Opacity(
+                opacity: _sending ? .5 : 1,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                      color: t.mint,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: t.leaf)),
+                  child: Center(
+                      child:
+                          StyledIcon(_Ic.send, size: 19, color: t.mintInk)),
+                ),
+              ),
+            ),
+          ]),
+        ]),
       ),
     );
   }
@@ -1405,6 +1451,7 @@ class _ReportSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = HomeTokens.of(context);
     const options = {
       'spam': 'محتوى مزعج أو ترويجي',
       'harassment': 'إساءة أو تنمر',
@@ -1413,20 +1460,34 @@ class _ReportSheet extends StatelessWidget {
       'inappropriate': 'محتوى غير مناسب',
       'other': 'سبب آخر',
     };
-    return SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
-        children: [
-          const Text('لماذا تريد الإبلاغ؟',
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          ...options.entries.map((e) => ListTile(
-              leading: const Icon(Icons.flag_outlined),
-              title: Text(e.value),
-              onTap: () => Navigator.pop(context, e.key))),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('لماذا تريد الإبلاغ؟',
+            style: cairoStyle(16.5, weight: 700, color: t.ink)),
+        const SizedBox(height: 6),
+        for (final e in options.entries)
+          HomeSheetRow(
+              tk: t,
+              icon: _Ic.flag,
+              label: e.value,
+              onTap: () => Navigator.pop(context, e.key)),
+      ],
     );
   }
+}
+
+SnackBar _forumSnack(HomeTokens t, String message, {bool error = false}) {
+  return SnackBar(
+    behavior: SnackBarBehavior.floating,
+    backgroundColor: t.card,
+    elevation: 0,
+    margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: BorderSide(color: error ? _heartRed : t.gold),
+    ),
+    content: Text(message, style: cairoStyle(13.5, weight: 600, color: t.ink)),
+  );
 }
