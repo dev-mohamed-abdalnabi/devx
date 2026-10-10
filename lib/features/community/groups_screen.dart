@@ -15,6 +15,9 @@ class GroupsScreen extends StatefulWidget {
 class _GroupsScreenState extends State<GroupsScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _groups = [];
+  List<Map<String, dynamic>> _privateResults = [];
+  final _privateCode = TextEditingController();
+  bool _searchingPrivate = false;
 
   /// group_id -> {role, status} لعضويتي أنا
   Map<String, Map<String, dynamic>> _mine = {};
@@ -24,6 +27,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _privateCode.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -60,6 +69,28 @@ class _GroupsScreenState extends State<GroupsScreen> {
     if (supabase.auth.currentUser != null) return true;
     _message('سجّل الدخول أولًا من أعلى المنتدى.');
     return false;
+  }
+
+  Future<void> _searchPrivate() async {
+    if (!_requireUser()) return;
+    final code = _privateCode.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      _message('اكتب كودًا من 6 أرقام للبحث عن جروب خاص.');
+      return;
+    }
+    setState(() => _searchingPrivate = true);
+    try {
+      final rows = await supabase.rpc('search_private_groups', params: {'p_code': code});
+      if (!mounted) return;
+      setState(() => _privateResults = (rows as List)
+          .map((r) => <String, dynamic>{'id': r['id'], 'name': r['name'], 'is_private': true})
+          .toList());
+      if (_privateResults.isEmpty) _message('لا يوجد جروب خاص بهذا الكود اليوم.');
+    } catch (_) {
+      if (mounted) _message('تعذر البحث عن الجروب الآن.');
+    } finally {
+      if (mounted) setState(() => _searchingPrivate = false);
+    }
   }
 
   Future<void> _create() async {
@@ -182,6 +213,43 @@ class _GroupsScreenState extends State<GroupsScreen> {
     }
   }
 
+  Widget _privateSearch() => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('جروب خاص', style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          const Text('لن يظهر اسم الجروب الخاص إلا بعد إدخال كوده اليومي المكوّن من 6 أرقام.'),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: TextField(
+              controller: _privateCode,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(labelText: 'كود الجروب الخاص', counterText: ''),
+              onSubmitted: (_) => _searchPrivate(),
+            )),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: _searchingPrivate ? null : _searchPrivate,
+              child: _searchingPrivate ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('بحث'),
+            ),
+          ]),
+          for (final g in _privateResults)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(children: [
+                  const AppIconBadge(icon: Icons.lock_outline, size: 38),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(g['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w800))),
+                  _action(g),
+                ]),
+              ),
+            ),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Column(children: [
@@ -202,66 +270,43 @@ class _GroupsScreenState extends State<GroupsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
                 onRefresh: _load,
-                child: _groups.isEmpty
-                    ? ListView(children: const [
-                        AppEmptyState(
-                            icon: Icons.groups_outlined,
-                            title: 'لا توجد جروبات بعد',
-                            message:
-                                'أنشئ أول مساحة تجمع أصحاب الاهتمام الواحد.')
-                      ])
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                        itemCount: _groups.length,
-                        itemBuilder: (_, i) {
-                          final g = _groups[i];
-                          final p = (g['profiles'] as Map?)
-                                  ?.cast<String, dynamic>() ??
-                              {};
-                          final desc = g['description']?.toString() ?? '';
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: AppCard(
-                              padding: const EdgeInsets.all(16),
-                              onTap: () => _openGroup(g),
-                              child: Row(children: [
-                                AppIconBadge(
-                                    icon: g['is_private'] == true
-                                        ? Icons.lock_outline
-                                        : Icons.groups_rounded,
-                                    size: 48),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(g['name']?.toString() ?? '',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 16)),
-                                        if (desc.isNotEmpty) ...[
-                                          const SizedBox(height: 4),
-                                          Text(desc,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis),
-                                        ],
-                                        const SizedBox(height: 5),
-                                        Text(
-                                            '${g['member_count'] ?? 0} عضو · بواسطة ${displayName(p)}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall),
-                                      ]),
-                                ),
-                                const SizedBox(width: 8),
-                                _action(g),
-                              ]),
-                            ),
-                          );
-                        }),
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _privateSearch(),
+                    if (_groups.isEmpty)
+                      const AppEmptyState(
+                          icon: Icons.groups_outlined,
+                          title: 'لا توجد جروبات عامة بعد',
+                          message: 'أنشئ أول مساحة تجمع أصحاب الاهتمام الواحد.')
+                    else
+                      ..._groups.map((g) {
+                        final p = (g['profiles'] as Map?)?.cast<String, dynamic>() ?? {};
+                        final desc = g['description']?.toString() ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: AppCard(
+                            padding: const EdgeInsets.all(16),
+                            onTap: () => _openGroup(g),
+                            child: Row(children: [
+                              const AppIconBadge(icon: Icons.groups_rounded, size: 48),
+                              const SizedBox(width: 12),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text(g['name']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                if (desc.isNotEmpty) ...[const SizedBox(height: 4), Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis)],
+                                const SizedBox(height: 5),
+                                Text('${g['member_count'] ?? 0} عضو · بواسطة ${displayName(p)}', style: Theme.of(context).textTheme.bodySmall),
+                              ])),
+                              const SizedBox(width: 8),
+                              _action(g),
+                            ]),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
               ),
-      ),
+      )
     ]);
   }
 }

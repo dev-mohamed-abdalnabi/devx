@@ -83,6 +83,29 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
     }
   }
 
+  Future<void> _joinGroup() async {
+    if (_userId == null) {
+      await Navigator.of(context).push<bool>(
+          MaterialPageRoute(builder: (_) => const CommunityAuthScreen()));
+      if (mounted) await _load();
+      return;
+    }
+    try {
+      await supabase.from('group_members').insert({
+        'group_id': _groupId,
+        'user_id': _userId,
+      });
+      await _load();
+      _toast(widget.group['is_private'] == true
+          ? 'تم إرسال طلب الانضمام للمشرف.'
+          : 'تم انضمامك للجروب ويمكنك الكتابة الآن.');
+    } on PostgrestException catch (e) {
+      _toast(e.code == pgUniqueViolation
+          ? 'طلبك موجود بالفعل أو أنت عضو في الجروب.'
+          : 'تعذر تنفيذ طلب الانضمام الآن.', error: true);
+    }
+  }
+
   Future<bool> _requireMember() async {
     if (_userId == null) {
       final result = await Navigator.of(context).push<bool>(
@@ -225,6 +248,14 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
                           ),
                   ),
           ),
+          if (!_isMember && _userId != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+              child: Row(children: [
+                const Expanded(child: Text('يمكنك القراءة الآن؛ انضم للجروب حتى تتمكن من الكتابة.')),
+                FilledButton.tonal(onPressed: _joinGroup, child: Text(widget.group['is_private'] == true ? 'طلب انضمام' : 'انضمام')),
+              ]),
+            ),
           if (_isMember)
             SafeArea(
               top: false,

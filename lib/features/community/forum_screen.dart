@@ -16,7 +16,8 @@ import 'notifications_screen.dart';
 import '../../services/community_realtime.dart';
 
 class ForumScreen extends StatefulWidget {
-  const ForumScreen({super.key});
+  final String? focusPostId;
+  const ForumScreen({super.key, this.focusPostId});
   @override
   State<ForumScreen> createState() => _ForumScreenState();
 }
@@ -129,6 +130,19 @@ class _ForumScreenState extends State<ForumScreen> {
     if (!silent && mounted) setState(() => _loading = true);
     try {
       final posts = await _fetchPage(0);
+      if (widget.focusPostId != null && widget.focusPostId!.isNotEmpty) {
+        try {
+          final focused = await supabase
+              .from('posts')
+              .select('*, profiles!posts_author_id_fkey(username, full_name)')
+              .eq('id', widget.focusPostId!)
+              .maybeSingle();
+          if (focused != null &&
+              !posts.any((p) => p['id'].toString() == widget.focusPostId)) {
+            posts.insert(0, Map<String, dynamic>.from(focused));
+          }
+        } catch (_) {}
+      }
       if (!mounted || token != _loadToken) return;
       setState(() {
         _posts = posts;

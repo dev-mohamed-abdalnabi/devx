@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/supabase_config.dart';
 import '../../widgets/app_ui.dart';
 import 'community_utils.dart';
+import 'forum_screen.dart';
+import 'group_feed_screen.dart';
 
 class CommunityNotificationsScreen extends StatefulWidget {
   const CommunityNotificationsScreen({super.key});
@@ -16,11 +21,44 @@ class _CommunityNotificationsScreenState
   bool _loading = true;
   bool _failed = false;
   List<Map<String, dynamic>> _items = [];
+  RealtimeChannel? _channel;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _subscribe();
+  }
+
+  void _subscribe() {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    _channel = supabase
+        .channel('notification-list-$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'notifications',
+          filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId),
+          callback: (payload) {
+            if (!mounted) return;
+            final item = Map<String, dynamic>.from(payload.newRecord);
+            if (_items.any((n) => n['id'] == item['id'])) return;
+            setState(() => _items.insert(0, item));
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    final channel = _channel;
+    _channel = null;
+    if (channel != null) unawaited(supabase.removeChannel(channel));
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -62,6 +100,28 @@ class _CommunityNotificationsScreenState
           _failed = true;
         });
       }
+    }
+  }
+
+  Future<void> _openTarget(Map<String, dynamic> n) async {
+    final groupId = n['group_id']?.toString();
+    final postId = n['post_id']?.toString();
+    try {
+      if (groupId != null && groupId.isNotEmpty) {
+        final group = await supabase.from('groups').select('*').eq('id', groupId).maybeSingle();
+        if (group != null && mounted) {
+          await Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => GroupFeedScreen(group: Map<String, dynamic>.from(group))));
+        }
+        return;
+      }
+      if (postId != null && postId.isNotEmpty && mounted) {
+        await Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => ForumScreen(focusPostId: postId)));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر فتح مكان الإشعار الآن.')));
     }
   }
 
@@ -153,7 +213,10 @@ class _CommunityNotificationsScreenState
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Icon(Icons.delete_outline_rounded,
                     color: scheme.onErrorContainer)),
-            child: AppCard(
+            child: InkWell(
+              onTap: () => _openTarget(n),
+              borderRadius: BorderRadius.circular(20),
+              child: AppCard(
               padding: const EdgeInsets.all(14),
               color: unread
                   ? scheme.primaryContainer.withValues(alpha: .45)
@@ -169,6 +232,7 @@ class _CommunityNotificationsScreenState
                 trailing: unread
                     ? Icon(Icons.circle, size: 10, color: scheme.primary)
                     : null,
+              ),
               ),
             ),
           );
