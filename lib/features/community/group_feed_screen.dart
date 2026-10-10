@@ -22,6 +22,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
   bool _isMember = false;
   bool _isAdmin = false;
   String? _membershipStatus;
+  List<Map<String, dynamic>> _pendingMembers = [];
 
   String get _groupId => widget.group['id'].toString();
   String? get _userId => supabase.auth.currentUser?.id;
@@ -51,6 +52,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
       var member = false;
       var admin = false;
       String? membershipStatus;
+      var pending = <Map<String, dynamic>>[];
       if (userId != null) {
         final membership = await supabase
             .from('group_members')
@@ -68,6 +70,17 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
             .maybeSingle();
         admin = profile?['is_admin'] == true;
       }
+      final isOwner = widget.group['owner_id'].toString() == userId;
+      if (isOwner || admin) {
+        final pendingRows = await supabase
+            .from('group_members')
+            .select('user_id, role, status, profiles!group_members_user_id_fkey(username, full_name)')
+            .eq('group_id', _groupId)
+            .eq('status', 'pending');
+        pending = (pendingRows as List)
+            .map((row) => Map<String, dynamic>.from(row as Map))
+            .toList();
+      }
       if (!mounted) return;
       setState(() {
         _posts = (rows as List)
@@ -76,10 +89,24 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
         _isMember = member;
         _isAdmin = admin;
         _membershipStatus = membershipStatus;
+        _pendingMembers = pending;
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _setMemberStatus(String userId, String status) async {
+    try {
+      await supabase.from('group_members').update({'status': status}).match({
+        'group_id': _groupId,
+        'user_id': userId,
+      });
+      await _load();
+      _toast(status == 'active' ? 'تمت الموافقة على طلب الانضمام.' : 'تم رفض الطلب.');
+    } on PostgrestException catch (e) {
+      _toast(e.message, error: true);
     }
   }
 
@@ -219,7 +246,31 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
           if (_userId != null && !_isMember)
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 4, 16, 4),
-              child: Text('انضم إلى الجروب من صفحة الجروبات حتى تستطيع النشر.'),
+              child: Text('محتوى الجروب الخاص مقفول حتى تتم الموافقة على طلبك.'),
+            ),
+          if (_pendingMembers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+              child: AppCard(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('طلبات الانضمام', style: TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  for (final member in _pendingMembers)
+                    Row(children: [
+                      Expanded(child: Text(displayName((member['profiles'] as Map?)?.cast<String, dynamic>() ?? {}))),
+                      IconButton(
+                        tooltip: 'موافقة',
+                        onPressed: () => _setMemberStatus(member['user_id'].toString(), 'active'),
+                        icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                      ),
+                      IconButton(
+                        tooltip: 'رفض',
+                        onPressed: () => _setMemberStatus(member['user_id'].toString(), 'blocked'),
+                        icon: const Icon(Icons.cancel_outlined, color: Colors.red),
+                      ),
+                    ]),
+                ]),
+              ),
             ),
           Expanded(
             child: _loading
@@ -227,12 +278,17 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: _posts.isEmpty
-                        ? ListView(children: const [
+                        ? ListView(children: [
                             AppEmptyState(
-                              icon: Icons.forum_outlined,
-                              title: 'لا توجد منشورات بعد',
-                              message:
-                                  'كن أول من يشارك منشورًا داخل هذا الجروب.',
+                              icon: widget.group['is_private'] == true && !_isMember
+                                  ? Icons.lock_outline
+                                  : Icons.forum_outlined,
+                              title: widget.group['is_private'] == true && !_isMember
+                                  ? 'المحتوى غير متاح بعد'
+                                  : 'لا توجد منشورات بعد',
+                              message: widget.group['is_private'] == true && !_isMember
+                                  ? 'سيظهر المحتوى بعد قبول طلب انضمامك من صاحب الجروب.'
+                                  : 'كن أول من يشارك منشورًا داخل هذا الجروب.',
                             )
                           ])
                         : ListView.builder(
@@ -252,8 +308,19 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
               child: Row(children: [
-                const Expanded(child: Text('يمكنك القراءة الآن؛ انضم للجروب حتى تتمكن من الكتابة.')),
-                FilledButton.tonal(onPressed: _joinGroup, child: Text(widget.group['is_private'] == true ? 'طلب انضمام' : 'انضمام')),
+                Expanded(
+                    child: Text(widget.group['is_private'] == true
+                        ? (_membershipStatus == 'pending'
+                            ? 'طلبك قيد المراجعة من صاحب الجروب.'
+                            : 'اطلب الانضمام لرؤية محتوى الجروب الخاص.')
+                        : 'يمكنك القراءة الآن؛ انضم للجروب حتى تتمكن من الكتابة.')),
+                if (!(widget.group['is_private'] == true &&
+                    _membershipStatus == 'pending'))
+                  FilledButton.tonal(
+                      onPressed: _membershipStatus == 'blocked' ? null : _joinGroup,
+                      child: Text(widget.group['is_private'] == true
+                          ? 'طلب انضمام'
+                          : 'انضمام')),
               ]),
             ),
           if (_isMember)
