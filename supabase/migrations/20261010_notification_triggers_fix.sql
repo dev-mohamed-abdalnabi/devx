@@ -83,3 +83,19 @@ do $$ begin
   alter publication supabase_realtime add table public.notifications;
 exception when duplicate_object then null; when undefined_object then null;
 end $$;
+
+
+-- Group posts must open inside their group from a notification.
+create or replace function public.notify_post_like() returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare owner_id uuid; post_group_id uuid;
+begin
+  select author_id, group_id into owner_id, post_group_id from public.posts where id = new.post_id;
+  if owner_id is not null and owner_id <> new.user_id then
+    insert into public.notifications(user_id, actor_id, type, post_id, group_id)
+    values (owner_id, new.user_id, 'like', new.post_id, post_group_id);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists notify_like on public.post_likes;
+create trigger notify_like after insert on public.post_likes for each row execute function public.notify_post_like();
