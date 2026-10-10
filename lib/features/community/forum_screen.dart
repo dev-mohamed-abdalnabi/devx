@@ -394,7 +394,6 @@ class _ForumScreenState extends State<ForumScreen> {
   }
 
   Future<void> _openComments(Map<String, dynamic> post) async {
-    if (!await _requireAuth()) return;
     if (!mounted) return;
     await showHomeSheet(context, builder: (_) => _CommentsSheet(post: post));
     // عدّاد التعليقات فقط، بدون إعادة تحميل الصفحة كلها.
@@ -1166,6 +1165,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   }
 
   Future<void> _send() async {
+    if (supabase.auth.currentUser == null) {
+      _snack('سجّل الدخول أولًا حتى تتمكن من كتابة تعليق.');
+      return;
+    }
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
@@ -1188,7 +1191,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
 
   Future<void> _toggleLike(Map<String, dynamic> c) async {
     final me = supabase.auth.currentUser?.id;
-    if (me == null) return;
+    if (me == null) {
+      _snack('سجّل الدخول أولًا للإعجاب بالتعليق.');
+      return;
+    }
     final id = c['id'].toString();
     final was = _liked.contains(id);
     setState(() {
