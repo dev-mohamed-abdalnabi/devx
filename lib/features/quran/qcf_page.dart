@@ -221,7 +221,7 @@ class _QcfPageBodyState extends State<QcfPageBody> {
   }
 }
 
-class _QcfLine extends StatefulWidget {
+class _QcfLine extends StatelessWidget {
   final List<QcfWord> words;
   final String family;
   final double fontSize, wordSpacing, width, height;
@@ -246,78 +246,128 @@ class _QcfLine extends StatefulWidget {
   });
 
   @override
-  State<_QcfLine> createState() => _QcfLineState();
+  Widget build(BuildContext context) {
+    final painter = _QcfLinePainter(
+      words: words,
+      family: family,
+      fontSize: fontSize,
+      wordSpacing: wordSpacing,
+      width: width,
+      height: height,
+      ink: ink,
+      bgOf: bgOf,
+    );
+    return SizedBox(
+      width: width,
+      height: height,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: selecting
+            ? (d) {
+                final k = painter.keyAt(d.localPosition);
+                if (k != null) onTapKey(k);
+              }
+            : null,
+        onLongPressStart: selecting
+            ? null
+            : (d) {
+                final k = painter.keyAt(d.localPosition);
+                if (k != null) onLongKey(k);
+              },
+        child: CustomPaint(painter: painter),
+      ),
+    );
+  }
 }
 
-class _QcfLineState extends State<_QcfLine> {
-  final GlobalKey _rt = GlobalKey();
+/// رسم السطر مباشرة على Canvas يقلل عدد RenderParagraph وTextSpan وعمليات
+/// hit-test من عشرات العناصر إلى عنصر رسم واحد لكل صفحة.
+class _QcfLinePainter extends CustomPainter {
+  final List<QcfWord> words;
+  final String family;
+  final double fontSize, wordSpacing, width, height;
+  final Color ink;
+  final Color? Function(String key) bgOf;
+  late final TextPainter _text;
+  late final double _left;
+  late final double _top;
 
-  String? _keyAt(Offset local) {
-    final ro = _rt.currentContext?.findRenderObject();
-    if (ro is! RenderParagraph) return null;
-    final off = ro.getPositionForOffset(local).offset;
-    var pos = 0;
-    for (var i = 0; i < widget.words.length; i++) {
-      final end = pos + widget.words[i].code.length;
-      if (off < end + 1) return widget.words[i].key;
-      pos = end + 1; // + المسافة
+  _QcfLinePainter({
+    required this.words,
+    required this.family,
+    required this.fontSize,
+    required this.wordSpacing,
+    required this.width,
+    required this.height,
+    required this.ink,
+    required this.bgOf,
+  }) {
+    final hasBackground = words.any((w) => bgOf(w.key) != null);
+    final base = TextStyle(
+      fontFamily: family,
+      fontSize: fontSize,
+      height: 1.0,
+      color: ink,
+      wordSpacing: wordSpacing,
+    );
+    final spans = <InlineSpan>[];
+    if (!hasBackground) {
+      spans.add(TextSpan(text: words.map((w) => w.code).join(' '), style: base));
+    } else {
+      for (var i = 0; i < words.length; i++) {
+        if (i > 0) {
+          final previous = bgOf(words[i - 1].key);
+          final current = bgOf(words[i].key);
+          spans.add(TextSpan(
+              text: ' ',
+              style: current != null && previous == current
+                  ? TextStyle(backgroundColor: current)
+                  : null));
+        }
+        final bg = bgOf(words[i].key);
+        spans.add(TextSpan(
+            text: words[i].code,
+            style: bg == null ? null : TextStyle(backgroundColor: bg)));
+      }
     }
-    return widget.words.last.key;
+    _text = TextPainter(
+      textDirection: TextDirection.rtl,
+      textAlign: TextAlign.right,
+      textScaler: TextScaler.noScaling,
+      maxLines: 1,
+      ellipsis: null,
+      text: TextSpan(style: base, children: spans),
+    )..layout(maxWidth: width);
+    _left = math.max(0, width - _text.width);
+    _top = math.max(0, (height - _text.height) / 2);
+  }
+
+  String? keyAt(Offset local) {
+    if (words.isEmpty) return null;
+    final p = _text.getPositionForOffset(
+        Offset(local.dx - _left, local.dy - _top));
+    var pos = 0;
+    for (final word in words) {
+      final end = pos + word.code.length;
+      if (p.offset <= end) return word.key;
+      pos = end + 1;
+    }
+    return words.last.key;
   }
 
   @override
-  Widget build(BuildContext context) {
-    final ws = widget.words;
-    final spans = <InlineSpan>[];
-    for (var i = 0; i < ws.length; i++) {
-      final bg = widget.bgOf(ws[i].key);
-      if (i > 0) {
-        final same = ws[i - 1].key == ws[i].key;
-        spans.add(TextSpan(
-            text: ' ',
-            style: same && bg != null ? TextStyle(backgroundColor: bg) : null));
-      }
-      spans.add(TextSpan(
-          text: ws[i].code,
-          style: bg != null ? TextStyle(backgroundColor: bg) : null));
-    }
-    final text = RichText(
-      key: _rt,
-      textDirection: TextDirection.rtl,
-      textScaler: TextScaler.noScaling,
-      softWrap: false,
-      text: TextSpan(
-        style: TextStyle(
-          fontFamily: widget.family,
-          fontSize: widget.fontSize,
-          height: 1.0,
-          color: widget.ink,
-          wordSpacing: widget.wordSpacing,
-        ),
-        children: spans,
-      ),
-    );
-    // القياس محسوب مسبقًا في QcfPageBody؛ تجنب FittedBox هنا لأنه يعيد
-    // layout كل سطر أثناء السحب ويضاعف كلفة الانتقال بين الصفحات.
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: widget.selecting
-            ? (d) {
-                final k = _keyAt(d.localPosition);
-                if (k != null) widget.onTapKey(k);
-              }
-            : null,
-        onLongPressStart: widget.selecting
-            ? null
-            : (d) {
-                final k = _keyAt(d.localPosition);
-                if (k != null) widget.onLongKey(k);
-              },
-        child: text,
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    _text.paint(canvas, Offset(_left, _top));
   }
+
+  @override
+  bool shouldRepaint(covariant _QcfLinePainter old) =>
+      old.family != family ||
+      old.fontSize != fontSize ||
+      old.wordSpacing != wordSpacing ||
+      old.width != width ||
+      old.height != height ||
+      old.ink != ink ||
+      old.bgOf != bgOf ||
+      !identical(old.words, words);
 }

@@ -33,6 +33,7 @@ class ReaderScreen extends StatefulWidget {
 class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _controller;
   ScrollController _sc = ScrollController();
+  late final ValueNotifier<int> _pageNotifier;
   // الصفحات المبنية حاليًا فقط (تسجّل نفسها وتحذف نفسها)، بدل GlobalKey لكل الـ604 صفحة.
   final Map<int, BuildContext> _reg = <int, BuildContext>{};
   late final QuranProvider _q;
@@ -56,6 +57,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _q = context.read<QuranProvider>();
     _page = widget.page.clamp(1, 604);
+    _pageNotifier = ValueNotifier<int>(_page);
     _contAnchor = _page;
     _flash = widget.highlight;
     _controller = PageController(initialPage: _page - 1);
@@ -84,7 +86,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     if (!mounted) return;
     final p = _pageAtLine();
     if (p != null && p != _page) {
-      setState(() => _page = p);
+      _page = p;
+      _pageNotifier.value = p;
       _onPage(p);
     }
   }
@@ -130,6 +133,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
     _controller.dispose();
     _sc.dispose();
+    _pageNotifier.dispose();
     super.dispose();
   }
 
@@ -513,7 +517,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         itemCount: data.pageCount,
                         onPageChanged: (i) {
                           QcfFonts.focus = i + 1;
-                          setState(() => _page = i + 1);
+                          _page = i + 1;
+                          _pageNotifier.value = _page;
                           _onPage(i + 1);
                         },
                         itemBuilder: (ctx, i) => RepaintBoundary(
@@ -576,7 +581,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               child: _bar(
                 top: false,
                 show: showBars,
-                child: Container(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _pageNotifier,
+                  builder: (context, currentPage, _) => Container(
                   padding:
                       EdgeInsets.fromLTRB(14, 8, 14, mq.padding.bottom + 8),
                   decoration: BoxDecoration(
@@ -610,11 +617,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Row(children: [
-                              Text('صفحة ${toArabicDigits(_page)}',
+                              Text('صفحة ${toArabicDigits(currentPage)}',
                                   style: cairoStyle(13,
                                       weight: 700, color: tk.ink)),
                               const Spacer(),
-                              Text('الجزء ${toArabicDigits(juz)}',
+                              Text('الجزء ${toArabicDigits((data.byPage[currentPage] ?? const <Ayah>[]).isNotEmpty ? data.byPage[currentPage]!.first.juz : 1)}',
                                   style: cairoStyle(12.5, color: tk.muted)),
                             ]),
                             SliderTheme(
@@ -626,18 +633,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
                                 overlayShape: SliderComponentShape.noOverlay,
                               ),
                               child: Slider(
-                                value: _page.toDouble(),
+                                value: currentPage.toDouble(),
                                 min: 1,
                                 max: data.pageCount.toDouble(),
                                 onChanged: (v) {
                                   final p = v.round();
-                                  if (p != _page) _goPage(p);
+                                  if (p != currentPage) _goPage(p);
                                 },
                               ),
                             ),
                           ],
                         ),
                 ),
+                  ),
               ),
             ),
           ],
