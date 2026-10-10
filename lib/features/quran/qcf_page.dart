@@ -44,6 +44,16 @@ _Metrics _metricsOf(int page, List<QcfRow> rows) {
   return _metricsCache[page] = _Metrics(nat, h);
 }
 
+/// يجهّز صفحة مجاورة (الخط + القياسات) قبل ما المستخدم يوصلها.
+Future<void> qcfPrepare(int page, List<QcfRow> rows) async {
+  if (_metricsCache.containsKey(page)) return;
+  final ok = await QcfFonts.load(page);
+  if (!ok || _metricsCache.containsKey(page)) return;
+  // إطار فاضي قبل القياس حتى ما يتزاحم مع الرسم.
+  await Future<void>.delayed(const Duration(milliseconds: 30));
+  _metricsOf(page, rows);
+}
+
 /// صفحة مصحف المدينة: كل سطر `RichText` واحد بخط الصفحة، والتحليّة بـ wordSpacing.
 class QcfPageBody extends StatefulWidget {
   final int page;
@@ -57,6 +67,8 @@ class QcfPageBody extends StatefulWidget {
   final void Function(String key) onLongKey;
   final Widget Function(int surah, double height) banner;
   final Widget Function(double fontSize) basmala;
+  final List<QcfRow>? Function(int page)? rowsOf;
+  final Object? styleKey; // يتغير لما ألوان القارئ تتغير
 
   const QcfPageBody({
     super.key,
@@ -71,6 +83,8 @@ class QcfPageBody extends StatefulWidget {
     required this.onLongKey,
     required this.banner,
     required this.basmala,
+    this.rowsOf,
+    this.styleKey,
   });
 
   @override
@@ -79,6 +93,8 @@ class QcfPageBody extends StatefulWidget {
 
 class _QcfPageBodyState extends State<QcfPageBody> {
   bool _ready = false;
+  Widget? _built;
+  String? _sig;
 
   @override
   void initState() {
@@ -89,14 +105,17 @@ class _QcfPageBodyState extends State<QcfPageBody> {
   @override
   void didUpdateWidget(QcfPageBody old) {
     super.didUpdateWidget(old);
-    if (old.page != widget.page) _ensure();
+    if (old.page != widget.page) {
+      _sig = null;
+      _ensure();
+    }
   }
 
   void _ensure() {
     final p = widget.page;
     if (QcfFonts.isReady(p)) {
       _ready = true;
-      QcfFonts.warm(p);
+      _warmNeighbors(p);
       return;
     }
     _ready = false;
@@ -104,7 +123,21 @@ class _QcfPageBodyState extends State<QcfPageBody> {
       if (!mounted || widget.page != p) return;
       if (ok) {
         setState(() => _ready = true);
-        QcfFonts.warm(p);
+        _warmNeighbors(p);
+      }
+    });
+  }
+
+  void _warmNeighbors(int p) {
+    QcfFonts.warm(p);
+    final rowsOf = widget.rowsOf;
+    if (rowsOf == null) return;
+    // القياسات للصفحات المجاورة تتجهز في الخلفية (بعد الخط) بدل ما تتحسب وقت الفتح.
+    Future<void>.delayed(const Duration(milliseconds: 250), () async {
+      for (final t in [p + 1, p - 1, p + 2, p - 2]) {
+        final r = rowsOf(t);
+        if (r == null) continue;
+        await qcfPrepare(t, r);
       }
     });
   }
@@ -122,6 +155,20 @@ class _QcfPageBodyState extends State<QcfPageBody> {
                 child: CircularProgressIndicator(strokeWidth: 2))),
       );
     }
+    // لو مفيش حاجة اتغيرت فعليًا نرجّع نفس الـ Widget فيتخطى Flutter إعادة بناء
+    // الأسطر كلها (setState في القارئ كان بيعيد قياس ورسم ١٥ سطر × ٣ صفحات).
+    final sb = StringBuffer()
+      ..write('${widget.page}|$w|$slotH|${widget.ink.hashCode}|')
+      ..write('${widget.selecting}|${widget.styleKey.hashCode}|');
+    for (final r in widget.rows) {
+      for (final wd in r.words) {
+        final c = widget.bgOf(wd.key);
+        if (c != null) sb.write('${wd.key}:${c.hashCode};');
+      }
+    }
+    final sig = sb.toString();
+    final cached = _built;
+    if (cached != null && sig == _sig) return cached;
     final m = _metricsOf(widget.page, widget.rows);
     final maxNat = m.nat100.fold<double>(0, math.max);
     var f = maxNat > 0 ? w * 100 / maxNat * .998 : slotH * .7;
@@ -168,7 +215,9 @@ class _QcfPageBodyState extends State<QcfPageBody> {
           ));
       }
     }
-    return Column(mainAxisSize: MainAxisSize.min, children: children);
+    _sig = sig;
+    return _built =
+        Column(mainAxisSize: MainAxisSize.min, children: children);
   }
 }
 

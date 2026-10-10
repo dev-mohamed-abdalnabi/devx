@@ -18,6 +18,7 @@ import 'ayah_marker.dart';
 import 'goto_sheet.dart';
 import 'mushaf_layout.dart';
 import 'qcf_page.dart';
+import '../../services/qcf_fonts.dart';
 import 'quran_ui.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -59,6 +60,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _flash = widget.highlight;
     _controller = PageController(initialPage: _page - 1);
     _mode = _q.pageMode;
+    QcfFonts.focus = _page;
     _sc.addListener(_onScroll);
     _onPage(_page);
   }
@@ -99,6 +101,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _syncMode(String mode) {
     if (mode == _mode) return;
     _mode = mode;
+    QcfFonts.setScrolling(false);
     final old = _controller;
     _controller = PageController(initialPage: _page - 1);
     if (mode == 'continuous') _reanchor(_page);
@@ -116,6 +119,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
+    QcfFonts.setScrolling(false);
     _readTimer?.cancel();
     _lastTimer?.cancel();
     // لو خرج المستخدم قبل انتهاء مهلة الحفظ نحفظ آخر صفحة بعد انتهاء الفريم.
@@ -492,12 +496,23 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     top: mq.padding.top + 4, bottom: mq.padding.bottom + 4),
                 child: continuous
                     ? _contList(data, q, tk)
-                    : PageView.builder(
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n.depth != 0) return false;
+                          if (n is ScrollStartNotification) {
+                            QcfFonts.setScrolling(true);
+                          } else if (n is ScrollEndNotification) {
+                            QcfFonts.setScrolling(false);
+                          }
+                          return false;
+                        },
+                        child: PageView.builder(
                         key: const ValueKey('pages'),
                         controller: _controller,
                         allowImplicitScrolling: true,
                         itemCount: data.pageCount,
                         onPageChanged: (i) {
+                          QcfFonts.focus = i + 1;
                           setState(() => _page = i + 1);
                           _onPage(i + 1);
                         },
@@ -513,7 +528,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           onAyahLong: _openAyahMenu,
                           onBlankTap: _toggleChrome,
                         )),
-                      ),
+                      )),
               ),
             ),
             Positioned(
@@ -750,6 +765,9 @@ class _MushafPage extends StatelessWidget {
                       final a = data.ayahByKey(k);
                       if (a != null) onAyahLong(a);
                     },
+                    rowsOf: (p) =>
+                        (p >= 1 && p <= mu.pages.length) ? mu.pages[p - 1] : null,
+                    styleKey: Object.hash(tk.bg, tk.ink, tk.gold, tk.mint),
                     banner: (s, h) => _SurahBanner(surah: s, tk: tk, height: h),
                     basmala: (f) => Text(data.basmala,
                         textScaler: TextScaler.noScaling,
