@@ -32,6 +32,9 @@ public class AdhanService extends Service {
     static final String EXTRA_DIRECT = "direct";
 
     private MediaPlayer player;
+    /** يقرؤها شاشة الأذان لمزامنة الكلمات مع الصوت (نفس العملية). */
+    static volatile MediaPlayer current;
+    static volatile boolean currentBundled = true;
     private PowerManager.WakeLock wake;
     private AudioManager audio;
     private AudioFocusRequest focusRequest;
@@ -186,6 +189,7 @@ public class AdhanService extends Service {
                 player = null;
             }
         }
+        currentBundled = player == null;
         if (player == null) {
             int id = getResources().getIdentifier("adhan", "raw", getPackageName());
             if (id == 0) {
@@ -199,6 +203,7 @@ public class AdhanService extends Service {
             stopSelf();
             return;
         }
+        current = player;
         player.setOnCompletionListener(mp -> stopSelf());
         player.setOnErrorListener((mp, what, extra) -> {
             stopSelf();
@@ -219,6 +224,7 @@ public class AdhanService extends Service {
             sendBroadcast(new Intent(ACTION_ENDED).setPackage(getPackageName()));
         } catch (Exception ignored) {
         }
+        current = null;
         try {
             if (player != null) {
                 player.release();

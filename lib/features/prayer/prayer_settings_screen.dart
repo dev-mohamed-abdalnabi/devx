@@ -315,7 +315,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) =>
-                            AdhanScreen(prayerName: 'الظهر', style: i))),
+                            AdhanScreen(prayerName: 'الظهر', style: i, demo: true))),
                     child: Text('معاينة كاملة',
                         style: cairoStyle(11.5, weight: 600, color: tk.gold)),
                   ),
