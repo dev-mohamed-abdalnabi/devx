@@ -41,13 +41,6 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
 
   Future<void> _load() async {
     try {
-      final rows = await supabase
-          .from('posts')
-          .select('*, profiles!posts_author_id_fkey(username, full_name)')
-          .eq('group_id', _groupId)
-          .eq('visibility', 'group')
-          .order('created_at', ascending: false)
-          .limit(100);
       final userId = _userId;
       var member = false;
       var admin = false;
@@ -70,6 +63,17 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
             .maybeSingle();
         admin = profile?['is_admin'] == true;
       }
+      // لا نطلب منشورات الجروب الخاص قبل التأكد من العضوية النشطة.
+      final canReadPosts = widget.group['is_private'] != true || member;
+      final rows = canReadPosts
+          ? await supabase
+              .from('posts')
+              .select('*, profiles!posts_author_id_fkey(username, full_name)')
+              .eq('group_id', _groupId)
+              .eq('visibility', 'group')
+              .order('created_at', ascending: false)
+              .limit(100)
+          : <Map<String, dynamic>>[];
       final isOwner = widget.group['owner_id'].toString() == userId;
       if (isOwner || admin) {
         final pendingRows = await supabase
@@ -93,11 +97,22 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
         _loading = false;
       });
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _posts = [];
+          _pendingMembers = [];
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _setMemberStatus(String userId, String status) async {
+    final isOwner = widget.group['owner_id'].toString() == _userId;
+    if (!isOwner && !_isAdmin) {
+      _toast('لا تملك صلاحية مراجعة طلبات الانضمام.', error: true);
+      return;
+    }
     try {
       await supabase.from('group_members').update({'status': status}).match({
         'group_id': _groupId,
@@ -121,6 +136,8 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
       await supabase.from('group_members').insert({
         'group_id': _groupId,
         'user_id': _userId,
+        'role': 'member',
+        'status': widget.group['is_private'] == true ? 'pending' : 'active',
       });
       await _load();
       _toast(widget.group['is_private'] == true

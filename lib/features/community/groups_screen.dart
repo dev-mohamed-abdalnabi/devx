@@ -128,6 +128,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
       await supabase.from('group_members').insert({
         'group_id': id,
         'user_id': supabase.auth.currentUser!.id,
+        'role': 'member',
+        'status': group['is_private'] == true ? 'pending' : 'active',
       });
       _message(group['is_private'] == true
           ? 'الجروب خاص؛ تم إرسال طلبك للمشرف للمراجعة.'
