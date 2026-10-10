@@ -83,7 +83,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
       final rows = await supabase.rpc('search_private_groups', params: {'p_code': code});
       if (!mounted) return;
       setState(() => _privateResults = (rows as List)
-          .map((r) => <String, dynamic>{'id': r['id'], 'name': r['name'], 'is_private': true})
+          .map((r) => <String, dynamic>{
+                'id': r['id'],
+                'name': r['name'],
+                'description': r['description'],
+                'owner_id': r['owner_id'],
+                'is_private': true,
+                'member_count': r['member_count'],
+              })
           .toList());
       if (_privateResults.isEmpty) _message('لا يوجد جروب خاص بهذا الكود اليوم.');
     } catch (_) {
@@ -101,14 +108,20 @@ class _GroupsScreenState extends State<GroupsScreen> {
     try {
       // المالك يُضاف تلقائيًا كعضو بواسطة trigger في قاعدة البيانات،
       // لذلك لا نُدخل صف العضوية يدويًا (كان يسبب خطأ تكرار رغم نجاح الإنشاء).
-      await supabase.from('groups').insert({
+      final created = await supabase.from('groups').insert({
         'owner_id': supabase.auth.currentUser!.id,
         'name': result['name'],
         'description': result['description'],
         'is_private': result['private'] == true,
-      });
+      }).select('id').single();
       await _load();
-      _message('تم إنشاء الجروب.');
+      if (result['private'] == true) {
+        final code = await supabase.rpc('get_private_group_daily_code',
+            params: {'p_group_id': created['id']});
+        _message('تم إنشاء الجروب الخاص. كود اليوم: $code');
+      } else {
+        _message('تم إنشاء الجروب.');
+      }
     } on PostgrestException catch (e) {
       _message(e.code == pgUniqueViolation
           ? 'لديك جروب بنفس الاسم.'

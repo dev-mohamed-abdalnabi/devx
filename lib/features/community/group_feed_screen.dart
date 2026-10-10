@@ -125,6 +125,17 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
     }
   }
 
+  Future<void> _showPrivateCode() async {
+    try {
+      final code = await supabase.rpc('get_private_group_daily_code', params: {
+        'p_group_id': _groupId,
+      });
+      _toast('كود الجروب اليوم: $code');
+    } on PostgrestException catch (e) {
+      _toast(e.message, error: true);
+    }
+  }
+
   Future<void> _joinGroup() async {
     if (_userId == null) {
       await Navigator.of(context).push<bool>(
@@ -238,6 +249,13 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
       appBar: AppBar(
         title: Text(name),
         actions: [
+          if (widget.group['is_private'] == true &&
+              (widget.group['owner_id']?.toString() == _userId || _isAdmin))
+            IconButton(
+              tooltip: 'كود الجروب اليوم',
+              onPressed: _showPrivateCode,
+              icon: const Icon(Icons.pin_outlined),
+            ),
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
