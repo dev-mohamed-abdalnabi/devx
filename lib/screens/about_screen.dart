@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/home_tokens.dart';
+import '../features/more/sources_screen.dart';
 import '../features/more/support_screen.dart';
 import '../widgets/page_kit.dart';
 import '../widgets/home_style.dart';
@@ -118,6 +119,13 @@ class AboutScreen extends StatelessWidget {
                     title: 'الخصوصية والبيانات',
                     subtitle: 'كيف يتعامل ذِكر مع الموقع والإشعارات',
                     onTap: () => _push(context, const PrivacyScreen()),
+                  ),
+                  const KitDivider(),
+                  KitTile(
+                    icon: Icons.verified_outlined,
+                    title: 'المصادر والتراخيص',
+                    subtitle: 'من أين جاء كل محتوى في التطبيق',
+                    onTap: () => _push(context, const SourcesScreen()),
                   ),
                 ],
               ),

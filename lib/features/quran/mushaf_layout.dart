@@ -58,7 +58,9 @@ class MPageLayout {
   final double font;
   final double slotH;
   final bool fits; // الصفحة كلها داخل الارتفاع المتاح (بدون سكرول)
-  const MPageLayout(this.rows, this.font, this.slotH, this.fits);
+  final bool compact; // أول صفحتين: أسطر متقاربة تتوسط الصفحة رأسيًا
+  const MPageLayout(this.rows, this.font, this.slotH, this.fits,
+      [this.compact = false]);
 }
 
 class _Seg {
@@ -369,7 +371,9 @@ MPageLayout layoutPage({
           if (s.banner) MRow.banner(s.surah) else if (s.basmala) const MRow.basmala(),
         for (final l in lines) MRow.line(l),
       ];
-      final res = MPageLayout(rows, f, baseSlot, true);
+      // مصحف المدينة: صفحتا الفاتحة وأول البقرة أسطرهما متقاربة وتتوسط الصفحة،
+      // لا تتوزع على الارتفاع كله.
+      final res = MPageLayout(rows, f, math.min(baseSlot, f * 2.1), true, true);
       if (_cache.length >= 40) _cache.remove(_cache.keys.first);
       return _cache[key] = res;
     }

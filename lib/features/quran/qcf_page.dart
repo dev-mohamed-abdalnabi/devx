@@ -69,6 +69,7 @@ class QcfPageBody extends StatefulWidget {
   final Widget Function(double fontSize) basmala;
   final List<QcfRow>? Function(int page)? rowsOf;
   final Object? styleKey; // يتغير لما ألوان القارئ تتغير
+  final double bannerMax; // أقصى ارتفاع للافتة السورة
 
   const QcfPageBody({
     super.key,
@@ -85,6 +86,7 @@ class QcfPageBody extends StatefulWidget {
     required this.basmala,
     this.rowsOf,
     this.styleKey,
+    this.bannerMax = 56.0,
   });
 
   @override
@@ -185,7 +187,7 @@ class _QcfPageBodyState extends State<QcfPageBody> {
           children.add(SizedBox(
               height: slotH,
               child: Center(
-                  child: widget.banner(r.surah, math.min(56.0, slotH * .9)))));
+                  child: widget.banner(r.surah, math.min(widget.bannerMax, slotH * .9)))));
         case QcfKind.basmala:
           children.add(SizedBox(
               height: slotH,

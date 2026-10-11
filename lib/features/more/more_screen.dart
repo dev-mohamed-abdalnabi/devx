@@ -15,6 +15,7 @@ import '../prayer/qibla_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../../screens/categories_screen.dart';
 import 'bookmarks_screen.dart';
+import 'sources_screen.dart';
 import 'support_screen.dart';
 
 class MoreScreen extends StatelessWidget {
@@ -122,6 +123,14 @@ class MoreScreen extends StatelessWidget {
               title: 'الإعدادات',
               subtitle: 'المظهر والإشعارات والمزيد',
               onTap: () => _push(context, 'الإعدادات', const SettingsScreen()),
+            ),
+            const SizedBox(height: 10),
+            _RowCard(
+              tk: tk,
+              icon: Icons.verified_outlined,
+              title: 'المصادر والتراخيص',
+              subtitle: 'مصدر القرآن والتفسير والأذكار والتلاوات',
+              onTap: () => _go(context, const SourcesScreen()),
             ),
           ],
         ),

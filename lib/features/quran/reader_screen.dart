@@ -742,7 +742,55 @@ class _MushafPage extends StatelessWidget {
         final fullH = c.hasBoundedHeight ? c.maxHeight : refHeight;
         final w = c.maxWidth - _hPad * 2;
         final avail = math.max(120.0, fullH - _headerH - _footerH - 4);
-        final slotH = avail / rows.length;
+        final compact = page <= 2;
+        final slotH =
+            compact ? math.min(avail / rows.length, 84.0) : avail / rows.length;
+        final pageBody = Center(
+          child: QcfPageBody(
+            key: ValueKey('qcf$page'),
+            page: page,
+            rows: rows,
+            width: w,
+            slotH: slotH,
+            ink: tk.ink,
+            bgOf: _bgOfKey,
+            selecting: selected.isNotEmpty,
+            onTapKey: (k) {
+              final a = data.ayahByKey(k);
+              if (a != null) onAyahTap(a);
+            },
+            onLongKey: (k) {
+              final a = data.ayahByKey(k);
+              if (a != null) onAyahLong(a);
+            },
+            rowsOf: (p) =>
+                (p >= 1 && p <= mu.pages.length) ? mu.pages[p - 1] : null,
+            styleKey: Object.hash(tk.bg, tk.ink, tk.gold, tk.mint),
+            bannerMax: compact ? 72.0 : 56.0,
+            banner: (s, h) => _SurahBanner(surah: s, tk: tk, height: h),
+            basmala: (f) => Text(data.basmala,
+                textScaler: TextScaler.noScaling, style: _base(f)),
+          ),
+        );
+        if (compact) {
+          return SizedBox(
+            height: fullH,
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _header(ayahs),
+                    Expanded(child: Center(child: pageBody)),
+                    _footer(),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         final body = Directionality(
           textDirection: TextDirection.rtl,
           child: Padding(
@@ -752,33 +800,7 @@ class _MushafPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _header(ayahs),
-                Center(
-                  child: QcfPageBody(
-                    key: ValueKey('qcf$page'),
-                    page: page,
-                    rows: rows,
-                    width: w,
-                    slotH: slotH,
-                    ink: tk.ink,
-                    bgOf: _bgOfKey,
-                    selecting: selected.isNotEmpty,
-                    onTapKey: (k) {
-                      final a = data.ayahByKey(k);
-                      if (a != null) onAyahTap(a);
-                    },
-                    onLongKey: (k) {
-                      final a = data.ayahByKey(k);
-                      if (a != null) onAyahLong(a);
-                    },
-                    rowsOf: (p) =>
-                        (p >= 1 && p <= mu.pages.length) ? mu.pages[p - 1] : null,
-                    styleKey: Object.hash(tk.bg, tk.ink, tk.gold, tk.mint),
-                    banner: (s, h) => _SurahBanner(surah: s, tk: tk, height: h),
-                    basmala: (f) => Text(data.basmala,
-                        textScaler: TextScaler.noScaling,
-                        style: _base(f)),
-                  ),
-                ),
+                pageBody,
                 _footer(),
               ],
             ),
@@ -881,7 +903,11 @@ class _MushafPage extends StatelessWidget {
           height: slotH,
           child: Center(
               child: _SurahBanner(
-                  surah: r.surah, tk: tk, height: math.min(56, slotH * .9))),
+                  surah: r.surah,
+                  tk: tk,
+                  height: lay.compact
+                      ? math.min(72.0, slotH * 1.05)
+                      : math.min(56, slotH * .9))),
         );
       case MRowKind.basmala:
         return SizedBox(
@@ -987,6 +1013,34 @@ class _MushafPage extends StatelessWidget {
             ),
           ),
         );
+        if (lay.fits && lay.compact) {
+          // أول صفحتين: الرأس والتذييل في مكانهما والأسطر في منتصف الصفحة.
+          return SizedBox(
+            height: fullH,
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _hPad),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _header(ayahs),
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [for (final r in lay.rows) _row(r, lay, w)],
+                        ),
+                      ),
+                    ),
+                    _footer(),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         if (lay.fits) {
           // صفحة كاملة بدون سكرول.
           return SizedBox(
