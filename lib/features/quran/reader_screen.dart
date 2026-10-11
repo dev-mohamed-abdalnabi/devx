@@ -328,12 +328,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                             thumbColor: tk.gold,
                             trackHeight: 3),
                         child: Slider(
-                          value: q.fontScale
-                              .clamp(0.8, q.mushaf != null ? 1.0 : 2.0)
-                              .toDouble(),
-                          min: 0.8,
-                          max: q.mushaf != null ? 1.0 : 2.0,
-                          divisions: q.mushaf != null ? 4 : 12,
+                          value: q.fontScale.clamp(1.0, 2.0).toDouble(),
+                          min: 1.0,
+                          max: 2.0,
+                          divisions: 10,
                           onChanged: q.setFontScale,
                         ),
                       ),
@@ -741,10 +739,9 @@ class _MushafPage extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onBlankTap,
       child: LayoutBuilder(builder: (ctx, c) {
-        final sc = q.fontScale.clamp(0.8, 1.0).toDouble();
         final fullH = c.hasBoundedHeight ? c.maxHeight : refHeight;
-        final w = (c.maxWidth - _hPad * 2) * sc;
-        final avail = math.max(120.0, fullH - _headerH - _footerH - 4) * sc;
+        final w = c.maxWidth - _hPad * 2;
+        final avail = math.max(120.0, fullH - _headerH - _footerH - 4);
         final slotH = avail / rows.length;
         final body = Directionality(
           textDirection: TextDirection.rtl,
@@ -940,7 +937,14 @@ class _MushafPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = q.data!;
     final mu = q.mushaf;
-    if (mu != null && page >= 1 && page <= mu.pages.length) return _buildQcf(mu);
+    // الحجم الأساسي (١٠٠٪) = صفحة المصحف الثابتة بخط QCF. أي تكبير فوق كده
+    // بيستخدم محرك التوزيع اللي بيعيد ترتيب الأسطر وتبقى الصفحة قابلة للتمرير.
+    if (mu != null &&
+        page >= 1 &&
+        page <= mu.pages.length &&
+        q.isFitToPage) {
+      return _buildQcf(mu);
+    }
     final ayahs = data.byPage[page] ?? const <Ayah>[];
     final continuous = q.pageMode == 'continuous';
 

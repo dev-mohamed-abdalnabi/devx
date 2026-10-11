@@ -64,7 +64,7 @@ class QuranProvider extends ChangeNotifier {
     lastAyahKey = p.getString(_kLastAyah);
     readerTheme = p.getString(_kTheme) ?? 'auto';
     pageMode = p.getString(_kMode) == 'continuous' ? 'continuous' : 'page';
-    fontScale = (p.getDouble(_kFont) ?? 1.0).clamp(0.8, 2.0).toDouble();
+    fontScale = (p.getDouble(_kFont) ?? 1.0).clamp(1.0, 2.0).toDouble();
     bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
     final rawMarks = p.getString(_kMarks);
     if (rawMarks != null) {
@@ -197,7 +197,7 @@ class QuranProvider extends ChangeNotifier {
   bool get isFitToPage => (fontScale - 1).abs() < .005;
 
   Future<void> setFontScale(double v) async {
-    v = (v.clamp(0.8, 2.0) * 100).round() / 100;
+    v = (v.clamp(1.0, 2.0) * 100).round() / 100;
     if ((v - 1).abs() < .01) v = 1.0;
     fontScale = v;
     await _prefs?.setDouble(_kFont, v);
