@@ -40,7 +40,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
       final data = await supabase
           .from('groups')
           .select('*, profiles!groups_owner_id_fkey(username, full_name)')
-          .eq('is_private', false)
           .order('created_at', ascending: false);
       final userId = supabase.auth.currentUser?.id;
       final mine = <String, Map<String, dynamic>>{};
@@ -57,7 +56,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
       setState(() {
         _groups = (data as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
-            .where((group) => group['is_private'] != true)
             .toList();
         _mine = mine;
         _loading = false;

@@ -78,7 +78,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
               .limit(100)
           : <Map<String, dynamic>>[];
       final isOwner = widget.group['owner_id'].toString() == userId;
-      if (isOwner || _isModerator) {
+      if (isOwner || _isModerator || admin) {
         final pendingRows = await supabase
             .from('group_members')
             .select('user_id, role, status, profiles!group_members_user_id_fkey(username, full_name)')
@@ -112,7 +112,7 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
 
   Future<void> _setMemberStatus(String userId, String status) async {
     final isOwner = widget.group['owner_id'].toString() == _userId;
-    if (!isOwner && !_isModerator) {
+    if (!isOwner && !_isModerator && !_isAdmin) {
       _toast('لا تملك صلاحية مراجعة طلبات الانضمام.', error: true);
       return;
     }
@@ -254,7 +254,8 @@ class _GroupFeedScreenState extends State<GroupFeedScreen> {
         title: Text(name),
         actions: [
           if (widget.group['is_private'] == true &&
-              (widget.group['owner_id']?.toString() == _userId || _isModerator))
+              (widget.group['owner_id']?.toString() == _userId ||
+                  _isModerator || _isAdmin))
             IconButton(
               tooltip: 'كود الجروب اليوم',
               onPressed: _showPrivateCode,
