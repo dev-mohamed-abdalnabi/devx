@@ -185,7 +185,7 @@ class _QcfPageBodyState extends State<QcfPageBody> {
           children.add(SizedBox(
               height: slotH,
               child: Center(
-                  child: widget.banner(r.surah, math.min(44.0, slotH * .84)))));
+                  child: widget.banner(r.surah, math.min(56.0, slotH * .9)))));
         case QcfKind.basmala:
           children.add(SizedBox(
               height: slotH,

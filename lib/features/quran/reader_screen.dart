@@ -884,7 +884,7 @@ class _MushafPage extends StatelessWidget {
           height: slotH,
           child: Center(
               child: _SurahBanner(
-                  surah: r.surah, tk: tk, height: math.min(44, slotH * .84))),
+                  surah: r.surah, tk: tk, height: math.min(56, slotH * .9))),
         );
       case MRowKind.basmala:
         return SizedBox(
@@ -998,6 +998,8 @@ class _MushafPage extends StatelessWidget {
   }
 }
 
+/// بطاقة اسم السورة بنقوش المصحف: إطار مزدوج، شبكة معينات خفيفة، ميداليتان على الطرفين،
+/// وزخرفة متموّجة تصل الميدالية بالعنوان.
 class _SurahBanner extends StatelessWidget {
   final int surah;
   final HomeTokens tk;
@@ -1007,25 +1009,189 @@ class _SurahBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final fs = math.min(22.0, height * .42);
+    final style = amiriStyle(fs, bold: true, color: tk.mintInk);
+    final title = surahTitle(surah);
+    final tp = TextPainter(
+      text: TextSpan(text: title, style: style),
+      textDirection: TextDirection.rtl,
+      textScaler: TextScaler.noScaling,
+    )..layout();
+    final titleW = tp.width;
+    tp.dispose();
+    return SizedBox(
       height: height,
-      decoration: BoxDecoration(
-        color: tk.mint,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tk.gold.withValues(alpha: .6)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IslamicStar(size: 14, color: tk.gold),
-          const SizedBox(width: 10),
-          Text(surahTitle(surah),
-              style: amiriStyle(math.min(21, height * .5),
-                  bold: true, color: tk.mintInk)),
-          const SizedBox(width: 10),
-          IslamicStar(size: 14, color: tk.gold),
-        ],
+      width: double.infinity,
+      child: CustomPaint(
+        painter: _BannerPainter(
+            bg: tk.mint, gold: tk.gold, ink: tk.mintInk, titleW: titleW),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IslamicStar(size: height * .3, color: tk.gold),
+              SizedBox(width: height * .2),
+              Text(title, textScaler: TextScaler.noScaling, style: style),
+              SizedBox(width: height * .2),
+              IslamicStar(size: height * .3, color: tk.gold),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
+
+class _BannerPainter extends CustomPainter {
+  final Color bg, gold, ink;
+  final double titleW;
+  const _BannerPainter(
+      {required this.bg,
+      required this.gold,
+      required this.ink,
+      required this.titleW});
+
+  Path _star8(Offset c, double r, double rIn) {
+    final p = Path();
+    for (var i = 0; i < 16; i++) {
+      final a = -math.pi / 2 + i * math.pi / 8;
+      final rr = i.isEven ? r : rIn;
+      final o = Offset(c.dx + rr * math.cos(a), c.dy + rr * math.sin(a));
+      i == 0 ? p.moveTo(o.dx, o.dy) : p.lineTo(o.dx, o.dy);
+    }
+    return p..close();
+  }
+
+  void _medallion(Canvas canvas, Offset c, double r) {
+    final fill = Paint()..color = bg;
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = gold
+      ..strokeWidth = math.max(.8, r * .06);
+    final goldFill = Paint()..color = gold;
+    // بتلات خارجية (حافة مسنّنة).
+    for (var i = 0; i < 12; i++) {
+      final a = i * math.pi / 6;
+      canvas.drawCircle(
+          Offset(c.dx + r * math.cos(a), c.dy + r * math.sin(a)), r * .17, goldFill);
+    }
+    canvas.drawCircle(c, r, fill);
+    canvas.drawCircle(c, r, line);
+    canvas.drawCircle(c, r * .78, line..strokeWidth = math.max(.6, r * .035));
+    canvas.drawPath(_star8(c, r * .72, r * .36), goldFill..color = gold.withValues(alpha: .92));
+    canvas.drawCircle(c, r * .22, Paint()..color = bg);
+    canvas.drawCircle(c, r * .09, goldFill..color = gold);
+  }
+
+  void _vine(Canvas canvas, double x0, double x1, double cy, double h) {
+    if (x1 - x0 < h * .6) return;
+    final amp = h * .09, wl = h * .55;
+    final path = Path();
+    final dots = <Offset>[];
+    for (var x = x0; x <= x1; x += 1.5) {
+      final y = cy + amp * math.sin((x - x0) / wl * 2 * math.pi);
+      x == x0 ? path.moveTo(x, y) : path.lineTo(x, y);
+    }
+    for (var x = x0 + wl / 4; x <= x1 - 2; x += wl / 2) {
+      dots.add(Offset(x, cy + amp * math.sin((x - x0) / wl * 2 * math.pi)));
+    }
+    canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(.8, h * .022)
+          ..strokeCap = StrokeCap.round
+          ..color = gold.withValues(alpha: .85));
+    final d = Paint()..color = gold;
+    for (final o in dots) {
+      canvas.drawCircle(o, h * .04, d);
+    }
+    // معين صغير عند نهاية الزخرفة.
+    for (final x in [x0, x1]) {
+      final r = h * .07;
+      canvas.drawPath(
+          Path()
+            ..moveTo(x, cy - r)
+            ..lineTo(x + r, cy)
+            ..lineTo(x, cy + r)
+            ..lineTo(x - r, cy)
+            ..close(),
+          d);
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final rect = Offset.zero & size;
+    final outer = RRect.fromRectAndRadius(rect.deflate(.8), Radius.circular(h * .3));
+    // الخلفية بتدرّج ذهبي خفيف في المنتصف.
+    canvas.drawRRect(
+        outer,
+        Paint()
+          ..shader = LinearGradient(colors: [
+            bg,
+            Color.lerp(bg, gold, .14)!,
+            bg,
+          ]).createShader(rect));
+    // شبكة معينات خفيفة داخل الإطار.
+    canvas.save();
+    canvas.clipRRect(outer.deflate(h * .1));
+    final grid = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .6
+      ..color = gold.withValues(alpha: .13);
+    final step = h * .34;
+    for (var x = -h; x < w + h; x += step) {
+      canvas.drawLine(Offset(x, 0), Offset(x + h, h), grid);
+      canvas.drawLine(Offset(x + h, 0), Offset(x, h), grid);
+    }
+    canvas.restore();
+    // الإطار الخارجي والداخلي.
+    canvas.drawRRect(
+        outer,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.2, h * .035)
+          ..color = gold);
+    canvas.drawRRect(
+        outer.deflate(h * .1),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(.7, h * .015)
+          ..color = gold.withValues(alpha: .6));
+    // معينات الزوايا على الإطار الداخلي.
+    final cd = Paint()..color = gold;
+    final cr = h * .06;
+    for (final o in [
+      Offset(h * .1 + h * .22, h * .1),
+      Offset(w - h * .1 - h * .22, h * .1),
+      Offset(h * .1 + h * .22, h - h * .1),
+      Offset(w - h * .1 - h * .22, h - h * .1),
+    ]) {
+      canvas.drawPath(
+          Path()
+            ..moveTo(o.dx, o.dy - cr)
+            ..lineTo(o.dx + cr, o.dy)
+            ..lineTo(o.dx, o.dy + cr)
+            ..lineTo(o.dx - cr, o.dy)
+            ..close(),
+          cd);
+    }
+    // الميداليتان على الطرفين.
+    final mr = h * .33;
+    final mc = h * .62;
+    _medallion(canvas, Offset(mc, h / 2), mr);
+    _medallion(canvas, Offset(w - mc, h / 2), mr);
+    // الزخرفة المتموّجة بين الميدالية والعنوان.
+    final titleHalf = titleW / 2 + h * .2 + h * .3 + h * .25;
+    final left0 = mc + mr + h * .22;
+    final right0 = w - mc - mr - h * .22;
+    _vine(canvas, left0, w / 2 - titleHalf, h / 2, h);
+    _vine(canvas, w / 2 + titleHalf, right0, h / 2, h);
+  }
+
+  @override
+  bool shouldRepaint(_BannerPainter o) =>
+      o.bg != bg || o.gold != gold || o.ink != ink || o.titleW != titleW;
 }

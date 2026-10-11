@@ -231,6 +231,74 @@ List<MLine> _toLines(List<MItem> items, List<int> ends, double f, double width) 
   return out;
 }
 
+
+// ───────── أول صفحتين: أسطر مصحف المدينة كما هي ─────────
+/// نهاية سطر ثابتة: بعد الكلمة رقم [word] من الآية [ayah] (٠ = آخر كلمة في الآية).
+/// [justify] = السطر يُضبط على عرض الصفحة كاملًا، وإلا يتوسّط بمسافات طبيعية.
+class _FixedLine {
+  final int ayah, word;
+  final bool justify;
+  const _FixedLine(this.ayah, this.word, this.justify);
+}
+
+const Map<int, List<_FixedLine>> _fixedLines = {
+  // الفاتحة: ٧ أسطر تحت اللافتة، الأسطر القصيرة في المنتصف (شكل المصحف).
+  1: [
+    _FixedLine(1, 0, false), // بسم الله الرحمن الرحيم
+    _FixedLine(2, 0, false), // الحمد لله رب العالمين
+    _FixedLine(4, 0, true), // الرحمن الرحيم مالك يوم الدين
+    _FixedLine(5, 0, false), // إياك نعبد وإياك نستعين
+    _FixedLine(6, 0, false), // اهدنا الصراط المستقيم
+    _FixedLine(7, 6, true), // صراط الذين أنعمت عليهم غير المغضوب
+    _FixedLine(7, 0, false), // عليهم ولا الضالين
+  ],
+  // أول البقرة: لافتة + بسملة + ٦ أسطر.
+  2: [
+    _FixedLine(2, 6, true), // الم ذلك الكتاب لا ريب فيه هدى
+    _FixedLine(3, 5, true), // للمتقين الذين يؤمنون بالغيب ويقيمون الصلاة
+    _FixedLine(4, 4, true), // ومما رزقناهم ينفقون والذين يؤمنون بما أنزل
+    _FixedLine(4, 0, true), // إليك وما أنزل من قبلك وبالآخرة هم يوقنون
+    _FixedLine(5, 6, true), // أولئك على هدى من ربهم وأولئك
+    _FixedLine(5, 0, false), // هم المفلحون
+  ],
+};
+
+/// يقطّع [items] حسب [spec]؛ يرجع null لو لم تطابق البيانات المتوقعة (فيعود المحرك العام).
+List<MLine>? _fixedPageLines(List<MItem> items, List<_FixedLine> spec, double f) {
+  final out = <MLine>[];
+  var start = 0;
+  for (final sp in spec) {
+    var seen = 0;
+    var end = -1;
+    for (var i = start; i < items.length; i++) {
+      if (items[i].ayah.number != sp.ayah) {
+        if (seen > 0) break;
+        continue;
+      }
+      seen++;
+      final lastOfAyah = items[i].end;
+      if (sp.word == 0 ? lastOfAyah : seen == sp.word) {
+        end = i + 1;
+        break;
+      }
+    }
+    if (end <= start) return null;
+    out.add(MLine(items.sublist(start, end), sp.justify));
+    start = end;
+  }
+  return start == items.length ? out : null;
+}
+
+/// أكبر خط يجعل أعرض سطر ثابت داخل العرض المتاح.
+double _fixedFit(List<MLine> lines, double availW, double maxF) {
+  var f = maxF;
+  for (final l in lines) {
+    final w100 = _lineW(l.items, 0, l.items.length, 100);
+    if (w100 > 0) f = math.min(f, availW * 100 / w100);
+  }
+  return math.max(8.0, f);
+}
+
 final Map<String, MPageLayout> _cache = <String, MPageLayout>{};
 final Set<String> _warming = <String>{};
 
@@ -288,6 +356,24 @@ MPageLayout layoutPage({
   final text = segs.where((s) => !s.banner && !s.basmala).toList();
   final availW = width * kSafety;
   final baseSlot = height / slots;
+
+  // أول صفحتين: أسطر المصحف الثابتة (عند الحجم الأساسي فقط).
+  final spec = _fixedLines[page];
+  if (spec != null && (scale - 1).abs() < .005) {
+    final textItems = [for (final s in text) ...s.items];
+    final lines = _fixedPageLines(textItems, spec, 0);
+    if (lines != null && fixed + lines.length == slots) {
+      final f = _fixedFit(lines, availW, math.min(baseSlot / kLineH, width / 7.5));
+      final rows = <MRow>[
+        for (final s in segs)
+          if (s.banner) MRow.banner(s.surah) else if (s.basmala) const MRow.basmala(),
+        for (final l in lines) MRow.line(l),
+      ];
+      final res = MPageLayout(rows, f, baseSlot, true);
+      if (_cache.length >= 40) _cache.remove(_cache.keys.first);
+      return _cache[key] = res;
+    }
+  }
 
   int total(double f) =>
       text.fold(0, (a, s) => a + _greedy(s.items, f, availW).length);
