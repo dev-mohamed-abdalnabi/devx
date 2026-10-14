@@ -1,0 +1,20 @@
+{
+ "hadithCommit": "70b83d6d21995bb32f8d7271cd75501be5a922a7",
+ "fiqhCommit": "accb72b4a075e7776378fde30062a6ca69191be6",
+ "files": {
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/bukhari.json": "9d2e4194786c275f64f627c834711ea0e339a8fe226d5e9569ef962595a562f1",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/muslim.json": "12e3cbe8e2c83acc787b3e1e644877eff0feab11f1b32493386c60703d9076ae",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/forties/nawawi40.json": "d824cec8d82751669a9ed1d41f2854219f8e6770a2cab151ed87f9a501357def",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/other_books/riyad_assalihin.json": "180171247ed9462c05164c80c4f938bd30936bfaf848125595be0b86361d7b75",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/forties/qudsi40.json": "55210e39051cc102da28c2ba3c5fe3c8c27fae9f1afd322138f5f38ddc0eaa3b",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/other_books/bulugh_almaram.json": "de330eab46635c067e1740ccb7c9c38d93f8fff0a77213811935bb26529cf022",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/abudawud.json": "da55afe7f372a803f4c484da2982c440c62a8b3d891d3cc50a687606a56b9884",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/tirmidhi.json": "9ba6da92af6b0db9768c67f4c562c24bbbdb7be83509a78c40994c6d93366437",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/nasai.json": "d32d122202ab17af5f12b91b2b3737b1e208d9feff3e92effd027f10da56befe",
+  "https://raw.githubusercontent.com/AhmedBaset/hadith-json/70b83d6d21995bb32f8d7271cd75501be5a922a7/db/by_book/the_9_books/ibnmajah.json": "6c5d2abcabb0c880ae09cb3f03f1f716c166a14b89d5243bc04ad65e1023119d",
+  "https://raw.githubusercontent.com/arabic-digital-humanities/fiqh/accb72b4a075e7776378fde30062a6ca69191be6/txt/0428AlQuduri.Mukhtasar.txt": "e8117b877c7f1163f09346240c18f80ca6bc6c2e258cba03e138b64d14cc2460",
+  "https://raw.githubusercontent.com/OpenITI/0400AH/5bb6966d8df2ed22b1bff5cdbe29bb9c24f3ca29/data/0386IbnAbiZaydQayrawani/0386IbnAbiZaydQayrawani.Risala/0386IbnAbiZaydQayrawani.Risala.Shamela0011373-ara1": "f20a50969199e69238e87f1949a5c9a0a725d586a4ad409151363702043258ab",
+  "https://raw.githubusercontent.com/OpenITI/0600AH/ea4bdc6517a49d07106f223aa0869aa7c21b9589/data/0593IbnHusaynShihabDinIsbahani/0593IbnHusaynShihabDinIsbahani.GhayaWaTaqrib/0593IbnHusaynShihabDinIsbahani.GhayaWaTaqrib.Shamela0011370-ara1": "0b017da519d8fd3fef69c6fa2e5c7035f3813923212ff1c60fb4e2c9a92c3280",
+  "https://raw.githubusercontent.com/OpenITI/0625AH/f1e38210b32fd0d043949ff6471e869d658c3b16/data/0620IbnQudamaMaqdisi/0620IbnQudamaMaqdisi.CumdatFiqh/0620IbnQudamaMaqdisi.CumdatFiqh.Shamela0011315-ara1": "46a47285cf2cf1796a675853df7c5d6d69de7084666064dba6b596cf4863cd84"
+ }
+}

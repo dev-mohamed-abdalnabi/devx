@@ -77,6 +77,19 @@ jobs:
           pip install fonttools brotli || true
           python3 tool/fetch_mushaf.py
 
+      # مكتبة الحديث (١٠ كتب) والأحكام الفقهية (٤ مذاهب): تُجلب من مصادرها المثبّتة
+      # بـ commit محدد، وتُتحقق أعدادها. فشل الجلب أو التحقق يوقف البناء.
+      - name: Restore library cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            assets/library/*.json
+            assets/fiqh/*.json
+          key: library-${{ hashFiles('tool/fetch_library.py') }}
+
+      - name: Fetch hadith library and fiqh books
+        run: python3 tool/fetch_library.py
+
       # خطوة واحدة بدل: flutter create + desugaring + kotlin + manifest + signing
       - name: Prepare Android project
         env:

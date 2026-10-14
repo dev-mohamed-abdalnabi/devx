@@ -1,0 +1,102 @@
+[
+ {
+  "id": "bukhari",
+  "title": "صحيح البخاري",
+  "author": "الإمام محمد بن إسماعيل البخاري",
+  "desc": "أصح كتاب بعد كتاب الله",
+  "count": 7277,
+  "chapters": 97,
+  "file": "bukhari.json",
+  "sourceUrl": "https://sunnah.com/bukhari"
+ },
+ {
+  "id": "muslim",
+  "title": "صحيح مسلم",
+  "author": "الإمام مسلم بن الحجاج القشيري النيسابوري",
+  "desc": "ثاني الصحيحين",
+  "count": 7459,
+  "chapters": 57,
+  "file": "muslim.json",
+  "sourceUrl": "https://sunnah.com/muslim"
+ },
+ {
+  "id": "nawawi40",
+  "title": "الأربعون النووية",
+  "author": "الإمام يحيى بن شرف النووي",
+  "desc": "جوامع كلم النبي ﷺ",
+  "count": 42,
+  "chapters": 1,
+  "file": "nawawi40.json",
+  "sourceUrl": "https://sunnah.com/nawawi40"
+ },
+ {
+  "id": "riyad",
+  "title": "رياض الصالحين",
+  "author": "الإمام يحيى بن شرف النووي",
+  "desc": "في الآداب والرقائق والأخلاق",
+  "count": 1896,
+  "chapters": 20,
+  "file": "riyad.json",
+  "sourceUrl": "https://sunnah.com/riyadussalihin"
+ },
+ {
+  "id": "qudsi40",
+  "title": "الأربعون القدسية",
+  "author": "",
+  "desc": "أحاديث رواها النبي ﷺ عن ربه",
+  "count": 40,
+  "chapters": 1,
+  "file": "qudsi40.json",
+  "sourceUrl": "https://sunnah.com/qudsi40"
+ },
+ {
+  "id": "bulugh",
+  "title": "بلوغ المرام",
+  "author": "الإمام ابن حجر العسقلاني",
+  "desc": "أحاديث الأحكام مرتبة على أبواب الفقه",
+  "count": 1767,
+  "chapters": 16,
+  "file": "bulugh.json",
+  "sourceUrl": "https://sunnah.com/bulugh"
+ },
+ {
+  "id": "abudawud",
+  "title": "سنن أبي داود",
+  "author": "الإمام سليمان بن الأشعث أبو داود السجستاني",
+  "desc": "من كتب السنن الأربعة",
+  "count": 5276,
+  "chapters": 43,
+  "file": "abudawud.json",
+  "sourceUrl": "https://sunnah.com/abudawud"
+ },
+ {
+  "id": "tirmidhi",
+  "title": "جامع الترمذي",
+  "author": "الإمام أبو عيسى محمد بن عيسى الترمذي",
+  "desc": "مع بيان درجة الحديث",
+  "count": 4053,
+  "chapters": 49,
+  "file": "tirmidhi.json",
+  "sourceUrl": "https://sunnah.com/tirmidhi"
+ },
+ {
+  "id": "nasai",
+  "title": "سنن النسائي",
+  "author": "الإمام أبو عبد الرحمن أحمد بن شعيب النسائي",
+  "desc": "من كتب السنن الأربعة",
+  "count": 5768,
+  "chapters": 52,
+  "file": "nasai.json",
+  "sourceUrl": "https://sunnah.com/nasai"
+ },
+ {
+  "id": "ibnmajah",
+  "title": "سنن ابن ماجه",
+  "author": "الإمام محمد بن يزيد بن ماجه القزويني",
+  "desc": "من كتب السنن الأربعة",
+  "count": 4345,
+  "chapters": 38,
+  "file": "ibnmajah.json",
+  "sourceUrl": "https://sunnah.com/ibnmajah"
+ }
+]
