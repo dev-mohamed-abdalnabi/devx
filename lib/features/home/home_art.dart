@@ -43,6 +43,12 @@ class HomeIcons {
   static const home = '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>';
   static const forum =
       '<path d="M20 12a8 8 0 0 1-11.500 7.200L4 20l1-4.200A8 8 0 1 1 20 12z"/>';
+  /// ميزان — الأحكام الفقهية.
+  static const scale =
+      '<path d="M12 4v16M8 20h8M5 7h14M5 7l-3 7a3.500 3.500 0 0 0 6 0zM19 7l-3 7a3.500 3.500 0 0 0 6 0z"/>';
+  /// كتب على رفّ — المكتبة.
+  static const books =
+      '<path d="M4 4h4.500v16H4zM8.500 4H13v16H8.500zM14 5.500l4.200-1.100 3.300 14.600-4.200 1.100z"/>';
   static const more =
       '<rect x="4" y="4" width="6.500" height="6.500" rx="1.500"/><rect x="13.500" y="4" width="6.500" height="6.500" rx="1.500"/><rect x="4" y="13.500" width="6.500" height="6.500" rx="1.500"/><rect x="13.500" y="13.500" width="6.500" height="6.500" rx="1.500"/>';
 }

@@ -16,6 +16,8 @@ import '../../screens/categories_screen.dart';
 import '../../screens/favorites_screen.dart';
 import '../../screens/zikr_list_screen.dart';
 import '../challenges/challenges_screen.dart';
+import '../fiqh/fiqh_screens.dart';
+import '../library/library_screen.dart';
 import '../more/support_screen.dart';
 import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
@@ -179,7 +181,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                 final fullW = box.maxWidth;
                 // تصميم ثابت المقاسات: الكروت لا تُضغط أبدًا (كان الضغط يصغّر الخط ويخفي النص).
                 // نحسب معامل تكبير بسيط ليملأ الشاشات الطويلة، والقصيرة تُمرَّر.
-                const baseTotal = 180 + 108 * 4 + 120 + 40.0;
+                const baseTotal = 180 + 108 * 5 + 120 + 40.0;
                 final avail = box.maxHeight - 74;
                 final scale = (avail / baseTotal).clamp(1.0, 1.18);
                 Widget row(int h, List<Widget> kids) {
@@ -340,6 +342,34 @@ class _HomeDashboardState extends State<HomeDashboard> {
                               : 'ابدأ سلسلتك اليوم',
                           progress: total == 0 ? 0 : done / total,
                           onTap: () => _push(const ChallengesScreen()),
+                        ),
+                      ),
+                    ]),
+                    row(108, [
+                      slotTile(
+                        span: 2,
+                        colW: colW,
+                        fullW: fullW,
+                        child: HomeTile(
+                          tk: tk,
+                          compact: compact,
+                          icon: HomeIcons.scale,
+                          title: 'الأحكام الفقهية',
+                          subtitle: 'مذاهب أهل السنة الأربعة',
+                          onTap: () => _push(const FiqhScreen()),
+                        ),
+                      ),
+                      slotTile(
+                        span: 1,
+                        colW: colW,
+                        fullW: fullW,
+                        child: HomeTile(
+                          tk: tk,
+                          compact: compact,
+                          icon: HomeIcons.books,
+                          title: 'المكتبة',
+                          subtitle: 'كتب الحديث',
+                          onTap: () => _push(const LibraryScreen()),
                         ),
                       ),
                     ]),

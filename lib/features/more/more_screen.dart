@@ -14,6 +14,8 @@ import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
 import '../reminders/reminders_screen.dart';
 import '../../screens/categories_screen.dart';
+import '../fiqh/fiqh_screens.dart';
+import '../library/library_screen.dart';
 import 'bookmarks_screen.dart';
 import 'sources_screen.dart';
 import 'support_screen.dart';
@@ -96,6 +98,12 @@ class MoreScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _Heading(tk: tk, text: 'مكتبتي'),
             grid([
+              _Item(null, 'المكتبة', 'كتب الحديث',
+                  () => _go(context, const LibraryScreen()),
+                  svg: HomeIcons.books),
+              _Item(null, 'الأحكام الفقهية', 'المذاهب الأربعة',
+                  () => _go(context, const FiqhScreen()),
+                  svg: HomeIcons.scale),
               _Item(
                   Icons.bookmark_border_rounded,
                   'علامات القرآن',

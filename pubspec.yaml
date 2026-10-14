@@ -48,6 +48,8 @@ flutter:
     - assets/data/tafsir.json
     - assets/data/mushaf.json
     - assets/qcf/
+    - assets/library/
+    - assets/fiqh/
     - assets/data/challenges.json
     - assets/brand/app_icon.png
     - assets/brand/logo_mark.png
