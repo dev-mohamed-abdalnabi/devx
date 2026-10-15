@@ -4,6 +4,7 @@ import '../../core/text_utils.dart';
 import '../../data/library_data.dart';
 import '../../widgets/home_style.dart';
 import '../home/home_art.dart';
+import '../home/home_screen.dart' show HomeTile;
 import 'hadith_screens.dart';
 import 'library_widgets.dart';
 
@@ -38,24 +39,27 @@ class LibraryScreen extends StatelessWidget {
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
-              SliverList(
+              SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 240,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  mainAxisExtent: 126,
+                ),
                 delegate: SliverChildBuilderDelegate(
                   (context, i) {
                     final b = books[i];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: LibRow(
-                        tk: tk,
-                        emphasized: true,
-                        leading: toArabicDigits(i + 1),
-                        title: b.title,
-                        subtitle: '${b.author}\n${hadithCountLabel(b.count)} · ${toArabicDigits(b.chapters)} بابًا',
-                        subtitleLines: 2,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => HadithBookScreen(book: b)),
-                        ),
+                    return HomeTile(
+                      tk: tk,
+                      compact: false,
+                      icon: HomeIcons.books,
+                      title: b.title,
+                      subtitle:
+                          '${hadithCountLabel(b.count)} · ${toArabicDigits(b.chapters)} بابًا',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => HadithBookScreen(book: b)),
                       ),
                     );
                   },

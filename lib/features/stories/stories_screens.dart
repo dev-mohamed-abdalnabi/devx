@@ -11,6 +11,7 @@ import '../../providers/quran_provider.dart';
 import '../../providers/stories_provider.dart';
 import '../../widgets/home_style.dart';
 import '../home/home_art.dart';
+import '../home/home_screen.dart' show HomeTile;
 import '../library/library_widgets.dart';
 import '../quran/quran_home_screen.dart' show openReader;
 
@@ -37,45 +38,65 @@ class StoriesHomeScreen extends StatelessWidget {
         errorTitle: 'تعذّر تحميل حكايات الوحي',
         builder: (context, idx) {
           final favCount = context.watch<StoriesProvider>().favorites.length;
-          return ListView(
-            padding: const EdgeInsets.only(top: 6, bottom: 24),
-            children: [
-              HomeHeroCard(
-                tk: tk,
-                icon: HomeIcons.quran,
-                eyebrow: 'قصص القرآن والأنبياء والسيرة',
-                title: 'حكايات الوحي',
-                caption: '${toArabicDigits(idx.total)} قصة',
-              ),
-              const SizedBox(height: 10),
-              for (final s in idx.sections)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: LibRow(
-                    tk: tk,
-                    emphasized: true,
-                    leading: toArabicDigits(idx.sections.indexOf(s) + 1),
-                    title: s.title,
-                    subtitle: '${s.subtitle} · ${toArabicDigits(s.entries.length)} موضوعًا',
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => StorySectionScreen(section: s))),
-                  ),
+          return CustomScrollView(
+            slivers: [
+              const SliverToBoxAdapter(child: SizedBox(height: 6)),
+              SliverToBoxAdapter(
+                child: HomeHeroCard(
+                  tk: tk,
+                  icon: HomeIcons.quran,
+                  eyebrow: 'قصص القرآن والأنبياء والسيرة',
+                  title: 'حكايات الوحي',
+                  caption: '${toArabicDigits(idx.total)} قصة',
                 ),
-              LibRow(
-                tk: tk,
-                title: 'المفضلة',
-                subtitle: favCount == 0 ? 'لا شيء محفوظ بعد' : '${toArabicDigits(favCount)} محفوظة',
-                onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => const StoriesFavoritesScreen())),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
-                child: Text(
-                  'الآيات بنص المصحف المحمّل في التطبيق دون تعديل، والأحاديث كما وردت في الصحيحين '
-                  'وغيرهما. وما يُعرض من كتب التاريخ والتفسير (ابن كثير، ابن هشام، الخضري) منقول '
-                  'بنصه ومعه تنبيه باسم الكتاب؛ فقد يتضمن روايات لم تصح، ولا يُعدّ من الدين إلا '
-                  'ما ثبت بالقرآن والحديث الصحيح. التفاصيل في «المصادر والتراخيص».',
-                  style: cairoStyle(11.5, color: tk.muted, height: 1.7),
+              const SliverToBoxAdapter(child: SizedBox(height: 10)),
+              SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 240,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  mainAxisExtent: 112,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) {
+                    if (i == idx.sections.length) {
+                      return HomeTile(
+                        tk: tk,
+                        compact: false,
+                        icon: HomeIcons.heart,
+                        title: 'المفضلة',
+                        subtitle: favCount == 0
+                            ? 'لا شيء محفوظ بعد'
+                            : '${toArabicDigits(favCount)} محفوظة',
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const StoriesFavoritesScreen())),
+                      );
+                    }
+                    final s = idx.sections[i];
+                    return HomeTile(
+                      tk: tk,
+                      compact: false,
+                      icon: i == 0 ? HomeIcons.quran : HomeIcons.books,
+                      title: s.title,
+                      subtitle: '${s.subtitle} · ${toArabicDigits(s.entries.length)} موضوعًا',
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => StorySectionScreen(section: s))),
+                    );
+                  },
+                  childCount: idx.sections.length + 1,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 16, 4, 24),
+                  child: Text(
+                    'الآيات بنص المصحف المحمّل في التطبيق دون تعديل، والأحاديث كما وردت في الصحيحين '
+                    'وغيرهما. وما يُعرض من كتب التاريخ والتفسير (ابن كثير، ابن هشام، الخضري) منقول '
+                    'بنصه ومعه تنبيه باسم الكتاب؛ فقد يتضمن روايات لم تصح، ولا يُعدّ من الدين إلا '
+                    'ما ثبت بالقرآن والحديث الصحيح. التفاصيل في «المصادر والتراخيص».',
+                    style: cairoStyle(11.5, color: tk.muted, height: 1.7),
+                  ),
                 ),
               ),
             ],
@@ -95,25 +116,30 @@ class StorySectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
     final favs = context.watch<StoriesProvider>();
-    final children = <Widget>[];
-    String? era;
-    for (var i = 0; i < section.entries.length; i++) {
-      final e = section.entries[i];
-      if (e.era.isNotEmpty && e.era != era) {
-        era = e.era;
-        children.add(Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
-          child: Text(e.era, style: cairoStyle(13, weight: 700, color: tk.gold)),
-        ));
-      }
-      children.add(Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _EntryRow(tk: tk, entry: e, fav: favs.isFav(e.id), index: i + 1),
-      ));
-    }
     return LibPage(
       title: section.title,
-      body: ListView(padding: const EdgeInsets.only(top: 6, bottom: 24), children: children),
+      body: GridView.builder(
+        padding: const EdgeInsets.only(top: 6, bottom: 24),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 240,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          mainAxisExtent: 112,
+        ),
+        itemCount: section.entries.length,
+        itemBuilder: (context, i) {
+          final e = section.entries[i];
+          return HomeTile(
+            tk: tk,
+            compact: false,
+            icon: favs.isFav(e.id) ? HomeIcons.heart : HomeIcons.quran,
+            title: e.title,
+            subtitle: e.era.isEmpty ? 'اقرأ القصة' : e.era,
+            onTap: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => StoryScreen(entry: e))),
+          );
+        },
+      ),
     );
   }
 }
