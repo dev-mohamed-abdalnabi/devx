@@ -20,3 +20,6 @@ assets/qcf/*.ttf
 # المكتبة والأحكام الفقهية تُولَّد وقت البناء (tool/fetch_library.py)
 assets/library/*.json
 assets/fiqh/*.json
+
+# كتب «حكايات الوحي» تُجلب وقت البناء (tool/fetch_stories.py)
+assets/stories/books/*.json

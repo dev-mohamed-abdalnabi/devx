@@ -90,6 +90,20 @@ jobs:
       - name: Fetch hadith library and fiqh books
         run: python3 tool/fetch_library.py
 
+      # فهرس «حكايات الوحي» مراجع فقط: يتحقق أن كل آية ضمن حدود سورتها وكل حديث موجود برقمه
+      # ويحتوي عبارته الدالة في ملف الكتاب. أي خلل يوقف البناء.
+      # كتب «حكايات الوحي» الأصلية (ابن كثير، ابن هشام) من OpenITI. أول تشغيل يكتب
+      # tool/stories_sources.lock.json؛ ارفعه للمستودع لتثبيت الإصدار. عند فشل الجلب
+      # يستمر البناء وتختفي الكتب من التطبيق (لا نعرض ما لا نملك).
+      - name: Fetch stories books
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tool/fetch_stories.py
+
+      - name: Verify stories index
+        run: python3 tool/build_stories.py --check
+
       # خطوة واحدة بدل: flutter create + desugaring + kotlin + manifest + signing
       - name: Prepare Android project
         env:

@@ -19,6 +19,7 @@ import '../challenges/challenges_screen.dart';
 import '../fiqh/fiqh_screens.dart';
 import '../library/library_screen.dart';
 import '../more/support_screen.dart';
+import '../stories/stories_screens.dart';
 import '../prayer/prayer_screen.dart';
 import '../prayer/qibla_screen.dart';
 import '../quran/quran_audio_screen.dart';
@@ -370,6 +371,21 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           title: 'المكتبة',
                           subtitle: 'كتب الحديث',
                           onTap: () => _push(const LibraryScreen()),
+                        ),
+                      ),
+                    ]),
+                    row(108, [
+                      slotTile(
+                        span: 3,
+                        colW: colW,
+                        fullW: fullW,
+                        child: HomeTile(
+                          tk: tk,
+                          compact: compact,
+                          icon: HomeIcons.crescentStar,
+                          title: 'حكايات الوحي',
+                          subtitle: 'قصص القرآن · على خُطى الأنبياء · السيرة العَطِرة',
+                          onTap: () => _push(const StoriesHomeScreen()),
                         ),
                       ),
                     ]),

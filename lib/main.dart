@@ -15,6 +15,7 @@ import 'providers/azkar_provider.dart';
 import 'providers/notification_service.dart';
 import 'providers/prayer_provider.dart';
 import 'providers/reminders_provider.dart';
+import 'providers/stories_provider.dart';
 import 'screens/splash_screen.dart';
 import 'services/supabase_config.dart';
 import 'services/widget_sync.dart';
@@ -62,6 +63,7 @@ class AzkarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ActivityProvider()..init()),
         ChangeNotifierProvider(create: (_) => PrayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => RemindersProvider()..init()),
+        ChangeNotifierProvider(create: (_) => StoriesProvider()..init()),
       ],
       child: WidgetSyncHost(
         child: Consumer<AzkarProvider>(

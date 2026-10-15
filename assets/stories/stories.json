@@ -1,0 +1,1065 @@
+{
+ "version": 1,
+ "sections": [
+  {
+   "id": "quran",
+   "title": "قصص القرآن",
+   "subtitle": "قصص وردت في القرآن الكريم",
+   "entries": [
+    {
+     "id": "quran:ibnay_adam",
+     "title": "ابنا آدم",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 5,
+       "from": 27,
+       "to": 31
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3197,
+       "anchor": "كفل من دمها"
+      }
+     ],
+     "kw": [
+      "هابيل",
+      "قابيل",
+      "ابني آدم"
+     ]
+    },
+    {
+     "id": "quran:talut",
+     "title": "طالوت وجالوت",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 2,
+       "from": 246,
+       "to": 252
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3793,
+       "anchor": "اصحاب طالوت"
+      }
+     ],
+     "kw": [
+      "طالوت",
+      "شمويل"
+     ]
+    },
+    {
+     "id": "quran:kahf",
+     "title": "أصحاب الكهف",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 18,
+       "from": 9,
+       "to": 26
+      }
+     ],
+     "kw": [
+      "الكهف"
+     ]
+    },
+    {
+     "id": "quran:jannatayn",
+     "title": "صاحب الجنتين",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 18,
+       "from": 32,
+       "to": 44
+      }
+     ],
+     "kw": [
+      "الجنتين",
+      "الرجلين المؤمن والكافر"
+     ]
+    },
+    {
+     "id": "quran:dhulqarnayn",
+     "title": "ذو القرنين",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 18,
+       "from": 83,
+       "to": 98
+      }
+     ],
+     "kw": [
+      "ذي القرنين",
+      "ذو القرنين"
+     ]
+    },
+    {
+     "id": "quran:luqman",
+     "title": "لقمان ووصاياه لابنه",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 31,
+       "from": 12,
+       "to": 19
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3222,
+       "anchor": "قول لقمان"
+      }
+     ],
+     "kw": [
+      "لقمان"
+     ]
+    },
+    {
+     "id": "quran:saba",
+     "title": "سبأ",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 34,
+       "from": 15,
+       "to": 21
+      }
+     ],
+     "kw": [
+      "سيل العرم"
+     ]
+    },
+    {
+     "id": "quran:jannah",
+     "title": "أصحاب الجنة",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 68,
+       "from": 17,
+       "to": 33
+      }
+     ],
+     "kw": [
+      "أصحاب الجنة"
+     ]
+    },
+    {
+     "id": "quran:ukhdud",
+     "title": "أصحاب الأخدود",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 85,
+       "from": 4,
+       "to": 9
+      },
+      {
+       "k": "hadith",
+       "b": "muslim",
+       "n": 7325,
+       "anchor": "كان له ساحر"
+      }
+     ],
+     "kw": [
+      "الأخدود"
+     ]
+    },
+    {
+     "id": "quran:fil",
+     "title": "أصحاب الفيل",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 105,
+       "from": 1,
+       "to": 5
+      }
+     ],
+     "kw": [
+      "الفيل"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "prophets",
+   "title": "على خُطى الأنبياء",
+   "subtitle": "من آدم إلى عيسى عليهم السلام",
+   "entries": [
+    {
+     "id": "prophets:adam",
+     "title": "آدم عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 2,
+       "from": 30,
+       "to": 39
+      },
+      {
+       "k": "quran",
+       "s": 7,
+       "from": 11,
+       "to": 25
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3188,
+       "anchor": "خلق الله ادم"
+      }
+     ],
+     "kw": [
+      "آدم"
+     ]
+    },
+    {
+     "id": "prophets:idris",
+     "title": "إدريس عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 19,
+       "from": 56,
+       "to": 57
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3204,
+       "anchor": "ادريس وموسي وعيسي وابراهيم"
+      }
+     ],
+     "kw": [
+      "إدريس"
+     ]
+    },
+    {
+     "id": "prophets:nuh",
+     "title": "نوح عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 11,
+       "from": 25,
+       "to": 49
+      },
+      {
+       "k": "quran",
+       "s": 71,
+       "from": 1,
+       "to": 28
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3202,
+       "anchor": "انت اول الرسل"
+      }
+     ],
+     "kw": [
+      "نوح"
+     ]
+    },
+    {
+     "id": "prophets:hud",
+     "title": "هود عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 7,
+       "from": 65,
+       "to": 72
+      },
+      {
+       "k": "quran",
+       "s": 11,
+       "from": 50,
+       "to": 60
+      }
+     ],
+     "kw": [
+      "هود"
+     ]
+    },
+    {
+     "id": "prophets:salih",
+     "title": "صالح عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 7,
+       "from": 73,
+       "to": 79
+      },
+      {
+       "k": "quran",
+       "s": 11,
+       "from": 61,
+       "to": 68
+      }
+     ],
+     "kw": [
+      "صالح"
+     ]
+    },
+    {
+     "id": "prophets:ibrahim",
+     "title": "إبراهيم عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 6,
+       "from": 74,
+       "to": 83
+      },
+      {
+       "k": "quran",
+       "s": 21,
+       "from": 51,
+       "to": 70
+      },
+      {
+       "k": "quran",
+       "s": 2,
+       "from": 124,
+       "to": 129
+      },
+      {
+       "k": "quran",
+       "s": 2,
+       "from": 258,
+       "to": 260
+      },
+      {
+       "k": "quran",
+       "s": 37,
+       "from": 83,
+       "to": 113
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3233,
+       "anchor": "نحن احق من ابراهيم"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3220,
+       "anchor": "فاخدمها هاجر"
+      }
+     ],
+     "kw": [
+      "إبراهيم"
+     ]
+    },
+    {
+     "id": "prophets:ismail",
+     "title": "إسماعيل عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 19,
+       "from": 54,
+       "to": 55
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3225,
+       "anchor": "ثم اتت المروه"
+      }
+     ],
+     "kw": [
+      "إسماعيل"
+     ]
+    },
+    {
+     "id": "prophets:lut",
+     "title": "لوط عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 7,
+       "from": 80,
+       "to": 84
+      },
+      {
+       "k": "quran",
+       "s": 11,
+       "from": 77,
+       "to": 83
+      },
+      {
+       "k": "quran",
+       "s": 15,
+       "from": 57,
+       "to": 77
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3248,
+       "anchor": "يرحم الله لوطا"
+      }
+     ],
+     "kw": [
+      "لوط"
+     ]
+    },
+    {
+     "id": "prophets:yusuf",
+     "title": "يوسف عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 12,
+       "from": 1,
+       "to": 111
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3215,
+       "anchor": "فيوسف نبي الله"
+      }
+     ],
+     "kw": [
+      "يوسف"
+     ]
+    },
+    {
+     "id": "prophets:ayyub",
+     "title": "أيوب عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 21,
+       "from": 83,
+       "to": 84
+      },
+      {
+       "k": "quran",
+       "s": 38,
+       "from": 41,
+       "to": 44
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3252,
+       "anchor": "رجل جراد"
+      }
+     ],
+     "kw": [
+      "أيوب"
+     ]
+    },
+    {
+     "id": "prophets:shuayb",
+     "title": "شعيب عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 7,
+       "from": 85,
+       "to": 93
+      },
+      {
+       "k": "quran",
+       "s": 11,
+       "from": 84,
+       "to": 95
+      }
+     ],
+     "kw": [
+      "شعيب"
+     ]
+    },
+    {
+     "id": "prophets:musa",
+     "title": "موسى عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 20,
+       "from": 9,
+       "to": 98
+      },
+      {
+       "k": "quran",
+       "s": 28,
+       "from": 3,
+       "to": 42
+      },
+      {
+       "k": "quran",
+       "s": 18,
+       "from": 60,
+       "to": 82
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3257,
+       "anchor": "نجي الله فيه موسي"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3261,
+       "anchor": "نوفا البكالي"
+      }
+     ],
+     "kw": [
+      "موسى"
+     ]
+    },
+    {
+     "id": "prophets:dawud",
+     "title": "داود عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 38,
+       "from": 17,
+       "to": 26
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3276,
+       "anchor": "خفف علي داود"
+      }
+     ],
+     "kw": [
+      "داود"
+     ]
+    },
+    {
+     "id": "prophets:sulayman",
+     "title": "سليمان عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 27,
+       "from": 15,
+       "to": 44
+      },
+      {
+       "k": "quran",
+       "s": 38,
+       "from": 30,
+       "to": 40
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3283,
+       "anchor": "لاطوفن الليله"
+      }
+     ],
+     "kw": [
+      "سليمان"
+     ]
+    },
+    {
+     "id": "prophets:yunus",
+     "title": "يونس عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 37,
+       "from": 139,
+       "to": 148
+      },
+      {
+       "k": "quran",
+       "s": 21,
+       "from": 87,
+       "to": 88
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3256,
+       "anchor": "خير من يونس"
+      }
+     ],
+     "kw": [
+      "يونس"
+     ]
+    },
+    {
+     "id": "prophets:zakariya",
+     "title": "زكريا ويحيى عليهما السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 3,
+       "from": 37,
+       "to": 41
+      },
+      {
+       "k": "quran",
+       "s": 19,
+       "from": 2,
+       "to": 15
+      }
+     ],
+     "kw": [
+      "زكريا",
+      "يحيى"
+     ]
+    },
+    {
+     "id": "prophets:isa",
+     "title": "عيسى عليه السلام",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 3,
+       "from": 42,
+       "to": 59
+      },
+      {
+       "k": "quran",
+       "s": 19,
+       "from": 16,
+       "to": 36
+      },
+      {
+       "k": "quran",
+       "s": 5,
+       "from": 110,
+       "to": 118
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3299,
+       "anchor": "اولي الناس بابن مريم"
+      }
+     ],
+     "kw": [
+      "عيسى",
+      "مريم"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "seerah",
+   "title": "السيرة العَطِرة",
+   "subtitle": "من البعثة إلى الوفاة ﷺ",
+   "entries": [
+    {
+     "id": "seerah:wahy",
+     "title": "بدء الوحي",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 96,
+       "from": 1,
+       "to": 5
+      },
+      {
+       "k": "quran",
+       "s": 74,
+       "from": 1,
+       "to": 7
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3,
+       "anchor": "غار حراء"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4,
+       "anchor": "فتره الوحي"
+      }
+     ],
+     "kw": [
+      "الوحي",
+      "حراء"
+     ],
+     "era": "العهد المكي"
+    },
+    {
+     "id": "seerah:jahr",
+     "title": "الجهر بالدعوة",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4564,
+       "anchor": "وانذر عشيرتك"
+      }
+     ],
+     "kw": [
+      "الجهر",
+      "عشيرتك"
+     ],
+     "era": "العهد المكي"
+    },
+    {
+     "id": "seerah:taif",
+     "title": "الطائف",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3098,
+       "anchor": "قرن الثعالب"
+      }
+     ],
+     "kw": [
+      "الطائف"
+     ],
+     "era": "العهد المكي"
+    },
+    {
+     "id": "seerah:isra",
+     "title": "الإسراء والمعراج",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 17,
+       "from": 1,
+       "to": 1
+      },
+      {
+       "k": "quran",
+       "s": 53,
+       "from": 1,
+       "to": 18
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3204,
+       "anchor": "فرج سقف بيتي"
+      },
+      {
+       "k": "hadith",
+       "b": "muslim",
+       "n": 316,
+       "anchor": "اتيت بالبراق"
+      }
+     ],
+     "kw": [
+      "الإسراء"
+     ],
+     "era": "العهد المكي"
+    },
+    {
+     "id": "seerah:aqaba",
+     "title": "بيعة العقبة",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 18,
+       "anchor": "ليله العقبه"
+      }
+     ],
+     "kw": [
+      "العقبة"
+     ],
+     "era": "العهد المكي"
+    },
+    {
+     "id": "seerah:hijra",
+     "title": "الهجرة إلى المدينة",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3742,
+       "anchor": "واستاجر رسول الله"
+      }
+     ],
+     "kw": [
+      "الهجرة"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:muakhat",
+     "title": "المؤاخاة في المدينة",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3617,
+       "anchor": "اخي رسول الله"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3774,
+       "anchor": "فاخي النبي"
+      }
+     ],
+     "kw": [
+      "المؤاخاة"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:badr",
+     "title": "غزوة بدر",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 3,
+       "from": 123,
+       "to": 127
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3797,
+       "anchor": "ابا جهل"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3823,
+       "anchor": "ارني ابا جهل"
+      }
+     ],
+     "kw": [
+      "بدر"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:uhud",
+     "title": "غزوة أُحد",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3821,
+       "anchor": "عبد الله بن جبير"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3872,
+       "anchor": "هذا جبريل"
+      }
+     ],
+     "kw": [
+      "غزوة أحد",
+      "يوم أحد"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:khandaq",
+     "title": "غزوة الخندق",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 33,
+       "from": 9,
+       "to": 27
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3929,
+       "anchor": "يوم الخندق نحفر"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3932,
+       "anchor": "ينقل التراب"
+      }
+     ],
+     "kw": [
+      "الخندق"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:hudaybiya",
+     "title": "صلح الحديبية وبيعة الرضوان",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 48,
+       "from": 18,
+       "to": 26
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3975,
+       "anchor": "عام الحديبيه"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3978,
+       "anchor": "بيعه الرضوان"
+      }
+     ],
+     "kw": [
+      "الحديبية"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:fath",
+     "title": "فتح مكة",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 110,
+       "from": 1,
+       "to": 3
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4107,
+       "anchor": "دخل عام الفتح"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4104,
+       "anchor": "جاء الحق وزهق"
+      }
+     ],
+     "kw": [
+      "فتح مكة"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:hunayn",
+     "title": "غزوة حنين",
+     "parts": [
+      {
+       "k": "quran",
+       "s": 9,
+       "from": 25,
+       "to": 27
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4131,
+       "anchor": "يوم حنين"
+      }
+     ],
+     "kw": [
+      "حنين"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:tabuk",
+     "title": "غزوة تبوك",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4222,
+       "anchor": "استخلف عليا"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4224,
+       "anchor": "يحدث حين تخلف عن"
+      }
+     ],
+     "kw": [
+      "تبوك"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:wada",
+     "title": "حجة الوداع",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 83,
+       "anchor": "في حجه الوداع"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 121,
+       "anchor": "حجه الوداع"
+      }
+     ],
+     "kw": [
+      "الوداع"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:wafat",
+     "title": "مرض النبي ﷺ ووفاته",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4241,
+       "anchor": "المرض الذي مات فيه"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 4253,
+       "anchor": "بين سحري ونحري"
+      }
+     ],
+     "kw": [
+      "وفاة",
+      "مرض رسول"
+     ],
+     "era": "العهد المدني"
+    },
+    {
+     "id": "seerah:sifat",
+     "title": "صفاته وأخلاقه ﷺ",
+     "parts": [
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 3399,
+       "anchor": "احسن الناس وجها"
+      },
+      {
+       "k": "hadith",
+       "b": "bukhari",
+       "n": 6,
+       "anchor": "اجود الناس"
+      }
+     ],
+     "era": "الشمائل"
+    }
+   ]
+  }
+ ]
+}

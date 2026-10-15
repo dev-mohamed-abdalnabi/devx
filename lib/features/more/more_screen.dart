@@ -16,6 +16,7 @@ import '../reminders/reminders_screen.dart';
 import '../../screens/categories_screen.dart';
 import '../fiqh/fiqh_screens.dart';
 import '../library/library_screen.dart';
+import '../stories/stories_screens.dart';
 import 'bookmarks_screen.dart';
 import 'sources_screen.dart';
 import 'support_screen.dart';
@@ -98,6 +99,9 @@ class MoreScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _Heading(tk: tk, text: 'مكتبتي'),
             grid([
+              _Item(null, 'حكايات الوحي', 'قصص القرآن · على خُطى الأنبياء · السيرة العَطِرة',
+                  () => _go(context, const StoriesHomeScreen()),
+                  svg: HomeIcons.crescentStar),
               _Item(null, 'المكتبة', 'كتب الحديث',
                   () => _go(context, const LibraryScreen()),
                   svg: HomeIcons.books),

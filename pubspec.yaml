@@ -50,6 +50,8 @@ flutter:
     - assets/qcf/
     - assets/library/
     - assets/fiqh/
+    - assets/stories/
+    - assets/stories/books/
     - assets/data/challenges.json
     - assets/brand/app_icon.png
     - assets/brand/logo_mark.png
