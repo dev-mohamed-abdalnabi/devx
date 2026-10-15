@@ -4,14 +4,13 @@ import '../../core/text_utils.dart';
 import '../../data/library_data.dart';
 import '../../widgets/home_style.dart';
 import '../home/home_art.dart';
-import '../home/home_screen.dart' show HomeTile;
 import 'hadith_screens.dart';
 import 'library_widgets.dart';
 
 String hadithCountLabel(int n) =>
     countLabel(n, 'حديث واحد', 'حديثان', 'أحاديث', 'حديثًا');
 
-/// المكتبة: كتب الحديث كاملة بنصها العربي من مصادرها، بنفس شكل صفحة الأذكار.
+/// المكتبة: فهرس كتب مرتب، ثم يفتح كل كتاب على أبوابه وصفحاته.
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
 
@@ -39,26 +38,24 @@ class LibraryScreen extends StatelessWidget {
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 10)),
-              SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 240,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  mainAxisExtent: 112,
-                ),
+              SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, i) {
                     final b = books[i];
-                    return HomeTile(
-                      tk: tk,
-                      compact: false,
-                      icon: HomeIcons.quran,
-                      title: b.title,
-                      subtitle: hadithCountLabel(b.count),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => HadithBookScreen(book: b)),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: LibRow(
+                        tk: tk,
+                        emphasized: true,
+                        leading: toArabicDigits(i + 1),
+                        title: b.title,
+                        subtitle: '${b.author}\n${hadithCountLabel(b.count)} · ${toArabicDigits(b.chapters)} بابًا',
+                        subtitleLines: 2,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => HadithBookScreen(book: b)),
+                        ),
                       ),
                     );
                   },
@@ -69,7 +66,7 @@ class LibraryScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(4, 16, 4, 24),
                   child: Text(
-                    'نصوص الأحاديث منقولة كما هي من موقع sunnah.com دون أي تعديل، '
+                    'نصوص الأحاديث منقولة كما هي من مصادرها الأصلية دون أي تعديل، '
                     'مع اسم الكتاب ورقم الحديث. التفاصيل في «المصادر والتراخيص».',
                     style: cairoStyle(11.5, color: tk.muted, height: 1.7),
                   ),

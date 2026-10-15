@@ -55,8 +55,8 @@ class _TextCardState extends State<TextCard> {
   bool _down = false;
 
   String get _full => widget.shareFooter.isEmpty
-      ? widget.text
-      : '${widget.text}\n\n${widget.shareFooter}';
+      ? cleanImportedText(widget.text)
+      : '${cleanImportedText(widget.text)}\n\n${cleanImportedText(widget.shareFooter)}';
 
   void _menu() {
     HapticFeedback.selectionClick();
@@ -93,6 +93,7 @@ class _TextCardState extends State<TextCard> {
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
     final scale = context.select<AzkarProvider, double>((p) => p.fontScale);
+    final displayText = cleanImportedText(widget.text);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => setState(() => _down = true),
@@ -111,7 +112,7 @@ class _TextCardState extends State<TextCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.text,
+              displayText,
               textAlign: TextAlign.right,
               style: amiriStyle(widget.baseSize * scale,
                   color: tk.ink, height: 1.95),
@@ -346,4 +347,136 @@ String snippetFor(String text, String key, String query, {int span = 200}) {
   if (start > 0) s = '… $s';
   if (end < text.length) s = '$s …';
   return s;
+}
+
+/// قارئ كتاب بسيط: كل فقرة صفحة مستقلة مع تقليب أفقي مثل المصحف.
+class BookPageReader extends StatefulWidget {
+  final String title;
+  final String? author;
+  final List<String> pages;
+  final List<String>? pageFooters;
+  const BookPageReader({
+    super.key,
+    required this.title,
+    required this.pages,
+    this.author,
+    this.pageFooters,
+  });
+
+  @override
+  State<BookPageReader> createState() => _BookPageReaderState();
+}
+
+class _BookPageReaderState extends State<BookPageReader> {
+  late final PageController _controller;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    if (widget.pages.isEmpty) {
+      return Center(child: Text('لا يوجد نص للعرض', style: cairoStyle(13, color: tk.muted)));
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.pages.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, i) {
+              final footer = widget.pageFooters != null &&
+                      i < widget.pageFooters!.length
+                  ? widget.pageFooters![i]
+                  : widget.author;
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(2, 8, 2, 8),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  decoration: BoxDecoration(
+                    color: tk.card,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: tk.line),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Text(widget.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: cairoStyle(12, weight: 700, color: tk.gold)),
+                      const SizedBox(height: 14),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: SelectableText(
+                            widget.pages[i],
+                            textAlign: TextAlign.justify,
+                            style: amiriStyle(20, color: tk.ink, height: 2.0),
+                          ),
+                        ),
+                      ),
+                      if (footer != null && footer.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(footer,
+                            textAlign: TextAlign.center,
+                            style: cairoStyle(11, color: tk.muted, height: 1.6)),
+                      ],
+                      const SizedBox(height: 8),
+                      Text('${toArabicDigits(i + 1)} من ${toArabicDigits(widget.pages.length)}',
+                          style: cairoStyle(11, color: tk.gold)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              HomeChip(
+                tk: tk,
+                label: 'الصفحة السابقة',
+                selected: false,
+                onTap: _page == 0
+                    ? () {}
+                    : () => _controller.previousPage(
+                        duration: const Duration(milliseconds: 220), curve: Curves.easeOut),
+              ),
+              const SizedBox(width: 10),
+              HomeChip(
+                tk: tk,
+                label: 'الصفحة التالية',
+                selected: _page < widget.pages.length - 1,
+                onTap: _page >= widget.pages.length - 1
+                    ? () {}
+                    : () => _controller.nextPage(
+                        duration: const Duration(milliseconds: 220), curve: Curves.easeOut),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

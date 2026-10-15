@@ -20,18 +20,11 @@ class _HadithList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = chapter.items;
-    return ListView.separated(
-      padding: const EdgeInsets.only(top: 6, bottom: 24),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final src = _source(bookTitle, items[i]);
-        return TextCard(
-          text: items[i].text,
-          source: src,
-          shareFooter: '$src\n(${chapter.title})',
-        );
-      },
+    return BookPageReader(
+      title: chapter.title,
+      author: bookTitle,
+      pages: [for (final item in items) item.text],
+      pageFooters: [for (final item in items) _source(bookTitle, item)],
     );
   }
 }

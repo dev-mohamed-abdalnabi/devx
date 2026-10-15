@@ -171,62 +171,15 @@ class _FiqhReaderScreenState extends State<FiqhReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tk = HomeTokens.of(context);
     final book = widget.book;
     final s = book.sections[_i];
-    final footer = '${book.title} — ${book.author}\n${s.title}';
-    final prev = _step(-1);
-    final next = _step(1);
     return LibPage(
       title: s.title,
-      body: ListView.builder(
+      body: BookPageReader(
         key: ValueKey(_i),
-        padding: const EdgeInsets.only(top: 6, bottom: 28),
-        itemCount: s.paragraphs.length + 1,
-        itemBuilder: (context, i) {
-          if (i == s.paragraphs.length) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (prev >= 0)
-                        HomeChip(
-                            tk: tk,
-                            label: 'القسم السابق',
-                            selected: false,
-                            onTap: () => _go(prev)),
-                      if (prev >= 0 && next >= 0) const SizedBox(width: 10),
-                      if (next >= 0)
-                        HomeChip(
-                            tk: tk,
-                            label: 'القسم التالي',
-                            selected: true,
-                            onTap: () => _go(next)),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'المصدر: ${book.title} · ${book.author}',
-                    textAlign: TextAlign.center,
-                    style: cairoStyle(11.5, color: tk.muted, height: 1.7),
-                  ),
-                ],
-              ),
-            );
-          }
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: TextCard(
-              text: s.paragraphs[i],
-              shareFooter: footer,
-              baseSize: 20,
-              actions: false,
-            ),
-          );
-        },
+        title: s.title,
+        author: '${book.title} · ${book.author}',
+        pages: s.paragraphs,
       ),
     );
   }

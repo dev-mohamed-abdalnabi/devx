@@ -63,6 +63,18 @@ String searchKey(String s) {
   return b.toString();
 }
 
+/// ينظف العلامات التقنية التي تأتي أحيانًا من ملفات المصادر الخام.
+/// لا يغيّر النص العربي؛ يزيل فقط معرّفات الفقرات والوسوم الأجنبية الظاهرة.
+String cleanImportedText(String value) {
+  return value
+      .replaceAll(RegExp(r'@QUR@[0-9]+'), ' ')
+      .replaceAll(RegExp(r'\b(?:AUT|NOTMATCH)\b'), ' ')
+      .replaceAll(RegExp(r'[A-Z]{2,}[0-9]+@'), ' ')
+      .replaceAll(RegExp(r'\b[A-Z]{2,}[0-9]+\b'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
 const _weekdays = [
   'الاثنين',
   'الثلاثاء',

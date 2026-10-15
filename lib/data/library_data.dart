@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart' show rootBundle;
-import '../core/text_utils.dart' show searchKey;
+import '../core/text_utils.dart' show cleanImportedText, searchKey;
 
 /// بيانات المكتبة (الحديث) والأحكام الفقهية. كل النصوص منقولة حرفيًا من
 /// مصادرها (انظر tool/fetch_library.py) ولا يُولَّد أي نص ديني بالذكاء الاصطناعي.
@@ -69,9 +69,9 @@ class HadithBook {
       final m = c as Map<String, dynamic>;
       final items = <HadithItem>[
         for (final h in (m['h'] as List))
-          HadithItem(((h as List)[0] as num).toInt(), h[1] as String),
+          HadithItem(((h as List)[0] as num).toInt(), cleanImportedText(h[1] as String)),
       ];
-      chapters.add(HadithChapter(m['t'] as String, items));
+      chapters.add(HadithChapter(cleanImportedText(m['t'] as String), items));
     }
     return HadithBook(j['id'] as String, j['title'] as String,
         (j['author'] as String?) ?? '', chapters);
@@ -136,9 +136,9 @@ class FiqhBook {
         [
           for (final s in (j['sections'] as List))
             FiqhSection(
-              (s as Map<String, dynamic>)['t'] as String,
+              cleanImportedText((s as Map<String, dynamic>)['t'] as String),
               (s['lvl'] as num).toInt(),
-              [for (final p in (s['p'] as List)) p as String],
+              [for (final p in (s['p'] as List)) cleanImportedText(p as String)],
             ),
         ],
       );

@@ -578,7 +578,7 @@ class StoryBookScreen extends StatelessWidget {
                         border: Border.all(color: tk.gold),
                       ),
                       child: Text(
-                        'تنبيه: ${info.notice}\nالمصدر: ${info.sourceUrl} · ${info.sourcePath}',
+                        'تنبيه: ${info.notice}\nالمصدر: ${info.author}، والنص منقول من الكتاب كما هو.',
                         style: cairoStyle(12, color: tk.ink, height: 1.7),
                       ),
                     ),
@@ -703,17 +703,10 @@ void openBookSection(BuildContext context, StoryBookInfo info, FiqhSection s) {
     MaterialPageRoute(
       builder: (_) => LibPage(
         title: s.title,
-        body: ListView.separated(
-          padding: const EdgeInsets.only(top: 6, bottom: 24),
-          itemCount: s.paragraphs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, k) => TextCard(
-            text: s.paragraphs[k],
-            source: '${info.title} · ${info.author}',
-            shareFooter: '${info.title} — ${info.author}\n(${s.title})',
-            actions: false,
-            baseSize: 19,
-          ),
+        body: BookPageReader(
+          title: s.title,
+          author: '${info.title} · ${info.author}',
+          pages: s.paragraphs,
         ),
       ),
     ),
