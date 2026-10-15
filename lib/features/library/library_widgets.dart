@@ -389,66 +389,72 @@ class _BookPageReaderState extends State<BookPageReader> {
     if (widget.pages.isEmpty) {
       return Center(child: Text('لا يوجد نص للعرض', style: cairoStyle(13, color: tk.muted)));
     }
-    return Column(
-      children: [
-        Expanded(
-          child: PageView.builder(
-            controller: _controller,
-            itemCount: widget.pages.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (context, i) {
-              final footer = widget.pageFooters != null &&
-                      i < widget.pageFooters!.length
-                  ? widget.pageFooters![i]
-                  : widget.author;
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(2, 8, 2, 8),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                  decoration: BoxDecoration(
-                    color: tk.card,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: tk.line),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: .12),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(widget.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: cairoStyle(12, weight: 700, color: tk.gold)),
-                      const SizedBox(height: 14),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: SelectableText(
-                            widget.pages[i],
-                            textAlign: TextAlign.justify,
-                            style: amiriStyle(20, color: tk.ink, height: 2.0),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _controller,
+              physics: const PageScrollPhysics(),
+              itemCount: widget.pages.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (context, i) {
+                final footer = widget.pageFooters != null &&
+                        i < widget.pageFooters!.length
+                    ? widget.pageFooters![i]
+                    : widget.author;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(22, 26, 22, 16),
+                    decoration: BoxDecoration(
+                      color: tk.card,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: tk.line),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .14),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Text(widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: cairoStyle(12, weight: 700, color: tk.gold)),
+                        const SizedBox(height: 18),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: SelectableText(
+                              widget.pages[i],
+                              textAlign: TextAlign.justify,
+                              style: amiriStyle(21, color: tk.ink, height: 2.05),
+                            ),
                           ),
                         ),
-                      ),
-                      if (footer != null && footer.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(footer,
-                            textAlign: TextAlign.center,
-                            style: cairoStyle(11, color: tk.muted, height: 1.6)),
+                        if (footer != null && footer.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Container(height: 1, color: tk.line),
+                          const SizedBox(height: 8),
+                          Text(footer,
+                              textAlign: TextAlign.center,
+                              style: cairoStyle(11, color: tk.muted, height: 1.6)),
+                        ],
+                        const SizedBox(height: 8),
+                        Text('${toArabicDigits(i + 1)} من ${toArabicDigits(widget.pages.length)}',
+                            style: cairoStyle(11, color: tk.gold)),
                       ],
-                      const SizedBox(height: 8),
-                      Text('${toArabicDigits(i + 1)} من ${toArabicDigits(widget.pages.length)}',
-                          style: cairoStyle(11, color: tk.gold)),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: Row(
@@ -476,7 +482,8 @@ class _BookPageReaderState extends State<BookPageReader> {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
