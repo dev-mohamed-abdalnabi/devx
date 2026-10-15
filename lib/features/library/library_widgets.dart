@@ -438,6 +438,13 @@ class _BookPageReaderState extends State<BookPageReader> {
     }
   }
 
+  String _footerFor(int page) {
+    if (widget.pageFooters != null && page < widget.pageFooters!.length) {
+      return widget.pageFooters![page];
+    }
+    return widget.author ?? '';
+  }
+
   Widget _bar({required bool top, required bool show, required Widget child}) {
     return AnimatedSlide(
       offset: show ? Offset.zero : Offset(0, top ? -1 : 1),
@@ -518,6 +525,16 @@ class _BookPageReaderState extends State<BookPageReader> {
                         color: tk.ink,
                         label: 'رجوع',
                         onTap: () => Navigator.of(context).maybePop()),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: cairoStyle(16, weight: 700, color: tk.ink),
+                      ),
+                    ),
                     const Spacer(),
                     HeaderButton(
                         icon: ZikrIcons.dots,
@@ -549,13 +566,29 @@ class _BookPageReaderState extends State<BookPageReader> {
                     color: tk.bg.withValues(alpha: .97),
                     border: Border(top: BorderSide(color: tk.line)),
                   ),
-                  child: Row(children: [
-                    Text('صفحة ${toArabicDigits(_page + 1)}',
-                        style: cairoStyle(13, weight: 700, color: tk.ink)),
-                    const Spacer(),
-                    Text('من ${toArabicDigits(widget.pages.length)}',
-                        style: cairoStyle(12.5, color: tk.muted)),
-                  ]),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_footerFor(_page).isNotEmpty) ...[
+                        Text(
+                          _footerFor(_page),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: cairoStyle(11, color: tk.muted, height: 1.5),
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                      Row(children: [
+                        Text('صفحة ${toArabicDigits(_page + 1)}',
+                            style: cairoStyle(13,
+                                weight: 700, color: tk.ink)),
+                        const Spacer(),
+                        Text('من ${toArabicDigits(widget.pages.length)}',
+                            style: cairoStyle(12.5, color: tk.muted)),
+                      ]),
+                    ],
+                  ),
                 ),
               ),
             ),
