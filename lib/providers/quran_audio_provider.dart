@@ -123,7 +123,8 @@ class QuranAudioProvider extends ChangeNotifier {
         streamEdition: 'ar.faresabbad'),
     QuranReciter('ahmed_ajmi', 'أحمد بن علي العجمي', null,
         streamEdition: 'ar.ahmedalajmi'),
-    QuranReciter('yasser_dossari', 'ياسر الدوسري', null,
+    QuranReciter('yasser_dossari', 'ياسر الدوسري',
+        'https://raw.githubusercontent.com/dev-mohamed-abdalnabi/devx-audio-packages/main/yasser/quran.zip',
         streamEdition: 'ar.yasseraldossari'),
   ];
 
