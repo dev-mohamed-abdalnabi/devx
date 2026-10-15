@@ -390,6 +390,15 @@ class _BookPageReaderState extends State<BookPageReader> {
 
   void _toggleChrome() => setState(() => _chrome = !_chrome);
 
+  Future<void> _copyPage(int page) async {
+    HapticFeedback.mediumImpact();
+    final footer = _footerFor(page);
+    final text = footer.isEmpty
+        ? widget.pages[page]
+        : '${widget.pages[page]}\n\n$footer';
+    await copyToClipboard(context, '$text\n\n${widget.title}');
+  }
+
   Future<void> _share() async {
     final text = widget.shareText ?? widget.pages[_page];
     await Share.share('$text\n\n${widget.title}');
@@ -492,10 +501,11 @@ class _BookPageReaderState extends State<BookPageReader> {
                   itemBuilder: (context, i) => GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onTap: _toggleChrome,
+                    onLongPress: () => _copyPage(i),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
                       child: SingleChildScrollView(
-                        child: SelectableText(
+                        child: Text(
                           widget.pages[i],
                           textAlign: TextAlign.justify,
                           style: amiriStyle(22, color: tk.ink, height: 2.15),
