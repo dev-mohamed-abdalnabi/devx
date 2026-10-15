@@ -34,4 +34,13 @@ void main() {
       }
     }
   });
+
+  test('كل قصص الأنبياء لها محتوى قرآني ظاهر', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    final prophets = idx.section('prophets');
+    for (final entry in prophets.entries) {
+      expect(entry.parts.any((p) => p.kind == StoryPartKind.quran), isTrue,
+          reason: 'لا توجد آيات لقصة ${entry.title}');
+    }
+  });
 }

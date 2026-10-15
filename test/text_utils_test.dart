@@ -14,6 +14,7 @@ void main() {
 
   test('تنظيف النص المستورد يزيل الوسوم الإنجليزية التقنية', () {
     expect(cleanImportedText('AUTO قصة آدم AUT NOTMATCH UNMATCHED'), 'قصة آدم');
+    expect(cleanImportedText('### قصة يوسف عليه السلام'), 'قصة يوسف عليه السلام');
   });
 
   test('التحية حسب الوقت', () {

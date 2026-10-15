@@ -769,9 +769,12 @@ Future<List<_SourceHits>> _loadSources(StoryEntry entry) async {
     if (!info.serves.contains(kind)) continue;
     try {
       final book = await StoriesRepo.book(info);
+      // بعض النسخ الخام تحفظ عنوان الفصل بصيغة Markdown مثل ### قصة يوسف.
+      // تتم المطابقة بعد تنظيف العنوان حتى لا تختفي القصة بسبب الوسم فقط.
       final hits = [
         for (final s in book.sections)
-          if (s.paragraphs.isNotEmpty && keys.any((k) => searchKey(s.title).contains(k))) s,
+          if (s.paragraphs.isNotEmpty &&
+              keys.any((k) => searchKey(cleanImportedText(s.title)).contains(k))) s,
       ].take(8).toList();
       out.add(_SourceHits(info, hits));
     } catch (_) {

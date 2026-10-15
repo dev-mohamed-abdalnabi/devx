@@ -71,6 +71,8 @@ String cleanImportedText(String value) {
       // OpenITI وبعض ملفات البناء تضع وسومًا تقنية مثل AUTO/AUT داخل العناوين.
       // هذه الوسوم ليست جزءًا من النص العربي ويجب ألا تظهر للمستخدم.
       .replaceAll(RegExp(r'\b(?:AUTO|AUT|NOTMATCH|UNMATCHED)\b'), ' ')
+      // عناوين Markdown الموروثة من النسخ الخام: # و## و###.
+      .replaceAll(RegExp(r'#+'), ' ')
       .replaceAll(RegExp(r'[A-Z]{2,}[0-9]+@'), ' ')
       .replaceAll(RegExp(r'\b[A-Z]{2,}[0-9]+\b'), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
