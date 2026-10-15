@@ -226,6 +226,14 @@ def parse_depth(text: str) -> list[dict]:
             secs.append({"t": fl.scrub(m.group(2)) or "…", "d": len(m.group(1)), "p": []})
             after_page = False
             continue
+        # بعض نسخ قصص ابن كثير تحفظ العنوان بصيغة «# قصة هود» القديمة
+        # بدل صيغة ### ||| التي يلتقطها HEADER_RE.
+        m = re.match(r"^#\s+(قصة(?:ا|ي)?\s+.+)$", line)
+        if m:
+            flush()
+            secs.append({"t": fl.scrub(m.group(1)), "d": 1, "p": []})
+            after_page = False
+            continue
         if re.match(r"^#\s*PageV\d+P\d+\s*$", line):
             after_page = True
             continue
@@ -245,6 +253,37 @@ def parse_depth(text: str) -> list[dict]:
             after_page = False
     flush()
     return secs
+
+
+def normalize_qisas_sections(sections: list[dict]) -> list[dict]:
+    """يفصل القصص التي أدرجها المصدر تحت عنوان عام بدل عنوان النبي.
+
+    في نسخة ابن كثير، قصة شعيب تأتي بعد قصة لوط داخل نفس الباب، وقصة يوسف
+    تأتي تحت «ما وقع ... في حياة إسرائيل». إبقاءهما مدموجتين يجعل المطابقة
+    تعرض القرآن فقط، مع أن السرد موجود فعلًا في النص الأصلي.
+    """
+    out: list[dict] = []
+    for section in sections:
+        title = section["t"]
+        if "حياة إسرائيل" in title:
+            title = f"قصة يوسف عليه السلام — {title}"
+            out.append({**section, "t": title})
+            continue
+        marker = "مدين قصة قوم شعيب"
+        if title.startswith("قصة لوط"):
+            text = " ".join(section["p"])
+            pos = text.find(marker)
+            if pos > 0:
+                before, after = text[:pos].strip(), text[pos:].strip()
+                out.append({**section, "p": fl.split_long(before)})
+                out.append({
+                    "t": "قصة شعيب عليه السلام وأهل مدين",
+                    "d": section.get("d", 1),
+                    "p": fl.split_long(after),
+                })
+                continue
+        out.append(section)
+    return out
 
 
 def excerpt(secs: list[dict], kw_by_story: dict[str, list[str]]) -> tuple[list[dict], dict]:
@@ -350,7 +389,10 @@ def main():
                 if not sections:
                     fail(f"{b['id']}: لم يُستخرج أي قسم؛ عناوين الكتاب لا تطابق الكلمات")
             else:
-                sections = fl.parse_openiti(text)
+                # المحلل الموسّع يلتقط أيضًا عناوين # قصة ... القديمة.
+                parsed = normalize_qisas_sections(parse_depth(text)) \
+                    if b["id"] == "qisas_anbiya" else parse_depth(text)
+                sections = [{"t": s["t"], "p": s["p"], "lvl": 1} for s in parsed]
                 chars = validate(b, sections)
                 rep = title_report(sections, dict(KW))
         except SystemExit:
