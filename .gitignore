@@ -23,3 +23,6 @@ assets/fiqh/*.json
 
 # كتب «حكايات الوحي» تُجلب وقت البناء (tool/fetch_stories.py)
 assets/stories/books/*.json
+# تقرير تشخيصي محلي يُعاد توليده في كل تشغيل
+tool/stories_coverage.txt
+tool/__pycache__/

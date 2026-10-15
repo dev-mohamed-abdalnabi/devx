@@ -65,7 +65,7 @@ BOOKS = [
     ),
     dict(
         id="sira_ibn_hisham",
-        repo="0225AH", author="0218IbnHisham", book_hint=("SiraNabawiyya", "Sira"),
+        repo="0225AH", author="0213IbnHisham", book_hint=("SiraNabawiyya", "Sira"),
         title="السيرة النبوية", author_name="ابن هشام (ت ٢١٨هـ)",
         desc="تهذيب ابن هشام لسيرة محمد بن إسحاق",
         style="أسلوب تراثي",
