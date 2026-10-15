@@ -61,38 +61,6 @@ class StoriesHomeScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (_) => StorySectionScreen(section: s))),
                   ),
                 ),
-              FutureBuilder<List<StoryBookInfo>>(
-                future: StoriesRepo.books(),
-                builder: (context, snap) {
-                  final books = [
-                    for (final b in (snap.data ?? const <StoryBookInfo>[]))
-                      if (!b.hidden) b,
-                  ];
-                  if (books.isEmpty) return const SizedBox.shrink();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
-                        child: Text('الكتب الأصلية كاملة',
-                            style: cairoStyle(13, weight: 700, color: tk.gold)),
-                      ),
-                      for (final b in books)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: LibRow(
-                            tk: tk,
-                            title: b.title,
-                            subtitle: '${b.author} · ${toArabicDigits(b.sections)} قسمًا',
-                            onTap: () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => StoryBookScreen(info: b))),
-                          ),
-                        ),
-                      const SizedBox(height: 2),
-                    ],
-                  );
-                },
-              ),
               LibRow(
                 tk: tk,
                 title: 'المفضلة',
