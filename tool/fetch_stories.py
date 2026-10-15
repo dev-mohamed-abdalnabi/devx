@@ -263,7 +263,15 @@ def excerpt(secs: list[dict], kw_by_story: dict[str, list[str]]) -> tuple[list[d
                 break
             if s["d"] == 0 or i in covered:
                 continue
+            # بعض إصدارات OpenITI تضع NOTMATCH داخل عناوين الفهارس
+            # أو تلتقط عنوانًا طويلًا من موضع آخر؛ لا نعرضه كسرد للقصة.
+            raw_title = s["t"]
+            if "NOTMATCH" in raw_title.upper():
+                continue
             if not any(k in fl_norm(s["t"]) for k in keys):
+                continue
+            title = fl_norm(s["t"])
+            if sid == "fil" and "اصحاب الفيل" not in title:
                 continue
             block = [i]
             j = i + 1
