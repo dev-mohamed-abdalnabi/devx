@@ -18,9 +18,18 @@ class QuranReciter {
   final String id;
   final String name;
   final String? downloadUrl;
-  const QuranReciter(this.id, this.name, this.downloadUrl);
+  final String? streamEdition;
+  const QuranReciter(this.id, this.name, this.downloadUrl,
+      {this.streamEdition});
 
-  bool get available => downloadUrl != null;
+  bool get available => downloadUrl != null || streamEdition != null;
+  bool get downloadable => downloadUrl != null;
+  bool get streamOnly => downloadUrl == null && streamEdition != null;
+
+  String? streamUrl(int surah) => streamEdition == null
+      ? null
+      : 'https://cdn.islamic.network/quran/audio-surah/128/'
+          '$streamEdition/$surah.mp3';
 }
 
 enum AudioRepeat { off, all, one }
@@ -67,7 +76,7 @@ class QuranAudioProvider extends ChangeNotifier {
   static String? get backgroundInitError => QuranAudioService.initError;
 
   static const int surahCount = 114;
-  static const int maxDownloadBytes = 100 * 1024 * 1024;
+  static const int maxDownloadBytes = 300 * 1024 * 1024;
   static const List<double> speeds = [0.75, 1.0, 1.25, 1.5, 2.0];
   static const Duration seekStep = Duration(seconds: 10);
 
@@ -97,9 +106,24 @@ class QuranAudioProvider extends ChangeNotifier {
   static const reciters = <QuranReciter>[
     QuranReciter('mishary', 'مشاري راشد العفاسي',
         'https://raw.githubusercontent.com/dev-mohamed-abdalnabi/devx-audio-packages/main/mishary/quran.zip'),
-    QuranReciter('husary', 'محمود خليل الحصري', null),
-    QuranReciter('minshawi', 'محمد صديق المنشاوي', null),
-    QuranReciter('sudais', 'عبدالرحمن السديس', null),
+    QuranReciter('basit_murattal', 'عبد الباسط عبد الصمد — المرتل', null,
+        streamEdition: 'ar.abdulbasitmurattal'),
+    QuranReciter('basit_mujawwad', 'عبد الباسط عبد الصمد — المجود', null,
+        streamEdition: 'ar.abdulbasitmujawwad'),
+    QuranReciter('hani', 'هاني الرفاعي', null,
+        streamEdition: 'ar.haniarrifai'),
+    QuranReciter('banna', 'محمود علي البنا', null,
+        streamEdition: 'ar.mahmoudalialbanna'),
+    QuranReciter('mustafa_ismail', 'مصطفى إسماعيل', null,
+        streamEdition: 'ar.mustafaismail'),
+    QuranReciter('tablawi', 'محمد محمود الطبلاوي', null,
+        streamEdition: 'ar.mohamedtablawi'),
+    QuranReciter('fares_abbad', 'فارس عباد', null,
+        streamEdition: 'ar.faresabbad'),
+    QuranReciter('ahmed_ajmi', 'أحمد بن علي العجمي', null,
+        streamEdition: 'ar.ahmedalajmi'),
+    QuranReciter('yasser_dossari', 'ياسر الدوسري', null,
+        streamEdition: 'ar.yasseraldossari'),
   ];
 
   static String surahName(int surah) => surahNames[surah - 1];
@@ -162,16 +186,18 @@ class QuranAudioProvider extends ChangeNotifier {
   // ───────── حالة للقراءة ─────────
 
   QuranReciter get selectedReciter => reciters.firstWhere((r) => r.id == selectedReciterId);
-  int get availableCount => _files.length;
+  int get availableCount => selectedReciter.streamOnly ? surahCount : _files.length;
   List<int> get availableSurahs => List<int>.unmodifiable(_queue);
-  bool get isReady => _files.length == surahCount;
-  bool get hasAnyAudio => _files.isNotEmpty;
+  bool get isReady => selectedReciter.streamOnly || _files.length == surahCount;
+  bool get hasAnyAudio => selectedReciter.streamOnly || _files.isNotEmpty;
+  bool get isStreaming => selectedReciter.streamOnly;
+  bool get hasDownloadedAudio => _files.isNotEmpty;
   bool get isPlaying => player.playing;
   bool get hasTrack => currentSurah != null || lastSurah != null;
   int? get displaySurah => currentSurah ?? lastSurah;
   bool get isBusy => downloading || extracting;
   double get downloadProgress => totalBytes == 0 ? 0 : (downloadedBytes / totalBytes).clamp(0.0, 1.0);
-  bool hasSurah(int surah) => _files.containsKey(surah);
+  bool hasSurah(int surah) => selectedReciter.streamOnly || _files.containsKey(surah);
   bool isFavorite(int surah) => favorites.contains(surah);
 
   bool get sleepActive => _sleepEndsAt != null || sleepAtSurahEnd;
@@ -308,7 +334,9 @@ class QuranAudioProvider extends ChangeNotifier {
       }
     }
     _files = found;
-    _queue = found.keys.toList()..sort();
+    _queue = selectedReciter.streamOnly
+        ? [for (var n = 1; n <= surahCount; n++) n]
+        : (found.keys.toList()..sort());
     _rebuildShuffle();
   }
 
@@ -338,7 +366,7 @@ class QuranAudioProvider extends ChangeNotifier {
       final response = await client.send(http.Request('GET', Uri.parse(url)));
       if (response.statusCode >= 400) throw 'تعذّر الوصول إلى ملف التلاوة (${response.statusCode})';
       totalBytes = response.contentLength ?? 0;
-      if (totalBytes > maxDownloadBytes) throw 'حجم الملف أكبر من ١٠٠ ميجابايت';
+      if (totalBytes > maxDownloadBytes) throw 'حجم الملف أكبر من ٣٠٠ ميجابايت';
 
       final root = await getApplicationSupportDirectory();
       final base = Directory('${root.path}/quran_audio');
@@ -350,7 +378,7 @@ class QuranAudioProvider extends ChangeNotifier {
         await for (final chunk in response.stream) {
           if (_cancelRequested) throw 'cancelled';
           downloadedBytes += chunk.length;
-          if (downloadedBytes > maxDownloadBytes) throw 'تم إيقاف التنزيل لتجاوز ١٠٠ ميجابايت';
+          if (downloadedBytes > maxDownloadBytes) throw 'تم إيقاف التنزيل لتجاوز ٣٠٠ ميجابايت';
           sink.add(chunk);
           final now = DateTime.now();
           if (now.difference(lastNotify).inMilliseconds > 150) {
@@ -401,6 +429,28 @@ class QuranAudioProvider extends ChangeNotifier {
     _cancelRequested = true;
   }
 
+  /// يحذف التلاوة المحلية فقط بعد أن يطلب المستخدم ذلك من نافذة تغيير القارئ.
+  Future<void> deleteDownloadedRecitation() async {
+    if (isBusy || !selectedReciter.downloadable) return;
+    await stop();
+    final root = await getApplicationSupportDirectory();
+    final base = Directory('${root.path}/quran_audio');
+    final dir = Directory('${base.path}/$selectedReciterId');
+    final zip = File('${base.path}/$selectedReciterId.zip');
+    try {
+      if (await dir.exists()) await dir.delete(recursive: true);
+      if (await zip.exists()) await zip.delete();
+    } finally {
+      _files = <int, File>{};
+      _queue = <int>[];
+      lastSurah = null;
+      lastPosition = Duration.zero;
+      await _prefs?.remove(_lastSurahKey(selectedReciterId));
+      await _prefs?.remove(_lastPositionKey(selectedReciterId));
+      _notify();
+    }
+  }
+
   // ───────── التشغيل ─────────
 
   MediaItem _mediaItem(int surah) => MediaItem(
@@ -419,7 +469,10 @@ class QuranAudioProvider extends ChangeNotifier {
       // أندرويد 13+ لا يعرض إشعار التحكم دون إذن الإشعارات.
       unawaited(NotificationService.requestPermission());
       final file = _files[surah];
-      if (file == null) throw 'نزّل التلاوة أولًا للاستماع إلى سورة ${surahName(surah)}';
+      final streamUrl = selectedReciter.streamUrl(surah);
+      if (file == null && streamUrl == null) {
+        throw 'نزّل التلاوة أولًا للاستماع إلى سورة ${surahName(surah)}';
+      }
       _attachHandler();
       currentSurah = surah;
       loading = true;
@@ -429,7 +482,9 @@ class QuranAudioProvider extends ChangeNotifier {
       final item = _mediaItem(surah);
       QuranAudioService.handler?.mediaItem.add(item);
 
-      final duration = await player.setFilePath(file.path, initialPosition: startAt);
+      final duration = file != null
+          ? await player.setFilePath(file.path, initialPosition: startAt)
+          : await player.setUrl(streamUrl!, initialPosition: startAt);
       if (token != _loadToken || _disposed) return;
       _loadedSurah = surah;
       if (duration != null) {

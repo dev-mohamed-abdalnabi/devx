@@ -216,6 +216,8 @@ class _ReciterPanel extends StatelessWidget {
       status = 'جارٍ تجهيز السور…';
     } else if (audio.downloading) {
       status = 'جارٍ التنزيل';
+    } else if (audio.isStreaming) {
+      status = 'استماع مباشر · ${toArabicDigits(QuranAudioProvider.surahCount)} سورة';
     } else if (audio.isReady) {
       status = 'جاهزة · ${toArabicDigits(QuranAudioProvider.surahCount)} سورة';
     } else if (audio.hasAnyAudio) {
@@ -348,7 +350,7 @@ class _ReciterPanel extends StatelessWidget {
                         backgroundColor: tk.line,
                       ),
                     ),
-                  ] else if (!audio.isReady && reciter.available) ...[
+                  ] else if (!audio.isReady && reciter.downloadable) ...[
                     const SizedBox(height: 12),
                     HomeButton(
                       tk: tk,
@@ -359,7 +361,13 @@ class _ReciterPanel extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'تُنزَّل مرة واحدة (حتى ١٠٠ ميجابايت) للاستماع إليها لاحقًا.',
+                      'تُنزَّل مرة واحدة (حتى ٣٠٠ ميجابايت) للاستماع إليها لاحقًا.',
+                      style: cairoStyle(11.5, color: sub),
+                    ),
+                  ] else if (reciter.streamOnly) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'تعمل عبر الإنترنت بجودة المصدر ولا تشغل مساحة من الهاتف.',
                       style: cairoStyle(11.5, color: sub),
                     ),
                   ],
@@ -417,7 +425,10 @@ Future<void> _showReciterSheet(BuildContext context) {
                                 color: r.id == audio.selectedReciterId
                                     ? tk.mintInk
                                     : tk.ink)),
-                        Text(r.available ? 'متاح للتنزيل' : 'سيتوفر قريبًا',
+                        Text(
+                            r.downloadable
+                                ? 'متاح للتنزيل'
+                                : 'استماع مباشر — لا يشغل مساحة',
                             style: cairoStyle(11.5, color: tk.muted)),
                       ],
                     ),
@@ -428,6 +439,48 @@ Future<void> _showReciterSheet(BuildContext context) {
               ),
             ),
           ),
+        if (audio.selectedReciter.downloadable && audio.hasDownloadedAudio) ...[
+          const SizedBox(height: 4),
+          Divider(color: tk.line),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: sheetContext,
+                  builder: (dialogContext) => AlertDialog(
+                    backgroundColor: tk.bg,
+                    title: Text('حذف التلاوة؟',
+                        style: amiriStyle(22, bold: true, color: tk.ink)),
+                    content: Text(
+                      'سيتم حذف ملفات التلاوة المحفوظة على الجهاز فقط، ولن يُحذف القارئ من التطبيق.',
+                      style: cairoStyle(13, color: tk.muted, height: 1.7),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: Text('إلغاء',
+                            style: cairoStyle(13, color: tk.muted)),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: Text('حذف التلاوة',
+                            style: cairoStyle(13,
+                                weight: 700, color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true && sheetContext.mounted) {
+                  await audio.deleteDownloadedRecitation();
+                  if (sheetContext.mounted) Navigator.pop(sheetContext);
+                }
+              },
+              child: Text('إدارة التلاوة المحفوظة',
+                  style: cairoStyle(12, color: tk.muted)),
+            ),
+          ),
+        ],
       ],
     ),
   );
