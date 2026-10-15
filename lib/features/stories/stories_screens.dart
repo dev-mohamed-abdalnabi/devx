@@ -255,7 +255,7 @@ class StoriesFavoritesScreen extends StatelessWidget {
   }
 }
 
-/// صفحة موضوع واحد: أجزاؤه بترتيبها، وكل جزء موسوم بنوع مصدره.
+/// صفحة موضوع واحد: تُقرأ ككتاب، صفحة كاملة في كل انتقال، لا كبطاقات متتابعة.
 class StoryScreen extends StatelessWidget {
   final StoryEntry entry;
   const StoryScreen({super.key, required this.entry});
@@ -275,16 +275,85 @@ class StoryScreen extends StatelessWidget {
           onTap: () => favs.toggle(entry.id),
         ),
       ],
-      body: ListView.separated(
-        padding: const EdgeInsets.only(top: 6, bottom: 24),
-        itemCount: entry.parts.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, i) {
-          if (i == 0) return _BookNarrative(entry: entry);
-          final p = entry.parts[i - 1];
-          return p.kind == StoryPartKind.quran ? _QuranPart(part: p) : _HadithPart(part: p);
-        },
-      ),
+      body: _StoryReader(entry: entry),
+    );
+  }
+}
+
+class _StoryPage {
+  final String text;
+  final String footer;
+  const _StoryPage(this.text, this.footer);
+}
+
+/// يبني صفحات القصة من السرد المرفق ثم الآيات والأحاديث الموثقة.
+/// النصوص تُقرأ من الأصول الموجودة في التطبيق ولا يُنشأ نص ديني جديد.
+Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
+  final pages = <_StoryPage>[];
+  final sources = await _loadSources(entry);
+  for (final source in sources) {
+    for (final section in source.hits) {
+      final text = section.paragraphs.join('\n\n').trim();
+      if (text.isNotEmpty) {
+        pages.add(_StoryPage(text,
+            '${source.info.title}\n${source.info.author}\n${section.title}'));
+      }
+    }
+  }
+  for (final part in entry.parts) {
+    if (part.kind == StoryPartKind.quran && quran != null) {
+      final ayahs = [
+        for (var n = part.from; n <= part.to; n++)
+          if (quran.ayahByKey('${part.surah}:$n') != null)
+            quran.ayahByKey('${part.surah}:$n')!,
+      ];
+      if (ayahs.isNotEmpty) {
+        pages.add(_StoryPage(
+          ayahs.map((a) => '${a.text} ﴿${toArabicDigits(a.number)}﴾').join(' '),
+          '${_range(part)}\nالقرآن الكريم',
+        ));
+      }
+    } else if (part.kind == StoryPartKind.hadith) {
+      final result = await StoriesRepo.hadith(part.book, part.number);
+      if (result != null) {
+        pages.add(_StoryPage(
+          result.item.text,
+          '${result.title} · حديث رقم ${toArabicDigits(result.item.n)}\n${result.chapter.title}',
+        ));
+      }
+    }
+  }
+  return pages;
+}
+
+class _StoryReader extends StatelessWidget {
+  final StoryEntry entry;
+  const _StoryReader({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final quran = context.watch<QuranProvider>().data;
+    return FutureBuilder<List<_StoryPage>>(
+      future: _storyPages(entry, quran),
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final pages = snap.data ?? const <_StoryPage>[];
+        if (pages.isEmpty) {
+          return HomeEmpty(
+            tk: HomeTokens.of(context),
+            icon: HomeIcons.books,
+            title: 'لا توجد صفحات متاحة',
+            message: 'تحقق من ملفات القصة ثم أعد المحاولة',
+          );
+        }
+        return BookPageReader(
+          title: entry.title,
+          pages: [for (final page in pages) page.text],
+          pageFooters: [for (final page in pages) page.footer],
+        );
+      },
     );
   }
 }

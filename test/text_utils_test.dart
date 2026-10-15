@@ -12,6 +12,10 @@ void main() {
     expect(normalizeArabic('أَعُوذُ'), 'اعوذ');
   });
 
+  test('تنظيف النص المستورد يزيل الوسوم الإنجليزية التقنية', () {
+    expect(cleanImportedText('AUTO قصة آدم AUT NOTMATCH UNMATCHED'), 'قصة آدم');
+  });
+
   test('التحية حسب الوقت', () {
     expect(greetingFor(DateTime(2026, 1, 1, 6)), 'صباح الخير');
     expect(greetingFor(DateTime(2026, 1, 1, 19)), 'مساء الخير');

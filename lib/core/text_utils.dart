@@ -68,7 +68,9 @@ String searchKey(String s) {
 String cleanImportedText(String value) {
   return value
       .replaceAll(RegExp(r'@QUR@[0-9]+'), ' ')
-      .replaceAll(RegExp(r'\b(?:AUT|NOTMATCH)\b'), ' ')
+      // OpenITI وبعض ملفات البناء تضع وسومًا تقنية مثل AUTO/AUT داخل العناوين.
+      // هذه الوسوم ليست جزءًا من النص العربي ويجب ألا تظهر للمستخدم.
+      .replaceAll(RegExp(r'\b(?:AUTO|AUT|NOTMATCH|UNMATCHED)\b'), ' ')
       .replaceAll(RegExp(r'[A-Z]{2,}[0-9]+@'), ' ')
       .replaceAll(RegExp(r'\b[A-Z]{2,}[0-9]+\b'), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
