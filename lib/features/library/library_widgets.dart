@@ -355,12 +355,16 @@ class BookPageReader extends StatefulWidget {
   final String? author;
   final List<String> pages;
   final List<String>? pageFooters;
+  final List<Widget> actions;
+  final String? shareText;
   const BookPageReader({
     super.key,
     required this.title,
     required this.pages,
     this.author,
     this.pageFooters,
+    this.actions = const [],
+    this.shareText,
   });
 
   @override
@@ -370,6 +374,7 @@ class BookPageReader extends StatefulWidget {
 class _BookPageReaderState extends State<BookPageReader> {
   late final PageController _controller;
   int _page = 0;
+  bool _chrome = true;
 
   @override
   void initState() {
@@ -383,92 +388,183 @@ class _BookPageReaderState extends State<BookPageReader> {
     super.dispose();
   }
 
+  void _toggleChrome() => setState(() => _chrome = !_chrome);
+
+  Future<void> _share() async {
+    final text = widget.shareText ?? widget.pages[_page];
+    await Share.share('$text\n\n${widget.title}');
+  }
+
+  Future<void> _openIndex() async {
+    if (widget.pages.length < 2) return;
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final tk = HomeTokens.of(ctx);
+        return Container(
+          constraints: const BoxConstraints(maxHeight: 520),
+          decoration: BoxDecoration(
+            color: tk.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+              itemCount: widget.pages.length,
+              separatorBuilder: (_, __) => Divider(color: tk.line, height: 1),
+              itemBuilder: (_, i) => ListTile(
+                leading: Text(toArabicDigits(i + 1),
+                    style: cairoStyle(12, weight: 700, color: tk.gold)),
+                title: Text(
+                  widget.pageFooters != null && i < widget.pageFooters!.length
+                      ? widget.pageFooters![i].replaceAll('\n', ' · ')
+                      : '${widget.title} · الصفحة ${toArabicDigits(i + 1)}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: cairoStyle(13, color: tk.ink),
+                ),
+                onTap: () => Navigator.pop(ctx, i),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (selected != null && mounted) {
+      await _controller.animateToPage(selected,
+          duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
     if (widget.pages.isEmpty) {
-      return Center(child: Text('لا يوجد نص للعرض', style: cairoStyle(13, color: tk.muted)));
+      return Scaffold(
+        backgroundColor: tk.bg,
+        body: Center(
+            child: Text('لا يوجد نص للعرض', style: cairoStyle(13, color: tk.muted))),
+      );
     }
+    final mq = MediaQuery.of(context);
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Column(
-        children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _controller,
-              physics: const PageScrollPhysics(),
-              itemCount: widget.pages.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (context, i) {
-                final footer = widget.pageFooters != null &&
-                        i < widget.pageFooters!.length
-                    ? widget.pageFooters![i]
-                    : widget.author;
-                return Padding(
-                  // لا توجد بطاقة داخل القارئ: هذه مساحة الصفحة نفسها مثل المصحف.
-                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 8),
-                  child: Column(
-                    children: [
-                      Text(widget.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: cairoStyle(12, weight: 700, color: tk.gold)),
-                      const SizedBox(height: 18),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: SelectableText(
-                            widget.pages[i],
-                            textAlign: TextAlign.justify,
-                            style: amiriStyle(22, color: tk.ink, height: 2.15),
-                          ),
+      child: Scaffold(
+        backgroundColor: tk.bg,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(painter: IslamicPatternPainter(opacity: .06)),
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.only(
+                    top: mq.padding.top + 58, bottom: mq.padding.bottom + 48),
+                child: PageView.builder(
+                  controller: _controller,
+                  physics: const PageScrollPhysics(),
+                  itemCount: widget.pages.length,
+                  onPageChanged: (i) => setState(() => _page = i),
+                  itemBuilder: (context, i) {
+                    final footer = widget.pageFooters != null &&
+                            i < widget.pageFooters!.length
+                        ? widget.pageFooters![i]
+                        : widget.author;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _toggleChrome,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 12, 10, 8),
+                        child: Column(
+                          children: [
+                            Text(widget.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: cairoStyle(12,
+                                    weight: 700, color: tk.gold)),
+                            const SizedBox(height: 18),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: SelectableText(
+                                  widget.pages[i],
+                                  textAlign: TextAlign.justify,
+                                  style: amiriStyle(22,
+                                      color: tk.ink, height: 2.15),
+                                ),
+                              ),
+                            ),
+                            if (footer != null && footer.isNotEmpty) ...[
+                              const SizedBox(height: 14),
+                              Container(height: 1, color: tk.line),
+                              const SizedBox(height: 8),
+                              Text(footer,
+                                  textAlign: TextAlign.center,
+                                  style: cairoStyle(11,
+                                      color: tk.muted, height: 1.6)),
+                            ],
+                          ],
                         ),
                       ),
-                      if (footer != null && footer.isNotEmpty) ...[
-                        const SizedBox(height: 14),
-                        Container(height: 1, color: tk.line),
-                        const SizedBox(height: 8),
-                        Text(footer,
-                            textAlign: TextAlign.center,
-                            style: cairoStyle(11, color: tk.muted, height: 1.6)),
-                      ],
-                      const SizedBox(height: 8),
-                      Text('${toArabicDigits(i + 1)} من ${toArabicDigits(widget.pages.length)}',
-                          style: cairoStyle(11, color: tk.gold)),
-                    ],
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              HomeChip(
-                tk: tk,
-                label: 'الصفحة السابقة',
-                selected: false,
-                onTap: _page == 0
-                    ? () {}
-                    : () => _controller.previousPage(
-                        duration: const Duration(milliseconds: 220), curve: Curves.easeOut),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              top: _chrome ? 0 : -(mq.padding.top + 64),
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(14, mq.padding.top + 6, 14, 8),
+                decoration: BoxDecoration(
+                    color: tk.bg.withValues(alpha: .97),
+                    border: Border(bottom: BorderSide(color: tk.line))),
+                child: Row(children: [
+                  HeaderButton(
+                      icon: ZikrIcons.chevronRight,
+                      color: tk.ink,
+                      label: 'رجوع',
+                      onTap: () => Navigator.of(context).maybePop()),
+                  const Spacer(),
+                  HeaderButton(
+                      icon: ZikrIcons.dots,
+                      label: 'الفهرس',
+                      onTap: _openIndex),
+                  const SizedBox(width: 8),
+                  HeaderButton(
+                      icon: ZikrIcons.share, label: 'مشاركة', onTap: _share),
+                  for (final action in widget.actions) ...[
+                    const SizedBox(width: 8),
+                    action,
+                  ],
+                ]),
               ),
-              const SizedBox(width: 10),
-              HomeChip(
-                tk: tk,
-                label: 'الصفحة التالية',
-                selected: _page < widget.pages.length - 1,
-                onTap: _page >= widget.pages.length - 1
-                    ? () {}
-                    : () => _controller.nextPage(
-                        duration: const Duration(milliseconds: 220), curve: Curves.easeOut),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              bottom: _chrome ? 0 : -(mq.padding.bottom + 54),
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(14, 8, 14, mq.padding.bottom + 8),
+                decoration: BoxDecoration(
+                    color: tk.bg.withValues(alpha: .97),
+                    border: Border(top: BorderSide(color: tk.line))),
+                child: Center(
+                  child: Text(
+                    '${toArabicDigits(_page + 1)} من ${toArabicDigits(widget.pages.length)}',
+                    style: cairoStyle(12, weight: 700, color: tk.gold),
+                  ),
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        ],
       ),
     );
   }
+
 }

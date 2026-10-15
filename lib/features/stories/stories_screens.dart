@@ -291,8 +291,8 @@ class StoryScreen extends StatelessWidget {
     final tk = HomeTokens.of(context);
     final favs = context.watch<StoriesProvider>();
     final isFav = favs.isFav(entry.id);
-    return LibPage(
-      title: entry.title,
+    return _StoryReader(
+      entry: entry,
       actions: [
         HeaderButton(
           icon: HomeIcons.heart,
@@ -301,7 +301,6 @@ class StoryScreen extends StatelessWidget {
           onTap: () => favs.toggle(entry.id),
         ),
       ],
-      body: _StoryReader(entry: entry),
     );
   }
 }
@@ -354,7 +353,8 @@ Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
 
 class _StoryReader extends StatelessWidget {
   final StoryEntry entry;
-  const _StoryReader({required this.entry});
+  final List<Widget> actions;
+  const _StoryReader({required this.entry, this.actions = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -378,6 +378,7 @@ class _StoryReader extends StatelessWidget {
           title: entry.title,
           pages: [for (final page in pages) page.text],
           pageFooters: [for (final page in pages) page.footer],
+          actions: actions,
         );
       },
     );
@@ -764,13 +765,10 @@ void openBookSection(BuildContext context, StoryBookInfo info, FiqhSection s) {
   Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => LibPage(
+      builder: (_) => BookPageReader(
         title: s.title,
-        body: BookPageReader(
-          title: s.title,
-          author: '${info.title} · ${info.author}',
-          pages: s.paragraphs,
-        ),
+        author: '${info.title} · ${info.author}',
+        pages: s.paragraphs,
       ),
     ),
   );

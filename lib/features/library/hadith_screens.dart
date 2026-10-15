@@ -15,7 +15,9 @@ String _source(String bookTitle, HadithItem h) =>
 class _HadithList extends StatelessWidget {
   final String bookTitle;
   final HadithChapter chapter;
-  const _HadithList({required this.bookTitle, required this.chapter});
+  final List<Widget> actions;
+  const _HadithList(
+      {required this.bookTitle, required this.chapter, this.actions = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,7 @@ class _HadithList extends StatelessWidget {
       author: bookTitle,
       pages: [for (final item in items) item.text],
       pageFooters: [for (final item in items) _source(bookTitle, item)],
+      actions: actions,
     );
   }
 }
@@ -34,29 +37,33 @@ class HadithBookScreen extends StatelessWidget {
   final LibBook book;
   const HadithBookScreen({super.key, required this.book});
 
+  Widget _searchAction(BuildContext context) => HeaderButton(
+        icon: ZikrIcons.search,
+        label: 'البحث في الكتاب',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => HadithSearchScreen(book: book)),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final tk = HomeTokens.of(context);
-    return LibPage(
-      title: book.title,
-      actions: [
-        HeaderButton(
-          icon: ZikrIcons.search,
-          label: 'البحث في الكتاب',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => HadithSearchScreen(book: book)),
-          ),
-        ),
-      ],
-      body: LibFuture<HadithBook>(
-        future: LibraryRepo.hadith(book),
-        errorTitle: 'تعذّر تحميل الكتاب',
-        builder: (context, hb) {
-          if (hb.chapters.length == 1) {
-            return _HadithList(bookTitle: hb.title, chapter: hb.chapters.first);
-          }
-          return ListView.builder(
+    return LibFuture<HadithBook>(
+      future: LibraryRepo.hadith(book),
+      errorTitle: 'تعذّر تحميل الكتاب',
+      builder: (context, hb) {
+        if (hb.chapters.length == 1) {
+          return _HadithList(
+            bookTitle: hb.title,
+            chapter: hb.chapters.first,
+            actions: [_searchAction(context)],
+          );
+        }
+        return LibPage(
+          title: book.title,
+          actions: [_searchAction(context)],
+          body: ListView.builder(
             padding: const EdgeInsets.only(top: 6, bottom: 24),
             itemCount: hb.chapters.length + 1,
             itemBuilder: (context, i) {
@@ -84,19 +91,15 @@ class HadithBookScreen extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => LibPage(
-                        title: ch.title,
-                        body:
-                            _HadithList(bookTitle: hb.title, chapter: ch),
-                      ),
-                    ),
+                        builder: (_) =>
+                            _HadithList(bookTitle: hb.title, chapter: ch)),
                   ),
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
