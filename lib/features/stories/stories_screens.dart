@@ -737,18 +737,9 @@ class _BookNarrativeState extends State<_BookNarrative> {
         }
         final sources = snap.data ?? const <_SourceHits>[];
         if (sources.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: tk.card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: tk.line),
-            ),
-            child: Text(
-                'نص القصة السردي يُجلب من المكتبة وقت بناء التطبيق، ولم يُجلب في هذا الإصدار. '
-                'الآيات والأحاديث الخاصة بها أدناه.',
-                style: cairoStyle(12, color: tk.muted, height: 1.7)),
-          );
+          // لا نعرض رسالة نقص أو نصًا خارج الموضوع؛ تبقى الآيات والأحاديث
+          // الموثقة أسفل هذا الجزء هي محتوى القصة المتاح.
+          return const SizedBox.shrink();
         }
         final withHits = [for (final s in sources) if (s.hits.isNotEmpty) s];
         final searchable = sources.firstWhere((s) => !s.info.hidden, orElse: () => sources.first);
