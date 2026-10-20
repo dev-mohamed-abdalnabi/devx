@@ -130,6 +130,19 @@ jobs:
           flutter pub get
           dart run flutter_launcher_icons
 
+      # ملفات Gradle المؤقتة ونتائج التحويل القديمة تستهلك مساحة الـrunner.
+      # نحذف غير الضروري فقط قبل البناء، ونبقي كاش الاعتماديات الأساسية.
+      - name: Free runner disk space before build
+        run: |
+          rm -rf ~/.gradle/daemon
+          rm -rf ~/.gradle/caches/build-cache-*
+          rm -rf ~/.gradle/caches/*/fileHashes
+          rm -rf ~/.gradle/caches/*/fileContent
+          rm -rf ~/.gradle/caches/*/file-changes
+          rm -rf android/.gradle
+          rm -rf build
+          df -h
+
       - name: Test
         run: flutter test
 
