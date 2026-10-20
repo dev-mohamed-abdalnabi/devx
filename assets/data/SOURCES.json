@@ -1,0 +1,9 @@
+{
+  "quran": {
+    "source": "https://api.alquran.cloud/v1/quran/quran-uthmani",
+    "edition": "quran-uthmani (نص عثماني)",
+    "sha256_raw": "0df03e1d6da4fc8138208fec1688f2b416f0dd4ebbd514179f3e5e0fbaf4195f",
+    "surahs": 114,
+    "ayahs": 6236
+  }
+}
