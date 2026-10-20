@@ -35,6 +35,13 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # تنزيل NDK في كل تشغيل كان يضيف دقائق طويلة إلى assembleRelease.
+      - name: Cache Android NDK
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
+          key: android-ndk-28.2.13676358-v1
+
       # يدير كاش Gradle بذكاء (يزيل المكرر والقديم) بدل المسارات اليدوية.
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
