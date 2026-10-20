@@ -146,16 +146,25 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build release APK (ARM64)
-        # نبني ARM64 فقط لتجنب إلغاء Gradle بسبب ضغط المساحة/الذاكرة عند
-        # إنشاء ARM32 وARM64 معًا؛ ARM64 هو المعمارية القياسية للأجهزة الحديثة.
-        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64 --shrink
+      - name: Build release APKs (ARM64 + ARM32)
+        # نبني كل معمارية على حدة لتقليل ضغط الذاكرة والمساحة، ثم نرفق
+        # النسختين حتى يعمل التطبيق على الأجهزة الحديثة والقديمة.
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64 --shrink
+          cp build/app/outputs/flutter-apk/app-release.apk dist/app-arm64-v8a-release.apk
+          flutter clean
+          rm -rf build
+          flutter pub get
+          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm --shrink
+          cp build/app/outputs/flutter-apk/app-release.apk dist/app-armeabi-v7a-release.apk
 
       - name: APK size report
         run: |
           limit=$((20 * 1024 * 1024))
           echo "### APK sizes" >> "$GITHUB_STEP_SUMMARY"
-          for f in build/app/outputs/flutter-apk/*-release.apk; do
+          for f in dist/*-release.apk; do
             size=$(stat -c %s "$f")
             echo "- $(basename "$f"): $(du -h "$f" | cut -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$size" -ge "$limit" ]; then
@@ -168,4 +177,4 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: نسخة تلقائية ${{ github.run_number }}
-          files: build/app/outputs/flutter-apk/*-release.apk
+          files: dist/*-release.apk
