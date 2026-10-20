@@ -315,7 +315,12 @@ class _StoryPage {
 /// النصوص تُقرأ من الأصول الموجودة في التطبيق ولا يُنشأ نص ديني جديد.
 Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
   final pages = <_StoryPage>[];
-  final sources = await _loadSources(entry);
+  List<_SourceHits> sources;
+  try {
+    sources = await _loadSources(entry);
+  } catch (_) {
+    sources = const <_SourceHits>[];
+  }
   for (final source in sources) {
     for (final section in source.hits) {
       final text = section.paragraphs.join('\n\n').trim();
@@ -339,7 +344,12 @@ Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
         ));
       }
     } else if (part.kind == StoryPartKind.hadith) {
-      final result = await StoriesRepo.hadith(part.book, part.number);
+      ({HadithItem item, HadithChapter chapter, String title})? result;
+      try {
+        result = await StoriesRepo.hadith(part.book, part.number);
+      } catch (_) {
+        result = null;
+      }
       if (result != null) {
         pages.add(_StoryPage(
           result.item.text,
@@ -351,34 +361,59 @@ Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
   return pages;
 }
 
-class _StoryReader extends StatelessWidget {
+class _StoryReader extends StatefulWidget {
   final StoryEntry entry;
   final List<Widget> actions;
   const _StoryReader({required this.entry, this.actions = const []});
 
   @override
+  State<_StoryReader> createState() => _StoryReaderState();
+}
+
+class _StoryReaderState extends State<_StoryReader> {
+  Future<List<_StoryPage>>? _future;
+  QuranData? _loadedFor;
+  bool _started = false;
+
+  @override
   Widget build(BuildContext context) {
     final quran = context.watch<QuranProvider>().data;
+    // الـFuture يُبنى مرة واحدة، ويُعاد فقط حين يصل نص القرآن (بدل إعادته مع كل rebuild).
+    if (!_started || !identical(quran, _loadedFor)) {
+      _started = true;
+      _loadedFor = quran;
+      _future = _storyPages(widget.entry, quran);
+    }
+    final tk = HomeTokens.of(context);
+    // كل الحالات داخل Scaffold (LibPage)؛ بدونه تظهر الشاشة سوداء أثناء التحميل.
     return FutureBuilder<List<_StoryPage>>(
-      future: _storyPages(entry, quran),
+      future: _future,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return LibPage(
+            title: widget.entry.title,
+            actions: widget.actions,
+            body: Center(child: CircularProgressIndicator(color: tk.leaf)),
+          );
         }
         final pages = snap.data ?? const <_StoryPage>[];
-        if (pages.isEmpty) {
-          return HomeEmpty(
-            tk: HomeTokens.of(context),
-            icon: HomeIcons.books,
-            title: 'لا توجد صفحات متاحة',
-            message: 'تحقق من ملفات القصة ثم أعد المحاولة',
+        if (snap.hasError || pages.isEmpty) {
+          return LibPage(
+            title: widget.entry.title,
+            actions: widget.actions,
+            body: HomeEmpty(
+              tk: tk,
+              icon: HomeIcons.books,
+              title: 'لا توجد صفحات متاحة',
+              message: 'تحقق من ملفات القصة ثم أعد المحاولة',
+            ),
           );
         }
         return BookPageReader(
-          title: entry.title,
+          title: widget.entry.title,
           pages: [for (final page in pages) page.text],
           pageFooters: [for (final page in pages) page.footer],
-          actions: actions,
+          actions: widget.actions,
         );
       },
     );
