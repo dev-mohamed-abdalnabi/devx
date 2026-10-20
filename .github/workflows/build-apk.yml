@@ -146,19 +146,14 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build release APKs (ARM64 + ARM32)
-        # نبني كل معمارية على حدة لتقليل ضغط الذاكرة والمساحة، ثم نرفق
-        # النسختين حتى يعمل التطبيق على الأجهزة الحديثة والقديمة.
+      - name: Build universal release APK
+        # بناء واحد فقط مثل البناء الطبيعي؛ يضم ARM32 وARM64 معًا،
+        # بدل إعادة Flutter/Gradle مرتين وإطالة التشغيل بلا داعٍ.
         run: |
           rm -rf dist
           mkdir -p dist
-          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64 --shrink
-          cp build/app/outputs/flutter-apk/app-release.apk dist/app-arm64-v8a-release.apk
-          flutter clean
-          rm -rf build
-          flutter pub get
-          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm --shrink
-          cp build/app/outputs/flutter-apk/app-release.apk dist/app-armeabi-v7a-release.apk
+          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm,android-arm64 --shrink
+          cp build/app/outputs/flutter-apk/app-release.apk dist/azkar-release.apk
 
       - name: APK size report
         run: |
