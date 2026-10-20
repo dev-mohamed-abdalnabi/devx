@@ -8,8 +8,10 @@ void main() {
     final withBlocks = [
       for (final s in idx.sections) for (final e in s.entries) if (e.blocks.isNotEmpty) e
     ];
-    expect(withBlocks.length, 10);
-    expect(withBlocks.first.blocks.any((b) => b.t == 'q'), isTrue);
+    expect(withBlocks.length, 27);
+    expect(withBlocks.where((e) => e.id.startsWith('quran:')).length, 10);
+    expect(withBlocks.where((e) => e.id.startsWith('prophets:')).length, 17);
+    expect(withBlocks.every((e) => e.blocks.any((b) => b.t == 'q')), isTrue);
   });
 
   test('قصص الأنبياء المؤلفة لا تعتمد على مقتطفات الكتب', () {
