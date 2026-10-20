@@ -15,7 +15,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
@@ -39,9 +39,10 @@ jobs:
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
         with:
-          # الـrunner يمتلئ بسبب APK + كاش Gradle؛ تعطيل هذا الكاش يمنع فشل
-          # مرحلة post بعد نجاح الاختبارات والبناء وإنشاء الـRelease.
-          cache-disabled: true
+          # نستخدم الكاش الموجود لتسريع البناء، لكن لا نكتب كاشًا جديدًا
+          # ولا ننفّذ تنظيفًا في نهاية الـrunner حتى لا يفشل بعد نجاح الـAPK.
+          cache-read-only: true
+          cache-cleanup: never
 
       # بيانات القرآن والتفسير والخطوط والأذكار: تُجلب مرة واحدة ثم تُكاش.
       # المفتاح مبني على سكربتات الجلب فقط، فلا يتغير عند تعديل أي شيء آخر.
