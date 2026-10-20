@@ -151,7 +151,7 @@ jobs:
         run: |
           rm -rf dist
           mkdir -p dist
-          flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64 --shrink
+          flutter build apk --release --no-pub --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64
           cp build/app/outputs/flutter-apk/app-release.apk dist/azkar-arm64-release.apk
 
       - name: APK size report
