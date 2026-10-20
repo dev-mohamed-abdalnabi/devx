@@ -218,13 +218,23 @@ def build():
     books = load_hadith()
     errors: list[str] = []
     ids = set()
+    authored_quran_path = ROOT / "tool" / "authored" / "quran_stories.json"
+    authored_prophets_path = ROOT / "tool" / "authored" / "prophet_stories.json"
+    authored_quran = ({e["id"]: e for e in json.loads(authored_quran_path.read_text(encoding="utf-8"))["entries"]}
+                      if authored_quran_path.exists() else {})
+    authored_prophets = ({e["id"]: e for e in json.loads(authored_prophets_path.read_text(encoding="utf-8"))["entries"]}
+                         if authored_prophets_path.exists() else {})
 
     def entry(eid, title, parts, section, extra=None):
         key = (section, eid)
         if key in ids:
             errors.append(f"معرّف مكرر {key}")
         ids.add(key)
-        verify(parts, books, errors, f"{section}/{eid}")
+        # قصص الأنبياء المؤلفة تُعرض من blocks الموثقة بالقرآن والحديث، لا من مقتطفات الكتب.
+        if not (section == "prophets" and eid in authored_prophets):
+            verify(parts, books, errors, f"{section}/{eid}")
+        else:
+            parts = []
         e = {"id": f"{section}:{eid}", "title": title, "parts": parts}
         if eid in KW:
             e["kw"] = KW[eid]
@@ -244,14 +254,14 @@ def build():
          "subtitle": "من البعثة إلى الوفاة ﷺ",
          "entries": [entry(i, t, p, "seerah", {"era": era}) for i, t, era, p in SEERAH]},
     ]
-    # القصص المكتوبة (tool/authored): تُدمج في مدخلات القرآن بالمعرّف، فلا يمحوها إعادة البناء.
-    authored_path = ROOT / "tool" / "authored" / "quran_stories.json"
-    if authored_path.exists():
-        authored = {e["id"]: e for e in json.loads(authored_path.read_text(encoding="utf-8"))["entries"]}
-        for e in sections[0]["entries"]:
+    # القصص المكتوبة (tool/authored): تُدمج بالمعرّف فلا يمحوها إعادة البناء.
+    for section_index, authored in ((0, authored_quran), (1, authored_prophets)):
+        for e in sections[section_index]["entries"]:
             a = authored.get(e["id"].split(":", 1)[1])
             if a:
                 e["blocks"] = a["blocks"]
+                if a.get("title"):
+                    e["title"] = a["title"]
                 if a.get("min"):
                     e["era"] = f"قراءة نحو {to_ar(a['min'])} دقيقة"
     return errors, {"version": 1, "sections": sections}

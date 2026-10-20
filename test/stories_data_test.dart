@@ -12,6 +12,14 @@ void main() {
     expect(withBlocks.first.blocks.any((b) => b.t == 'q'), isTrue);
   });
 
+  test('قصص الأنبياء المؤلفة لا تعتمد على مقتطفات الكتب', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    final prophets = idx.section('prophets').entries;
+    expect(prophets.length, 17);
+    expect(prophets.every((e) => e.blocks.isNotEmpty), isTrue);
+    expect(prophets.every((e) => e.parts.isEmpty), isTrue);
+  });
+
   test('تحليل فهرس حكايات الوحي وبحثه', () {
     final idx = parseStoriesIndex(
         '{"sections":[{"id":"quran","title":"قصص","subtitle":"",'
@@ -33,7 +41,12 @@ void main() {
     for (final s in idx.sections) {
       for (final e in s.entries) {
         expect(ids.add(e.id), isTrue, reason: 'معرّف مكرر ${e.id}');
-        expect(e.parts, isNotEmpty);
+        if (s.id == 'prophets') {
+          expect(e.blocks, isNotEmpty);
+          expect(e.parts, isEmpty);
+        } else {
+          expect(e.parts, isNotEmpty);
+        }
         for (final p in e.parts) {
           if (p.kind == StoryPartKind.quran) {
             expect(p.surah, inInclusiveRange(1, 114));
@@ -48,7 +61,7 @@ void main() {
     final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
     final prophets = idx.section('prophets');
     for (final entry in prophets.entries) {
-      expect(entry.parts.any((p) => p.kind == StoryPartKind.quran), isTrue,
+      expect(entry.blocks.any((b) => b.t == 'q'), isTrue,
           reason: 'لا توجد آيات لقصة ${entry.title}');
     }
   });
