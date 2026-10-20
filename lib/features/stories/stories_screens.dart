@@ -314,6 +314,11 @@ class _StoryPage {
 /// يبني صفحات القصة من السرد المرفق ثم الآيات والأحاديث الموثقة.
 /// النصوص تُقرأ من الأصول الموجودة في التطبيق ولا يُنشأ نص ديني جديد.
 Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
+  // القصة الجديدة المكتوبة لها الأولوية؛ لا نخلطها بمقتطفات الكتب القديمة.
+  if (entry.blocks.isNotEmpty) {
+    final authored = await _authoredPages(entry, quran);
+    if (authored.isNotEmpty) return authored;
+  }
   final pages = <_StoryPage>[];
   List<_SourceHits> sources;
   try {
@@ -358,6 +363,70 @@ Future<List<_StoryPage>> _storyPages(StoryEntry entry, QuranData? quran) async {
       }
     }
   }
+  return pages;
+}
+
+/// صفحة لكل عنوان فرعي (h) تضم فقراته وآياته وأحاديثه بالترتيب.
+Future<List<_StoryPage>> _authoredPages(StoryEntry entry, QuranData? quran) async {
+  final pages = <_StoryPage>[];
+  var heading = '';
+  var buf = <String>[];
+
+  void flush() {
+    final text = buf.join('\n\n').trim();
+    if (text.isNotEmpty) {
+      pages.add(_StoryPage(text, heading.isEmpty ? entry.title : '${entry.title}\n$heading'));
+    }
+    buf = <String>[];
+  }
+
+  for (final b in entry.blocks) {
+    switch (b.t) {
+      case 'h':
+        flush();
+        heading = b.x;
+        break;
+      case 'p':
+        buf.add(b.x);
+        break;
+      case 'q':
+        if (quran == null) break;
+        final ayahs = [
+          for (var n = b.from; n <= b.to; n++)
+            if (quran.ayahByKey('${b.surah}:$n') != null) quran.ayahByKey('${b.surah}:$n')!,
+        ];
+        if (ayahs.isNotEmpty) {
+          buf.add('${ayahs.map((a) => '${a.text} ﴿${toArabicDigits(a.number)}﴾').join(' ')}\n'
+              '— ${_range(StoryPart.quran(b.surah, b.from, b.to))}');
+        }
+        break;
+      case 'hd':
+        var text = b.x;
+        try {
+          final r = await StoriesRepo.hadith(b.book, b.number);
+          if (r != null) text = r.item.text;
+        } catch (_) {}
+        buf.add('$text\n— ${b.ref}');
+        break;
+      case 'nx':
+        buf.add('ما لم يرد فيه نص: ${b.x}');
+        break;
+      case 'tf':
+        buf.add('من أقوال المفسرين: ${b.x}');
+        break;
+      case 'l':
+        flush();
+        heading = 'فوائد من القصة';
+        buf.add(b.items.map((i) => '• $i').join('\n\n'));
+        break;
+      case 'src':
+        flush();
+        heading = 'المصادر';
+        buf.add(b.items.map((i) => '• $i').join('\n'));
+        break;
+    }
+  }
+  flush();
   return pages;
 }
 

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../core/first_run.dart';
 import '../core/home_tokens.dart';
 import '../core/page_background.dart';
 import '../core/star_shape.dart';
@@ -50,10 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finish() async {
     if (_busy) return;
     _busy = true;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('onboarding_completed', true);
-    } catch (_) {}
+    await FirstRun.markCompleted();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
@@ -384,10 +381,7 @@ class _NotifRow extends StatelessWidget {
 
 class StartupScreen extends StatelessWidget {
   const StartupScreen({super.key});
-  Future<bool> _completed() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('onboarding_completed') ?? false;
-  }
+  Future<bool> _completed() => FirstRun.isCompleted();
 
   @override
   Widget build(BuildContext context) => FutureBuilder<bool>(

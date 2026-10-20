@@ -210,6 +210,10 @@ def verify(parts, books, errors, where):
                 errors.append(f"{where}: {p['b']} #{p['n']} لا يحتوي «{p['anchor']}»")
 
 
+def to_ar(n) -> str:
+    return str(n).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+
+
 def build():
     books = load_hadith()
     errors: list[str] = []
@@ -240,6 +244,16 @@ def build():
          "subtitle": "من البعثة إلى الوفاة ﷺ",
          "entries": [entry(i, t, p, "seerah", {"era": era}) for i, t, era, p in SEERAH]},
     ]
+    # القصص المكتوبة (tool/authored): تُدمج في مدخلات القرآن بالمعرّف، فلا يمحوها إعادة البناء.
+    authored_path = ROOT / "tool" / "authored" / "quran_stories.json"
+    if authored_path.exists():
+        authored = {e["id"]: e for e in json.loads(authored_path.read_text(encoding="utf-8"))["entries"]}
+        for e in sections[0]["entries"]:
+            a = authored.get(e["id"].split(":", 1)[1])
+            if a:
+                e["blocks"] = a["blocks"]
+                if a.get("min"):
+                    e["era"] = f"قراءة نحو {to_ar(a['min'])} دقيقة"
     return errors, {"version": 1, "sections": sections}
 
 

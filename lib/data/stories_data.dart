@@ -31,11 +31,43 @@ class StoryPart {
       : StoryPart.hadith(j['b'] as String, (j['n'] as num).toInt());
 }
 
+/// كتلة من القصة المكتوبة (tool/authored): h عنوان، p فقرة، q آيات، hd حديث،
+/// nx «لم يرد فيه نص»، tf أقوال المفسرين، l قائمة فوائد، src مصادر.
+class StoryBlock {
+  final String t, x, book, ref;
+  final int surah, from, to, number;
+  final List<String> items;
+  const StoryBlock(this.t,
+      {this.x = '',
+      this.book = '',
+      this.ref = '',
+      this.surah = 0,
+      this.from = 0,
+      this.to = 0,
+      this.number = 0,
+      this.items = const <String>[]});
+
+  factory StoryBlock.fromJson(Map<String, dynamic> j) => StoryBlock(
+        j['t'] as String,
+        x: (j['x'] as String?) ?? '',
+        book: (j['b'] as String?) ?? '',
+        ref: (j['r'] as String?) ?? '',
+        surah: (j['s'] as num?)?.toInt() ?? 0,
+        from: (j['from'] as num?)?.toInt() ?? 0,
+        to: (j['to'] as num?)?.toInt() ?? 0,
+        number: (j['n'] as num?)?.toInt() ?? 0,
+        items: [for (final i in ((j['i'] as List?) ?? const [])) i as String],
+      );
+}
+
 class StoryEntry {
   final String id, title, era;
   final List<StoryPart> parts;
   final List<String> kw;
-  StoryEntry(this.id, this.title, this.era, this.parts, [this.kw = const []]);
+  /// القصة الجديدة المكتوبة؛ إن وُجدت تُعرض هي بدل مقتطفات الكتب القديمة.
+  final List<StoryBlock> blocks;
+  StoryEntry(this.id, this.title, this.era, this.parts,
+      [this.kw = const [], this.blocks = const <StoryBlock>[]]);
 
   late final String key = searchKey(title);
 
@@ -45,6 +77,10 @@ class StoryEntry {
         (j['era'] as String?) ?? '',
         [for (final p in (j['parts'] as List)) StoryPart.fromJson(p as Map<String, dynamic>)],
         [for (final k in ((j['kw'] as List?) ?? const [])) k as String],
+        [
+          for (final b in ((j['blocks'] as List?) ?? const []))
+            StoryBlock.fromJson(b as Map<String, dynamic>)
+        ],
       );
 }
 

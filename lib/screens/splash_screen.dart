@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../core/first_run.dart';
 import '../core/home_tokens.dart';
 import '../core/text_utils.dart';
 import '../core/page_background.dart';
@@ -38,14 +38,14 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _go(int minMs) async {
     var done = false;
+    final started = DateTime.now();
     try {
-      final results = await Future.wait<Object?>([
-        SharedPreferences.getInstance()
-            .then((p) => p.getBool('onboarding_completed') ?? false),
-        Future<void>.delayed(Duration(milliseconds: minMs)),
-      ]);
-      done = results.first == true;
+      done = await FirstRun.isCompleted();
     } catch (_) {}
+    // المستخدم العائد لا ينتظر الشاشة الكاملة؛ الترحيب الكامل لأول مرة فقط.
+    final wait = done ? (minMs < 450 ? minMs : 450) : minMs;
+    final left = wait - DateTime.now().difference(started).inMilliseconds;
+    if (left > 0) await Future<void>.delayed(Duration(milliseconds: left));
     if (!mounted) return;
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 500),

@@ -3,6 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:azkar_app/data/stories_data.dart';
 
 void main() {
+  test('القصص المكتوبة (blocks) تُقرأ من الفهرس', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    final withBlocks = [
+      for (final s in idx.sections) for (final e in s.entries) if (e.blocks.isNotEmpty) e
+    ];
+    expect(withBlocks.length, 10);
+    expect(withBlocks.first.blocks.any((b) => b.t == 'q'), isTrue);
+  });
+
   test('تحليل فهرس حكايات الوحي وبحثه', () {
     final idx = parseStoriesIndex(
         '{"sections":[{"id":"quran","title":"قصص","subtitle":"",'
