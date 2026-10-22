@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -33,21 +34,37 @@ Future<void> main() async {
   ));
   // كل الاتجاهات مدعومة: الشاشات تتكيّف مع الأفقي (لوحتان) والعمودي.
   await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-  SupabaseConfig.validate();
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    publishableKey: SupabaseConfig.publishableKey,
-  );
-  // الإشعارات أولًا: تحدد هل أيقونة ic_stat_quran موجودة (غيابها يخفي إشعار الميديا بصمت).
-  try {
-    await NotificationService.init();
-    // طلب إذن الإشعارات انتقل لشاشة الترحيب (اختياري) بدل الطلب المباشر عند أول فتح.
-  } catch (_) {
-    // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
-  }
-  // خدمة الميديا (إشعار التلاوة). لا ترمي أخطاء: لو فشلت يعمل التشغيل بدون إشعار.
-  await QuranAudioService.init();
+  // لا ننتظر الخدمات الاختيارية قبل runApp؛ تعليق الشبكة أو Android service
+  // كان يترك التطبيق على شاشة سوداء قبل أن تظهر حتى شاشة البداية.
   runApp(const AzkarApp());
+  unawaited(_initializeOptionalServices());
+}
+
+Future<void> _initializeOptionalServices() async {
+  // Supabase مطلوب فقط عند فتح ميزات المجتمع، ولا يجب أن يمنع العمل Offline.
+  try {
+    SupabaseConfig.validate();
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      publishableKey: SupabaseConfig.publishableKey,
+    ).timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // التطبيق الأساسي يعمل بدون اتصال أو إعداد Supabase صالح.
+  }
+
+  // الإشعارات اختيارية، وتطلب صلاحياتها لاحقًا من شاشة الترحيب.
+  try {
+    await NotificationService.init().timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // فشل الإشعارات لا يمنع فتح التطبيق.
+  }
+
+  // خدمة الميديا اختيارية؛ لا نسمح لها بتعطيل الواجهة عند بطء Android.
+  try {
+    await QuranAudioService.init().timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // التشغيل الأساسي يعمل حتى بدون إشعار الميديا.
+  }
 }
 
 class AzkarApp extends StatelessWidget {
