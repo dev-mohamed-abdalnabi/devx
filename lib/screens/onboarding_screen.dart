@@ -385,7 +385,8 @@ class _NotifRow extends StatelessWidget {
 class StartupScreen extends StatelessWidget {
   const StartupScreen({super.key});
   Future<bool> _completed() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance()
+        .timeout(const Duration(seconds: 3));
     return prefs.getBool('onboarding_completed') ?? false;
   }
 

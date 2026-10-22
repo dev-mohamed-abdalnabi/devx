@@ -41,9 +41,10 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final results = await Future.wait<Object?>([
         SharedPreferences.getInstance()
+            .timeout(const Duration(seconds: 3))
             .then((p) => p.getBool('onboarding_completed') ?? false),
         Future<void>.delayed(Duration(milliseconds: minMs)),
-      ]);
+      ]).timeout(Duration(milliseconds: minMs + 4000));
       done = results.first == true;
     } catch (_) {}
     if (!mounted) return;

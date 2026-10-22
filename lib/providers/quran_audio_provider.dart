@@ -214,26 +214,33 @@ class QuranAudioProvider extends ChangeNotifier {
   // ───────── التهيئة والإعدادات ─────────
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    final p = _prefs!;
-    final savedReciter = p.getString(_reciterKey);
-    if (savedReciter != null && reciters.any((r) => r.id == savedReciter)) {
-      selectedReciterId = savedReciter;
+    try {
+      _prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final p = _prefs!;
+      final savedReciter = p.getString(_reciterKey);
+      if (savedReciter != null && reciters.any((r) => r.id == savedReciter)) {
+        selectedReciterId = savedReciter;
+      }
+      favorites = (p.getStringList(_favoritesKey) ?? const <String>[])
+          .map(int.tryParse)
+          .whereType<int>()
+          .where((n) => n >= 1 && n <= surahCount)
+          .toSet();
+      final savedSpeed = p.getDouble(_speedKey) ?? 1.0;
+      speed = speeds.contains(savedSpeed) ? savedSpeed : 1.0;
+      repeat = AudioRepeat.values[(p.getInt(_repeatKey) ?? 0)
+          .clamp(0, AudioRepeat.values.length - 1)];
+      shuffle = p.getBool(_shuffleKey) ?? false;
+      await _migrateLegacyAudioDirectory();
+      await _scanFiles();
+      _loadLastPosition();
+    } catch (_) {
+      error = 'تعذر قراءة إعدادات التلاوة';
+    } finally {
+      _attachHandler();
+      _notify();
     }
-    favorites = (p.getStringList(_favoritesKey) ?? const <String>[])
-        .map(int.tryParse)
-        .whereType<int>()
-        .where((n) => n >= 1 && n <= surahCount)
-        .toSet();
-    final savedSpeed = p.getDouble(_speedKey) ?? 1.0;
-    speed = speeds.contains(savedSpeed) ? savedSpeed : 1.0;
-    repeat = AudioRepeat.values[(p.getInt(_repeatKey) ?? 0).clamp(0, AudioRepeat.values.length - 1)];
-    shuffle = p.getBool(_shuffleKey) ?? false;
-    await _migrateLegacyAudioDirectory();
-    await _scanFiles();
-    _loadLastPosition();
-    _attachHandler();
-    _notify();
   }
 
   /// يربط أزرار الإشعار بالمزوّد. آمن للتكرار، ويلتقط الخدمة لو اكتملت تهيئتها متأخرة.

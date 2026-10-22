@@ -5,5 +5,11 @@
     "sha256_raw": "0df03e1d6da4fc8138208fec1688f2b416f0dd4ebbd514179f3e5e0fbaf4195f",
     "surahs": 114,
     "ayahs": 6236
+  },
+  "tafsir": {
+    "source": "https://api.alquran.cloud/v1/quran/ar.muyassar",
+    "edition": "ar.muyassar",
+    "sha256_raw": "e409898887a10a92de554b364c12c56a59b9030f2b07df94578040af234b7153",
+    "ayahs": 6236
   }
 }
