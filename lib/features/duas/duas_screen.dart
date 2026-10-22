@@ -22,18 +22,9 @@ class DuasScreen extends StatefulWidget {
 
 class _DuasScreenState extends State<DuasScreen> {
   late final Future<List<DuaItem>> _future = DuasRepo.load();
-  final _search = TextEditingController();
   String _filter = 'all';
-  String _query = '';
-
-  @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
-  }
 
   List<DuaItem> _filtered(List<DuaItem> all) {
-    final q = searchKey(_query);
     return all.where((d) {
       final categoryOk = switch (_filter) {
         'quran' => d.category == 'quran',
@@ -42,9 +33,7 @@ class _DuasScreenState extends State<DuasScreen> {
         'general' => d.category == 'quran' && !_prophetIds.contains(d.id),
         _ => true,
       };
-      if (!categoryOk) return false;
-      if (q.isEmpty) return true;
-      return searchKey('${d.title} ${d.text} ${d.reference}').contains(q);
+      return categoryOk;
     }).toList();
   }
 
@@ -59,7 +48,16 @@ class _DuasScreenState extends State<DuasScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(children: [
-              const PageHeader(title: 'الأدعية'),
+              PageHeader(title: 'الأدعية', actions: [
+                HeaderButton(
+                  icon: ZikrIcons.search,
+                  label: 'بحث',
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => DuasSearchScreen(future: _future))),
+                ),
+              ]),
               HomeHeroCard(
                 tk: tk,
                 icon: HomeIcons.hand,
@@ -69,17 +67,6 @@ class _DuasScreenState extends State<DuasScreen> {
                 height: 116,
               ),
               const SizedBox(height: 10),
-              HomeSearchField(
-                tk: tk,
-                controller: _search,
-                hint: 'ابحث في الأدعية أو المراجع',
-                onChanged: (v) => setState(() => _query = v.trim()),
-                onClear: () {
-                  _search.clear();
-                  setState(() => _query = '');
-                },
-              ),
-              const SizedBox(height: 8),
               SizedBox(
                 height: 40,
                 child: ListView(
@@ -116,7 +103,7 @@ class _DuasScreenState extends State<DuasScreen> {
                         tk: tk,
                         icon: ZikrIcons.search,
                         title: 'لا توجد نتائج',
-                        message: 'جرّب كلمة أخرى أو غيّر التصنيف',
+                        message: 'غيّر التصنيف',
                       );
                     }
                     return ListView.separated(
@@ -181,4 +168,100 @@ class _DuaCard extends StatelessWidget {
           ]),
         ]),
       );
+}
+
+/// بحث الأدعية: شاشة مستقلة تُفتح من زر البحث في الهيدر (مثل حكايات الوحي).
+class DuasSearchScreen extends StatefulWidget {
+  final Future<List<DuaItem>> future;
+  const DuasSearchScreen({super.key, required this.future});
+  @override
+  State<DuasSearchScreen> createState() => _DuasSearchScreenState();
+}
+
+class _DuasSearchScreenState extends State<DuasSearchScreen> {
+  final _c = TextEditingController();
+  String _q = '';
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    final mq = MediaQuery.of(context);
+    return Scaffold(
+      body: MediaQuery(
+        data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(children: [
+              const PageHeader(title: 'البحث'),
+              const SizedBox(height: 6),
+              HomeSearchField(
+                tk: tk,
+                controller: _c,
+                hint: 'ابحث في الأدعية أو المراجع',
+                autofocus: true,
+                onChanged: (v) => setState(() => _q = v.trim()),
+                onClear: () {
+                  _c.clear();
+                  setState(() => _q = '');
+                },
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: FutureBuilder<List<DuaItem>>(
+                  future: widget.future,
+                  builder: (context, snap) {
+                    if (snap.hasError) {
+                      return HomeEmpty(
+                        tk: tk,
+                        icon: HomeIcons.hand,
+                        title: 'تعذّر تحميل الأدعية',
+                        message: 'أعد فتح التطبيق ثم حاول مرة أخرى',
+                      );
+                    }
+                    if (!snap.hasData) {
+                      return Center(child: CircularProgressIndicator(color: tk.leaf));
+                    }
+                    final q = searchKey(_q);
+                    if (q.replaceAll(' ', '').isEmpty) {
+                      return HomeEmpty(
+                        tk: tk,
+                        icon: ZikrIcons.search,
+                        title: 'ابحث في الأدعية',
+                        message: 'اكتب كلمة من الدعاء أو مرجعه',
+                      );
+                    }
+                    final items = snap.data!
+                        .where((d) => searchKey('${d.title} ${d.text} ${d.reference}').contains(q))
+                        .toList();
+                    if (items.isEmpty) {
+                      return HomeEmpty(
+                        tk: tk,
+                        icon: ZikrIcons.search,
+                        title: 'لا توجد نتائج',
+                        message: 'جرّب كلمة أخرى',
+                      );
+                    }
+                    return ListView.separated(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.only(top: 4, bottom: 18),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _DuaCard(tk: tk, dua: items[i]),
+                    );
+                  },
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }

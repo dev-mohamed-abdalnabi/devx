@@ -14,6 +14,55 @@ const _site = 'https://mohamed-abdalnaby.is-a.dev/';
 const _email = 'dev.mohamed.abdalnabi@gmail.com';
 const _whatsapp = 'https://wa.me/201102855563';
 
+class _Contributor {
+  final String name, nameEn, role;
+  const _Contributor(this.name, this.nameEn, this.role);
+}
+
+/// أضف أي مساهم جديد هنا وسيظهر تلقائيًا في «المساهمون».
+const _contributors = <_Contributor>[
+  _Contributor('زين محمد', 'Zain Mohamed', 'مساهم في التطبيق'),
+];
+
+class _ContributorRow extends StatelessWidget {
+  final _Contributor c;
+  const _ContributorRow({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: tk.mint,
+            shape: BoxShape.circle,
+            border: Border.all(color: tk.gold.withValues(alpha: .6)),
+          ),
+          child: Text(c.name.substring(0, 1),
+              style: amiriStyle(20, bold: true, color: tk.mintInk)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(c.name, style: cairoStyle(15, weight: 700, color: tk.ink)),
+              Text(c.nameEn,
+                  textDirection: TextDirection.ltr,
+                  style: cairoStyle(12, color: tk.muted)),
+              Text(c.role, style: cairoStyle(12, color: tk.muted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -101,6 +150,22 @@ class AboutScreen extends StatelessWidget {
                   Uri.parse(
                       'mailto:$_email?subject=${Uri.encodeComponent('بخصوص تطبيق ذِكر')}')),
               onWhatsapp: () => _open(context, Uri.parse(_whatsapp)),
+            ),
+            const SizedBox(height: 22),
+            const KitSectionTitle(text: 'المساهمون'),
+            KitCard(
+              child: Column(
+                children: [
+                  for (var i = 0; i < _contributors.length; i++) ...[
+                    if (i > 0) ...[
+                      const SizedBox(height: 10),
+                      Divider(height: 1, color: tk.line),
+                      const SizedBox(height: 10),
+                    ],
+                    _ContributorRow(c: _contributors[i]),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 22),
             KitCard(
@@ -221,8 +286,11 @@ class _DeveloperCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('محمد عبد النبي',
+                    Text('محمد عبد رب النبي',
                         style: cairoStyle(16, weight: 700, color: tk.ink)),
+                    Text('Muhammad Abd Rabb El-Nabi',
+                        textDirection: TextDirection.ltr,
+                        style: cairoStyle(12.5, color: tk.muted)),
                     Text('مطوّر التطبيق',
                         style: cairoStyle(12.5, color: tk.muted)),
                   ],

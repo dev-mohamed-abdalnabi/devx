@@ -377,19 +377,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                     ]),
                     row(108, [
                       slotTile(
-                        span: 2,
-                        colW: colW,
-                        fullW: fullW,
-                        child: HomeTile(
-                          tk: tk,
-                          compact: compact,
-                          icon: HomeIcons.crescentStar,
-                          title: 'حكايات الوحي',
-                          subtitle: 'قصص القرآن والأنبياء',
-                          onTap: () => _push(const StoriesHomeScreen()),
-                        ),
-                      ),
-                      slotTile(
                         span: 1,
                         colW: colW,
                         fullW: fullW,
@@ -400,6 +387,19 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           title: 'الأدعية',
                           subtitle: 'القرآن والسنة',
                           onTap: () => _push(const DuasScreen()),
+                        ),
+                      ),
+                      slotTile(
+                        span: 2,
+                        colW: colW,
+                        fullW: fullW,
+                        child: HomeTile(
+                          tk: tk,
+                          compact: compact,
+                          icon: HomeIcons.crescentStar,
+                          title: 'حكايات الوحي',
+                          subtitle: 'قصص القرآن والأنبياء',
+                          onTap: () => _push(const StoriesHomeScreen()),
                         ),
                       ),
                     ]),

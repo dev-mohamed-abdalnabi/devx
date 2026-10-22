@@ -173,14 +173,11 @@ class _FiqhReaderScreenState extends State<FiqhReaderScreen> {
   Widget build(BuildContext context) {
     final book = widget.book;
     final s = book.sections[_i];
-    return LibPage(
+    return BookPageReader(
+      key: ValueKey(_i),
       title: s.title,
-      body: BookPageReader(
-        key: ValueKey(_i),
-        title: s.title,
-        author: '${book.title} · ${book.author}',
-        pages: s.paragraphs,
-      ),
+      author: '${book.title} · ${book.author}',
+      pages: s.paragraphs,
     );
   }
 }
