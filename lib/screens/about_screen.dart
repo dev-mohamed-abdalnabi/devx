@@ -9,7 +9,7 @@ import '../widgets/home_style.dart';
 import '../features/home/home_art.dart';
 import 'privacy_screen.dart';
 
-const _version = '1.4.0';
+const _version = '1.5.0';
 const _site = 'https://mohamed-abdalnaby.is-a.dev/';
 const _email = 'dev.mohamed.abdalnabi@gmail.com';
 const _whatsapp = 'https://wa.me/201102855563';

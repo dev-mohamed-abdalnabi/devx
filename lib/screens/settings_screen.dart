@@ -483,7 +483,7 @@ class _AboutCard extends StatelessWidget {
                 color: tk.card,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text('1.4.0',
+              child: Text('1.5.0',
                   style: cairoStyle(11.5, weight: 700, color: tk.gold)),
             ),
             Icon(Icons.chevron_left_rounded, color: tk.gold, size: 24),
