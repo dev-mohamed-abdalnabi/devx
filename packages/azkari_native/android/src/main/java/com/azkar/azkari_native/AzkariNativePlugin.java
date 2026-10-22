@@ -226,6 +226,12 @@ public class AzkariNativePlugin implements FlutterPlugin, ActivityAware, MethodC
             } catch (Exception e) {
                 result.success(false);
             }
+        } else if ("tasbeehFeedback".equals(call.method)) {
+            Boolean v = call.argument("vibrate"), snd = call.argument("sound"), g = call.argument("goal");
+            boolean goal = g != null && g;
+            if (context != null && v != null && v) TasbeehFeedback.vibrate(context, goal);
+            if (snd != null && snd) TasbeehFeedback.tick(goal);
+            result.success(true);
         } else if ("setKeepAwake".equals(call.method)) {
             Boolean on = call.argument("on");
             setKeepAwake(on != null && on);

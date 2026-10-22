@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:azkari_native/azkari_native.dart';
 import 'package:provider/provider.dart';
 import '../../core/home_tokens.dart';
 import '../../core/text_utils.dart';
@@ -26,14 +27,19 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
 
   void _tap(ActivityProvider a, TasbeehPreset p) {
     a.tapTasbeeh(p.id);
-    if (a.vibrate) {
-      if (a.tasbeehCount(p.id) == a.goalOf(p.id)) {
-        HapticFeedback.heavyImpact();
-      } else {
-        HapticFeedback.selectionClick();
+    if (!a.vibrate && !a.sound) return;
+    final reachedGoal = a.tasbeehCount(p.id) == a.goalOf(p.id);
+    // الاهتزاز والصوت من الجانب الأصلي مباشرة؛ لا يتأثران بإعدادات «ردود اللمس» في النظام.
+    AzkariNative.tasbeehFeedback(
+            vibrate: a.vibrate, sound: a.sound, goal: reachedGoal)
+        .then((ok) {
+      if (ok) return;
+      // احتياطي لو القناة الأصلية غير متاحة.
+      if (a.vibrate) {
+        reachedGoal ? HapticFeedback.heavyImpact() : HapticFeedback.selectionClick();
       }
-    }
-    if (a.sound) SystemSound.play(SystemSoundType.click);
+      if (a.sound) SystemSound.play(SystemSoundType.click);
+    });
   }
 
   Future<void> _editGoal(ActivityProvider a, TasbeehPreset p) async {
@@ -130,8 +136,8 @@ class _TasbeehScreenState extends State<TasbeehScreen> {
     return MediaQuery(
       data: mq.copyWith(textScaler: mq.textScaler.clamp(maxScaleFactor: 1.15)),
       child: Scaffold(
+        // bottom مفعّل: لا تتداخل الأزرار مع أزرار/شريط تنقّل النظام.
         body: SafeArea(
-          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             // الشاشات القصيرة (أو الأفقي): نعطي المحتوى ارتفاعًا أدنى ويُمرَّر،

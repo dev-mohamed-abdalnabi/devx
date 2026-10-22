@@ -56,6 +56,13 @@ class AzkariNative {
   static Future<bool> cancelAdhan() => _bool('cancelAdhan');
   static Future<bool> stopAdhan() => _bool('stopAdhan');
 
+  /// اهتزاز/صوت المسبحة مباشرة من النظام. [goal] = عند إتمام الهدف.
+  /// لا ينتظر النتيجة حتى لا يؤخّر العدّ؛ يعيد false لو القناة غير متاحة.
+  static Future<bool> tasbeehFeedback(
+          {required bool vibrate, required bool sound, bool goal = false}) =>
+      _bool('tasbeehFeedback',
+          {'vibrate': vibrate, 'sound': sound, 'goal': goal});
+
   /// قفل CPU جزئي أثناء تشغيل التلاوة.
   static Future<bool> setKeepAwake(bool on) =>
       _bool('setKeepAwake', {'on': on});
