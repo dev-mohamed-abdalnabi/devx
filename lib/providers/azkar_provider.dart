@@ -36,58 +36,54 @@ class AzkarProvider extends ChangeNotifier {
       categories = (data['categories'] as List)
           .map((c) => AzkarCategory.fromJson(c as Map<String, dynamic>))
           .toList();
-    } catch (_) {
-      categories = [];
-      error = 'تعذّر تحميل بيانات الأذكار';
-      loading = false;
-      notifyListeners();
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final today = _dayKey(DateTime.now());
-    final savedDate = prefs.getString(_progressDateKey);
-    final savedProgress = savedDate == today
-        ? prefs.getStringList(_progressKey) ?? []
-        : <String>[];
-    if (savedDate != today) {
-      await prefs.setString(_progressDateKey, today);
-      await prefs.setStringList(_progressKey, []);
-    }
-    final progress = <String, int>{};
-    for (final entry in savedProgress) {
-      final parts = entry.split('=');
-      if (parts.length == 2) {
-        final remaining = int.tryParse(parts[1]);
-        if (remaining != null) progress[parts[0]] = remaining;
+      final prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final today = _dayKey(DateTime.now());
+      final savedDate = prefs.getString(_progressDateKey);
+      final savedProgress = savedDate == today
+          ? prefs.getStringList(_progressKey) ?? []
+          : <String>[];
+      if (savedDate != today) {
+        await prefs.setString(_progressDateKey, today);
+        await prefs.setStringList(_progressKey, []);
       }
-    }
-    for (final category in categories) {
-      for (final zikr in category.azkar) {
-        final remaining = progress[zikr.uniqueKey];
-        if (remaining != null) {
-          zikr.remaining = remaining.clamp(0, zikr.count).toInt();
+      final progress = <String, int>{};
+      for (final entry in savedProgress) {
+        final parts = entry.split('=');
+        if (parts.length == 2) {
+          final remaining = int.tryParse(parts[1]);
+          if (remaining != null) progress[parts[0]] = remaining;
         }
       }
+      for (final category in categories) {
+        for (final zikr in category.azkar) {
+          final remaining = progress[zikr.uniqueKey];
+          if (remaining != null) {
+            zikr.remaining = remaining.clamp(0, zikr.count).toInt();
+          }
+        }
+      }
+      favorites.addAll(prefs.getStringList(_favKey) ?? []);
+      themeMode = switch (prefs.getString(_themeKey)) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        'system' => ThemeMode.system,
+        _ => (prefs.getBool(_darkKey) ?? false) ? ThemeMode.dark : ThemeMode.system,
+      };
+      fontScale = prefs.getDouble(_fontKey) ?? 1.0;
+      showSources = prefs.getBool(_sourcesKey) ?? true;
+      final m = prefs.getString(_morningKey);
+      final e = prefs.getString(_eveningKey);
+      if (m != null) lastMorningDone = DateTime.tryParse(m);
+      if (e != null) lastEveningDone = DateTime.tryParse(e);
+    } catch (e) {
+      if (categories.isEmpty) {
+        error = 'تعذّر تحميل بيانات الأذكار';
+      }
+    } finally {
+      loading = false;
+      notifyListeners();
     }
-    favorites.addAll(prefs.getStringList(_favKey) ?? []);
-    themeMode = switch (prefs.getString(_themeKey)) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      'system' => ThemeMode.system,
-      // ترحيل من الإعداد القديم: من فعّل الداكن يبقى داكنًا، والباقي تلقائي.
-      _ =>
-        (prefs.getBool(_darkKey) ?? false) ? ThemeMode.dark : ThemeMode.system,
-    };
-    fontScale = prefs.getDouble(_fontKey) ?? 1.0;
-    showSources = prefs.getBool(_sourcesKey) ?? true;
-    final m = prefs.getString(_morningKey);
-    final e = prefs.getString(_eveningKey);
-    if (m != null) lastMorningDone = DateTime.tryParse(m);
-    if (e != null) lastEveningDone = DateTime.tryParse(e);
-
-    loading = false;
-    notifyListeners();
   }
 
   AzkarCategory categoryById(String id) =>

@@ -86,27 +86,34 @@ class ActivityProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {
       all = const [];
     }
-    _prefs = await SharedPreferences.getInstance();
-    final raw = _prefs!.getString(_key);
-    if (raw != null) {
-      try {
-        final j = jsonDecode(raw) as Map<String, dynamic>;
-        (j['days'] as Map<String, dynamic>? ?? {}).forEach((k, v) {
-          days[k] = DayLog.fromJson(v as Map<String, dynamic>);
-        });
-        done.addAll(((j['done'] as List?) ?? const []).cast<String>());
-        for (final c in (j['custom'] as List?) ?? const []) {
-          custom.add(TasbeehPreset(c['id'] as String, c['text'] as String,
-              custom: true));
+    try {
+      _prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final raw = _prefs!.getString(_key);
+      if (raw != null) {
+        try {
+          final j = jsonDecode(raw) as Map<String, dynamic>;
+          (j['days'] as Map<String, dynamic>? ?? {}).forEach((k, v) {
+            days[k] = DayLog.fromJson(v as Map<String, dynamic>);
+          });
+          done.addAll(((j['done'] as List?) ?? const []).cast<String>());
+          for (final c in (j['custom'] as List?) ?? const []) {
+            custom.add(TasbeehPreset(c['id'] as String, c['text'] as String,
+                custom: true));
+          }
+          ((j['goals'] as Map?) ?? const {})
+              .forEach((k, v) => goals[k as String] = v as int);
+          vibrate = (j['vibrate'] as bool?) ?? true;
+          sound = (j['sound'] as bool?) ?? false;
+        } catch (_) {
+          // لا نمسح بيانات المستخدم: نحتفظ بنسخة من النص التالف.
+          try {
+            await _prefs!.setString('${_key}_corrupt', raw);
+          } catch (_) {}
         }
-        ((j['goals'] as Map?) ?? const {})
-            .forEach((k, v) => goals[k as String] = v as int);
-        vibrate = (j['vibrate'] as bool?) ?? true;
-        sound = (j['sound'] as bool?) ?? false;
-      } catch (_) {
-        // لا نمسح بيانات المستخدم: نحتفظ بنسخة من النص التالف.
-        await _prefs!.setString('${_key}_corrupt', raw);
       }
+    } catch (_) {
+      // يبدأ التحدي ببيانات اليوم الافتراضية إذا تعذر التخزين.
     }
     WidgetsBinding.instance.addObserver(this);
     loading = false;

@@ -15,25 +15,33 @@ class RemindersProvider extends ChangeNotifier {
   static const _key = 'reminders_v1';
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    final raw = _prefs!.getString(_key);
-    if (raw != null) {
-      try {
-        for (final e in jsonDecode(raw) as List) {
-          items.add(Reminder.fromJson(e as Map<String, dynamic>));
+    try {
+      _prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final raw = _prefs!.getString(_key);
+      if (raw != null) {
+        try {
+          for (final e in jsonDecode(raw) as List) {
+            items.add(Reminder.fromJson(e as Map<String, dynamic>));
+          }
+        } catch (_) {
+          await _prefs!.setString('${_key}_corrupt', raw);
+          items.clear();
         }
-      } catch (_) {
-        await _prefs!.setString('${_key}_corrupt', raw);
-        items.clear();
       }
+      if (items.isEmpty) items.addAll(defaultReminders());
+      await rescheduleAll().timeout(const Duration(seconds: 8));
+      scheduledCount = await NotificationService.pendingCount()
+          .timeout(const Duration(seconds: 3));
+      exactAllowed = await NotificationService.canScheduleExact()
+          .timeout(const Duration(seconds: 3));
+    } catch (_) {
+      if (items.isEmpty) items.addAll(defaultReminders());
+      lastError = 'تعذر تحديث التذكيرات الآن';
+    } finally {
+      loading = false;
+      notifyListeners();
     }
-    if (items.isEmpty) items.addAll(defaultReminders());
-    // نعيد الجدولة عند كل تشغيل: يصلح تغيّر المنطقة الزمنية أو فقدان الجداول.
-    await rescheduleAll();
-    scheduledCount = await NotificationService.pendingCount();
-    exactAllowed = await NotificationService.canScheduleExact();
-    loading = false;
-    notifyListeners();
   }
 
   Future<void> rescheduleAll() async {

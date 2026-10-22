@@ -48,41 +48,49 @@ class QuranProvider extends ChangeNotifier {
   Future<void> init() async {
     try {
       final raw = await rootBundle.loadString('assets/data/quran.json');
-      data = await compute(parseQuran, raw);
+      data = await compute(parseQuran, raw).timeout(const Duration(seconds: 15));
     } catch (e) {
       error = e;
     }
     try {
       final rawM = await rootBundle.loadString('assets/data/mushaf.json');
-      mushaf = await compute(parseMushaf, rawM);
+      mushaf = await compute(parseMushaf, rawM).timeout(const Duration(seconds: 10));
     } catch (_) {
       mushaf = null;
     }
-    _prefs = await SharedPreferences.getInstance();
-    final p = _prefs!;
-    final savedPage = p.getInt(_kLastPage) ?? 1;
-    lastAyahKey = p.getString(_kLastAyah);
-    readerTheme = p.getString(_kTheme) ?? 'auto';
-    pageMode = p.getString(_kMode) == 'continuous' ? 'continuous' : 'page';
-    fontScale = (p.getDouble(_kFont) ?? 1.0).clamp(1.0, 2.0).toDouble();
-    bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
-    final rawMarks = p.getString(_kMarks);
-    if (rawMarks != null) {
-      try {
-        final m = json.decode(rawMarks) as Map<String, dynamic>;
-        m.forEach((k, v) {
-          if (v is Map) {
-            marks[k] = AyahMark((v['c'] as num?)?.toInt() ?? 0, (v['n'] as String?) ?? '');
-          }
-        });
-      } catch (_) {}
+    try {
+      _prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
+      final p = _prefs!;
+      final savedPage = p.getInt(_kLastPage) ?? 1;
+      lastAyahKey = p.getString(_kLastAyah);
+      readerTheme = p.getString(_kTheme) ?? 'auto';
+      pageMode = p.getString(_kMode) == 'continuous' ? 'continuous' : 'page';
+      fontScale = (p.getDouble(_kFont) ?? 1.0).clamp(1.0, 2.0).toDouble();
+      bookmarks.addAll(p.getStringList(_kBookmarks) ?? const []);
+      final rawMarks = p.getString(_kMarks);
+      if (rawMarks != null) {
+        try {
+          final m = json.decode(rawMarks) as Map<String, dynamic>;
+          m.forEach((k, v) {
+            if (v is Map) {
+              marks[k] = AyahMark((v['c'] as num?)?.toInt() ?? 0,
+                  (v['n'] as String?) ?? '');
+            }
+          });
+        } catch (_) {}
+      }
+      final savedRead = p.getStringList(_kRead) ?? const <String>[];
+      readPages.addAll(
+          savedRead.map(int.tryParse).whereType<int>().where((v) => v > 0));
+      final maxPage = data?.pageCount ?? 604;
+      lastPage = savedPage.clamp(1, maxPage == 0 ? 1 : maxPage).toInt();
+    } catch (_) {
+      // لا نمنع فتح المصحف إذا تعذر استرجاع تفضيلات القراءة.
+    } finally {
+      loading = false;
+      notifyListeners();
     }
-    final savedRead = p.getStringList(_kRead) ?? const <String>[];
-    readPages.addAll(savedRead.map(int.tryParse).whereType<int>().where((v) => v > 0));
-    final maxPage = data?.pageCount ?? 604;
-    lastPage = savedPage.clamp(1, maxPage == 0 ? 1 : maxPage).toInt();
-    loading = false;
-    notifyListeners();
   }
 
   bool get hasStartedReading => _prefs?.containsKey(_kLastPage) ?? false;

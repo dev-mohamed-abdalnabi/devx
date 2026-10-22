@@ -60,7 +60,9 @@ class PrayerProvider extends ChangeNotifier {
   CalcMethodInfo get method => methodById(methodId);
 
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+    try {
+      _prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5));
     _done.addAll(_prefs!.getStringList(_doneKey) ?? const []);
     final raw = _prefs!.getString(_key);
     if (raw != null) {
@@ -90,13 +92,21 @@ class PrayerProvider extends ChangeNotifier {
       }
     }
     // لو الصوت المختار لم يعد موجودًا على الجهاز نرجع للأساسي.
-    adhanSoundPath = await AdhanSounds.localPath(adhanSoundId) ?? '';
+    adhanSoundPath = await AdhanSounds.localPath(adhanSoundId)
+            .timeout(const Duration(seconds: 5)) ??
+        '';
     if (!AdhanSounds.byId(adhanSoundId).bundled && adhanSoundPath.isEmpty) {
       adhanSoundId = AdhanSounds.defaultId;
     }
-    loading = false;
-    if (adhanEnabled && hasLocation) await syncAdhan();
-    notifyListeners();
+    if (adhanEnabled && hasLocation) {
+      await syncAdhan().timeout(const Duration(seconds: 8));
+    }
+    } catch (_) {
+      // الصلاة تعمل بالإعدادات الافتراضية عند تعذر التخزين أو الجدولة.
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _save() async {
