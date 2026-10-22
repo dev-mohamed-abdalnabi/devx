@@ -15,7 +15,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     steps:
@@ -35,21 +35,9 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # تنزيل NDK في كل تشغيل كان يضيف دقائق طويلة إلى assembleRelease.
-      - name: Cache Android NDK
-        uses: actions/cache@v4
-        with:
-          path: /usr/local/lib/android/sdk/ndk/28.2.13676358
-          key: android-ndk-28.2.13676358-v1
-
       # يدير كاش Gradle بذكاء (يزيل المكرر والقديم) بدل المسارات اليدوية.
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
-        with:
-          # نستخدم الكاش الموجود لتسريع البناء، لكن لا نكتب كاشًا جديدًا
-          # ولا ننفّذ تنظيفًا في نهاية الـrunner حتى لا يفشل بعد نجاح الـAPK.
-          cache-read-only: true
-          cache-cleanup: never
 
       # بيانات القرآن والتفسير والخطوط والأذكار: تُجلب مرة واحدة ثم تُكاش.
       # المفتاح مبني على سكربتات الجلب فقط، فلا يتغير عند تعديل أي شيء آخر.
@@ -104,15 +92,6 @@ jobs:
 
       # فهرس «حكايات الوحي» مراجع فقط: يتحقق أن كل آية ضمن حدود سورتها وكل حديث موجود برقمه
       # ويحتوي عبارته الدالة في ملف الكتاب. أي خلل يوقف البناء.
-      # كتب «حكايات الوحي» الأصلية (ابن كثير، ابن هشام) من OpenITI. أول تشغيل يكتب
-      # tool/stories_sources.lock.json؛ ارفعه للمستودع لتثبيت الإصدار. عند فشل الجلب
-      # يستمر البناء وتختفي الكتب من التطبيق (لا نعرض ما لا نملك).
-      - name: Fetch stories books
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 tool/fetch_stories.py
-
       - name: Verify stories index
         run: python3 tool/build_stories.py --check
 
@@ -137,35 +116,18 @@ jobs:
           flutter pub get
           dart run flutter_launcher_icons
 
-      # ملفات Gradle المؤقتة ونتائج التحويل القديمة تستهلك مساحة الـrunner.
-      # نحذف غير الضروري فقط قبل البناء، ونبقي كاش الاعتماديات الأساسية.
-      - name: Free runner disk space before build
-        run: |
-          rm -rf ~/.gradle/daemon
-          rm -rf ~/.gradle/caches/build-cache-*
-          rm -rf ~/.gradle/caches/*/fileHashes
-          rm -rf ~/.gradle/caches/*/fileContent
-          rm -rf ~/.gradle/caches/*/file-changes
-          rm -rf android/.gradle
-          rm -rf build
-          df -h
-
       - name: Test
         run: flutter test
 
-      - name: Build ARM64 release APK
-        # بناء واحد فقط لمعمارية ARM64 المطلوبة، بدون إعادة Gradle مرتين.
-        run: |
-          rm -rf dist
-          mkdir -p dist
-          flutter build apk --release --no-pub --build-number=$((GITHUB_RUN_NUMBER + 10)) --target-platform android-arm64
-          cp build/app/outputs/flutter-apk/app-release.apk dist/azkar-arm64-release.apk
+      - name: Build release APK (ARM64 + ARM32)
+        # R8 يحذف كود Android غير المستخدم؛ ملفات المصحف تبقى Offline كما هي.
+        run: flutter build apk --release --build-number=$((GITHUB_RUN_NUMBER + 10)) --split-per-abi --target-platform android-arm,android-arm64 --shrink
 
       - name: APK size report
         run: |
           limit=$((20 * 1024 * 1024))
           echo "### APK sizes" >> "$GITHUB_STEP_SUMMARY"
-          for f in dist/*-release.apk; do
+          for f in build/app/outputs/flutter-apk/*-release.apk; do
             size=$(stat -c %s "$f")
             echo "- $(basename "$f"): $(du -h "$f" | cut -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
             if [ "$size" -ge "$limit" ]; then
@@ -178,4 +140,4 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: نسخة تلقائية ${{ github.run_number }}
-          files: dist/*-release.apk
+          files: build/app/outputs/flutter-apk/*-release.apk

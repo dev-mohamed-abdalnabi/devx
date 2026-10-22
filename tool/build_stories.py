@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """يبني فهرس «حكايات الوحي» ويتحقق منه.
 
-لا يُكتب هنا أي نص ديني. الملف الناتج (assets/stories/stories.json) فهرس مراجع فقط:
+قسم السيرة فهرس مراجع فقط، وقسما «قصص القرآن» و«الأنبياء» يُبنيان من سرد مكتوب في
+tool/authored/quran_stories.json و prophets_stories.json (فقرات سرد + مراجع آيات + مقاطع أحاديث حرفية).
+الملف الناتج (assets/stories/stories.json):
   * آيات: (رقم السورة، من آية، إلى آية) وتُقرأ نصوصها وقت التشغيل من القرآن المحمَّل في التطبيق.
   * أحاديث: (كتاب، رقم الحديث) وتُقرأ نصوصها وقت التشغيل من assets/library كما هي.
 العناوين أسماء أعلام وأحداث فقط، بلا أي سرد.
@@ -26,6 +28,8 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LIB = ROOT / "assets" / "library"
 OUT = ROOT / "assets" / "stories" / "stories.json"
+AUTHORED = ROOT / "tool" / "authored" / "quran_stories.json"
+AUTHORED_PROPHETS = ROOT / "tool" / "authored" / "prophets_stories.json"
 
 AYAH_COUNTS = [
     7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110,
@@ -114,66 +118,8 @@ PROPHETS = [
 ]
 
 # ───────────── السيرة العطرة: أحاديث الصحيحين + آيات ذات صلة ─────────────
-SEERAH = [
-    ("wahy", "بدء الوحي", "العهد المكي",
-     [q(96, 1, 5), q(74, 1, 7), h("bukhari", 3, "غار حراء"), h("bukhari", 4, "فتره الوحي")]),
-    ("jahr", "الجهر بالدعوة", "العهد المكي",
-     [h("bukhari", 4564, "وانذر عشيرتك")]),
-    ("taif", "الطائف", "العهد المكي",
-     [h("bukhari", 3098, "قرن الثعالب")]),
-    ("isra", "الإسراء والمعراج", "العهد المكي",
-     [q(17, 1), q(53, 1, 18), h("bukhari", 3204, "فرج سقف بيتي"),
-      h("muslim", 316, "اتيت بالبراق")]),
-    ("aqaba", "بيعة العقبة", "العهد المكي",
-     [h("bukhari", 18, "ليله العقبه")]),
-    ("hijra", "الهجرة إلى المدينة", "العهد المدني",
-     [h("bukhari", 3742, "واستاجر رسول الله")]),
-    ("muakhat", "المؤاخاة في المدينة", "العهد المدني",
-     [h("bukhari", 3617, "اخي رسول الله"), h("bukhari", 3774, "فاخي النبي")]),
-    ("badr", "غزوة بدر", "العهد المدني",
-     [q(3, 123, 127), h("bukhari", 3797, "ابا جهل"), h("bukhari", 3823, "ارني ابا جهل")]),
-    ("uhud", "غزوة أُحد", "العهد المدني",
-     [h("bukhari", 3821, "عبد الله بن جبير"), h("bukhari", 3872, "هذا جبريل")]),
-    ("khandaq", "غزوة الخندق", "العهد المدني",
-     [q(33, 9, 27), h("bukhari", 3929, "يوم الخندق نحفر"), h("bukhari", 3932, "ينقل التراب")]),
-    ("hudaybiya", "صلح الحديبية وبيعة الرضوان", "العهد المدني",
-     [q(48, 18, 26), h("bukhari", 3975, "عام الحديبيه"), h("bukhari", 3978, "بيعه الرضوان")]),
-    ("fath", "فتح مكة", "العهد المدني",
-     [q(110, 1, 3), h("bukhari", 4107, "دخل عام الفتح"), h("bukhari", 4104, "جاء الحق وزهق")]),
-    ("hunayn", "غزوة حنين", "العهد المدني",
-     [q(9, 25, 27), h("bukhari", 4131, "يوم حنين")]),
-    ("tabuk", "غزوة تبوك", "العهد المدني",
-     [h("bukhari", 4222, "استخلف عليا"), h("bukhari", 4224, "يحدث حين تخلف عن")]),
-    ("wada", "حجة الوداع", "العهد المدني",
-     [h("bukhari", 83, "في حجه الوداع"), h("bukhari", 121, "حجه الوداع")]),
-    ("wafat", "مرض النبي ﷺ ووفاته", "العهد المدني",
-     [h("bukhari", 4241, "المرض الذي مات فيه"), h("bukhari", 4253, "بين سحري ونحري")]),
-    ("sifat", "صفاته وأخلاقه ﷺ", "الشمائل",
-     [h("bukhari", 3399, "احسن الناس وجها"), h("bukhari", 6, "اجود الناس")]),
-]
+# السيرة النبوية قيد الإعداد: لا مدخلات ولا مصادر قديمة. تُضاف هنا لاحقًا بنفس نظام tool/authored.
 
-
-# كلمات تُطابَق مع عناوين «قصص الأنبياء» لابن كثير لعرض السرد داخل كل قصة.
-# مجرد فهرسة للبحث في العناوين؛ لا تُنشئ نصًا. ما لا يطابق لا يُعرض له شيء.
-KW = {
-    "adam": ["آدم"], "ibnay_adam": ["هابيل", "قابيل", "ابني آدم"], "nuh": ["نوح"],
-    "hud": ["هود"], "salih": ["صالح"], "ibrahim": ["إبراهيم"], "lut": ["لوط"],
-    "yusuf": ["يوسف"], "ayyub": ["أيوب"], "shuayb": ["شعيب"], "musa": ["موسى"],
-    "musa_khidr": ["الخضر"], "talut": ["طالوت", "شمويل"], "dawud": ["داود"],
-    "sulayman": ["سليمان"], "yunus": ["يونس"], "zakariya": ["زكريا", "يحيى"],
-    "isa": ["عيسى", "مريم"], "kahf": ["الكهف"], "dhulqarnayn": ["ذي القرنين", "ذو القرنين"],
-    "luqman": ["لقمان"], "idris": ["إدريس"], "ismail": ["إسماعيل"],
-    # قصص قرآنية أخرى: عناوين «البداية والنهاية» (الجزء الثاني) كما وردت.
-    "jannatayn": ["الجنتين", "الرجلين المؤمن والكافر"], "jannah": ["أصحاب الجنة"],
-    "saba": ["سيل العرم"], "ukhdud": ["الأخدود"], "fil": ["أصحاب الفيل"],
-    # السيرة: تُطابَق مع عناوين «السيرة النبوية» لابن هشام (مجرد فهرسة للعناوين).
-    "wahy": ["الوحي", "حراء"], "jahr": ["الجهر", "عشيرتك"], "taif": ["الطائف"],
-    "isra": ["الإسراء"], "aqaba": ["العقبة"], "hijra": ["الهجرة"],
-    "muakhat": ["المؤاخاة"], "badr": ["بدر"], "uhud": ["غزوة أحد", "يوم أحد"], "khandaq": ["الخندق"],
-    "hudaybiya": ["الحديبية"], "fath": ["فتح مكة"], "hunayn": ["حنين"],
-    "tabuk": ["تبوك"], "wada": ["الوداع"], "wafat": ["وفاة", "مرض رسول"],
-}
-# قصص القرآن = قصص غير الأنبياء؛ الأنبياء في قسمهم (لا تكرار).
 QURAN_ONLY = {"ibnay_adam", "talut", "kahf", "jannatayn", "dhulqarnayn", "luqman",
               "saba", "jannah", "ukhdud", "fil"}
 
@@ -196,6 +142,57 @@ def load_hadith():
     return books
 
 
+def letters(s: str) -> str:
+    """حروف عربية فقط بعد التطبيع: لمقارنة مقطع حديث بنصه الأصلي بلا تشكيل ولا علامات."""
+    return re.sub("[^\u0621-\u064A]", "", norm(s))
+
+
+def verify_blocks(blocks, books, errors, where):
+    """يتحقق من كتل القصة المكتوبة (tool/authored): الآيات ضمن حدود السور، والأحاديث
+    منقولة حرفيًا من assets/library (المقطع جزء متصل من نص الحديث نفسه)."""
+    kinds = {"h", "p", "q", "hd", "tf", "nx", "l", "src"}
+    for i, b in enumerate(blocks):
+        w = f"{where}#{i}"
+        if b.get("t") not in kinds:
+            errors.append(f"{w}: نوع كتلة غير معروف {b.get('t')}")
+        elif b["t"] == "q":
+            s, a, z = b["s"], b["from"], b["to"]
+            if not (1 <= s <= 114 and 1 <= a <= z <= AYAH_COUNTS[s - 1]):
+                errors.append(f"{w}: مدى آيات غير صالح {s}:{a}-{z}")
+        elif b["t"] == "hd":
+            t = books.get(b["b"], {}).get(b["n"])
+            if t is None:
+                errors.append(f"{w}: {b['b']} #{b['n']} غير موجود")
+            elif letters(b["x"]) not in letters(t):
+                errors.append(f"{w}: مقطع الحديث {b['b']} #{b['n']} ليس من نصه الحرفي")
+        elif b["t"] in ("h", "p", "tf", "nx") and not b.get("x", "").strip():
+            errors.append(f"{w}: كتلة فارغة")
+        elif b["t"] in ("l", "src") and not b.get("i"):
+            errors.append(f"{w}: قائمة فارغة")
+
+
+def authored_parts(blocks):
+    """مراجع القصة (آيات وأحاديث) مشتقة من كتلها، لتبقى الفهرسة والمفضلة والاختبارات كما هي."""
+    parts, seen = [], set()
+    for b in blocks:
+        if b["t"] == "q":
+            k = ("q", b["s"], b["from"], b["to"])
+            if k not in seen:
+                seen.add(k)
+                parts.append(q(b["s"], b["from"], b["to"]))
+        elif b["t"] == "hd":
+            k = ("h", b["b"], b["n"])
+            if k not in seen:
+                seen.add(k)
+                words = sorted(re.findall("[\u0621-\u064A]+", norm(b["x"])), key=len, reverse=True)
+                parts.append(h(b["b"], b["n"], words[0]))
+    return parts
+
+
+def arabic_digits(n: int) -> str:
+    return str(n).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+
+
 def verify(parts, books, errors, where):
     for p in parts:
         if p["k"] == "quran":
@@ -210,60 +207,52 @@ def verify(parts, books, errors, where):
                 errors.append(f"{where}: {p['b']} #{p['n']} لا يحتوي «{p['anchor']}»")
 
 
-def to_ar(n) -> str:
-    return str(n).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
-
-
 def build():
     books = load_hadith()
     errors: list[str] = []
     ids = set()
-    authored_quran_path = ROOT / "tool" / "authored" / "quran_stories.json"
-    authored_prophets_path = ROOT / "tool" / "authored" / "prophet_stories.json"
-    authored_quran = ({e["id"]: e for e in json.loads(authored_quran_path.read_text(encoding="utf-8"))["entries"]}
-                      if authored_quran_path.exists() else {})
-    authored_prophets = ({e["id"]: e for e in json.loads(authored_prophets_path.read_text(encoding="utf-8"))["entries"]}
-                         if authored_prophets_path.exists() else {})
 
     def entry(eid, title, parts, section, extra=None):
         key = (section, eid)
         if key in ids:
             errors.append(f"معرّف مكرر {key}")
         ids.add(key)
-        # قصص الأنبياء المؤلفة تُعرض من blocks الموثقة بالقرآن والحديث، لا من مقتطفات الكتب.
-        if not (section == "prophets" and eid in authored_prophets):
-            verify(parts, books, errors, f"{section}/{eid}")
-        else:
-            parts = []
+        verify(parts, books, errors, f"{section}/{eid}")
         e = {"id": f"{section}:{eid}", "title": title, "parts": parts}
-        if eid in KW:
-            e["kw"] = KW[eid]
         if extra:
             e.update(extra)
         return e
 
+    def authored_entries(path, section, expected):
+        # قصص القرآن والأنبياء مكتوبة سردًا في tool/authored؛ الآيات تُعرض من مصحف
+        # التطبيق، والأحاديث مقاطع حرفية موثَّقة بالتحقق أعلاه.
+        data = json.loads(path.read_text(encoding="utf-8"))
+        got = [e["id"] for e in data["entries"]]
+        if set(got) != set(expected):
+            errors.append(f"{section}: القصص المكتوبة لا تطابق المطلوب: {sorted(set(got) ^ set(expected))}")
+        out = []
+        for e in data["entries"]:
+            verify_blocks(e["blocks"], books, errors, f"authored/{section}/{e['id']}")
+            out.append(entry(e["id"], e["title"], authored_parts(e["blocks"]), section,
+                             {"era": f"قراءة نحو {arabic_digits(e['min'])} دقيقة",
+                              "blocks": e["blocks"]}))
+        return out
+
     sections = [
         {"id": "quran", "title": "قصص القرآن",
          "subtitle": "قصص وردت في القرآن الكريم",
-         "entries": [entry(i, t, p, "quran") for i, t, p in QURAN_STORIES
+         "entries": authored_entries(AUTHORED, "quran", QURAN_ONLY) if AUTHORED.exists() else
+                    [entry(i, t, p, "quran") for i, t, p in QURAN_STORIES
                      if i in QURAN_ONLY]},
         {"id": "prophets", "title": "على خُطى الأنبياء",
          "subtitle": "من آدم إلى عيسى عليهم السلام",
-         "entries": [entry(i, t, qs + hs, "prophets") for i, t, qs, hs in PROPHETS]},
+         "entries": authored_entries(AUTHORED_PROPHETS, "prophets", {i for i, *_ in PROPHETS})
+                    if AUTHORED_PROPHETS.exists() else
+                    [entry(i, t, qs + hs, "prophets") for i, t, qs, hs in PROPHETS]},
         {"id": "seerah", "title": "السيرة العَطِرة",
          "subtitle": "من البعثة إلى الوفاة ﷺ",
-         "entries": [entry(i, t, p, "seerah", {"era": era}) for i, t, era, p in SEERAH]},
+         "entries": []},
     ]
-    # القصص المكتوبة (tool/authored): تُدمج بالمعرّف فلا يمحوها إعادة البناء.
-    for section_index, authored in ((0, authored_quran), (1, authored_prophets)):
-        for e in sections[section_index]["entries"]:
-            a = authored.get(e["id"].split(":", 1)[1])
-            if a:
-                e["blocks"] = a["blocks"]
-                if a.get("title"):
-                    e["title"] = a["title"]
-                if a.get("min"):
-                    e["era"] = f"قراءة نحو {to_ar(a['min'])} دقيقة"
     return errors, {"version": 1, "sections": sections}
 
 

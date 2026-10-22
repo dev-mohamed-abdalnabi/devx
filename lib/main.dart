@@ -33,27 +33,20 @@ Future<void> main() async {
   ));
   // كل الاتجاهات مدعومة: الشاشات تتكيّف مع الأفقي (لوحتان) والعمودي.
   await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-  // أي تهيئة تتعثر (شبكة، إشعارات، ميديا) لا يجوز أن تُبقي الشاشة سوداء:
-  // نحدّد لكل خطوة مهلة ونتجاوز فشلها، ثم نفتح التطبيق دائمًا.
-  try {
-    SupabaseConfig.validate();
-    await Supabase.initialize(
-      url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.publishableKey,
-    ).timeout(const Duration(seconds: 8));
-  } catch (_) {
-    // المجتمع فقط يتأثر؛ باقي التطبيق يعمل بدون Supabase.
-  }
+  SupabaseConfig.validate();
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    publishableKey: SupabaseConfig.publishableKey,
+  );
   // الإشعارات أولًا: تحدد هل أيقونة ic_stat_quran موجودة (غيابها يخفي إشعار الميديا بصمت).
   try {
-    await NotificationService.init().timeout(const Duration(seconds: 8));
+    await NotificationService.init();
+    // طلب إذن الإشعارات انتقل لشاشة الترحيب (اختياري) بدل الطلب المباشر عند أول فتح.
   } catch (_) {
     // فشل تهيئة الإشعارات لا يجب أن يمنع فتح التطبيق.
   }
-  // خدمة الميديا (إشعار التلاوة). لها مهلة داخلية 10 ثوانٍ؛ نغلّف الباقي أيضًا.
-  try {
-    await QuranAudioService.init();
-  } catch (_) {}
+  // خدمة الميديا (إشعار التلاوة). لا ترمي أخطاء: لو فشلت يعمل التشغيل بدون إشعار.
+  await QuranAudioService.init();
   runApp(const AzkarApp());
 }
 

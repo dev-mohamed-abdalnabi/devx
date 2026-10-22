@@ -4,9 +4,9 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../core/text_utils.dart' show searchKey;
 import 'library_data.dart';
 
-/// فهرس «حكايات الوحي»: مراجع فقط (آيات بالسورة والرقم، وأحاديث بالكتاب والرقم).
-/// لا يحتوي أي نص ديني؛ النصوص تُقرأ وقت العرض حرفيًا من القرآن المحمّل في
-/// التطبيق ومن كتب الحديث في assets/library. انظر tool/build_stories.py.
+/// فهرس «حكايات الوحي». الآيات مراجع فقط (السورة والرقم) وتُقرأ وقت العرض من
+/// القرآن المحمّل في التطبيق. وقسم «قصص القرآن» له سرد مكتوب (blocks) فيه مقاطع
+/// أحاديث حرفية يتحقق منها tool/build_stories.py من assets/library عند كل بناء.
 
 enum StoryPartKind { quran, hadith }
 
@@ -31,43 +31,40 @@ class StoryPart {
       : StoryPart.hadith(j['b'] as String, (j['n'] as num).toInt());
 }
 
-/// كتلة من القصة المكتوبة (tool/authored): h عنوان، p فقرة، q آيات، hd حديث،
-/// nx «لم يرد فيه نص»، tf أقوال المفسرين، l قائمة فوائد، src مصادر.
+/// كتلة من سرد قصة مكتوبة. t: h عنوان | p فقرة | q آيات | hd مقطع حديث |
+/// tf من أقوال المفسرين | nx مما لم يرد فيه نص | l خلاصة | src مصادر.
 class StoryBlock {
-  final String t, x, book, ref;
-  final int surah, from, to, number;
+  final String t, text, book, ref;
   final List<String> items;
+  final int surah, from, to, number;
   const StoryBlock(this.t,
-      {this.x = '',
-      this.book = '',
-      this.ref = '',
+      {this.text = '',
+      this.items = const [],
       this.surah = 0,
       this.from = 0,
       this.to = 0,
+      this.book = '',
       this.number = 0,
-      this.items = const <String>[]});
+      this.ref = ''});
 
   factory StoryBlock.fromJson(Map<String, dynamic> j) => StoryBlock(
         j['t'] as String,
-        x: (j['x'] as String?) ?? '',
-        book: (j['b'] as String?) ?? '',
-        ref: (j['r'] as String?) ?? '',
+        text: (j['x'] as String?) ?? '',
+        items: [for (final x in ((j['i'] as List?) ?? const [])) x as String],
         surah: (j['s'] as num?)?.toInt() ?? 0,
         from: (j['from'] as num?)?.toInt() ?? 0,
         to: (j['to'] as num?)?.toInt() ?? 0,
+        book: (j['b'] as String?) ?? '',
         number: (j['n'] as num?)?.toInt() ?? 0,
-        items: [for (final i in ((j['i'] as List?) ?? const [])) i as String],
+        ref: (j['r'] as String?) ?? '',
       );
 }
 
 class StoryEntry {
   final String id, title, era;
   final List<StoryPart> parts;
-  final List<String> kw;
-  /// القصة الجديدة المكتوبة؛ إن وُجدت تُعرض هي بدل مقتطفات الكتب القديمة.
-  final List<StoryBlock> blocks;
-  StoryEntry(this.id, this.title, this.era, this.parts,
-      [this.kw = const [], this.blocks = const <StoryBlock>[]]);
+  final List<StoryBlock> blocks; // سرد القصة المكتوب
+  StoryEntry(this.id, this.title, this.era, this.parts, [this.blocks = const []]);
 
   late final String key = searchKey(title);
 
@@ -76,7 +73,6 @@ class StoryEntry {
         j['title'] as String,
         (j['era'] as String?) ?? '',
         [for (final p in (j['parts'] as List)) StoryPart.fromJson(p as Map<String, dynamic>)],
-        [for (final k in ((j['kw'] as List?) ?? const [])) k as String],
         [
           for (final b in ((j['blocks'] as List?) ?? const []))
             StoryBlock.fromJson(b as Map<String, dynamic>)
@@ -132,48 +128,6 @@ List<StoryEntry> searchStories(StoriesIndex idx, String query) {
   ];
 }
 
-/// كتاب أصلي (يُجلب وقت البناء بـ tool/fetch_stories.py). يغيب إن لم يُجلب.
-/// `serves`: أقسام القصص التي يُعرض فيها (quran | prophets | seerah)، وترتيب الكتب
-/// في الفهرس هو ترتيب ظهورها. `hidden`: كتاب مقتطفات يظهر داخل القصص فقط، لا في
-/// قائمة «الكتب الأصلية كاملة».
-class StoryBookInfo {
-  final String id, title, author, desc, notice, file, sourceUrl, sourcePath, commit, style;
-  final int sections;
-  final bool hidden;
-  final List<String> serves;
-  const StoryBookInfo(this.id, this.title, this.author, this.desc, this.notice,
-      this.file, this.sourceUrl, this.sourcePath, this.commit, this.sections,
-      {this.style = '', this.hidden = false, this.serves = const <String>[]});
-
-  factory StoryBookInfo.fromJson(Map<String, dynamic> j) {
-    final id = j['id'] as String;
-    final serves = j['serves'] as List?;
-    return StoryBookInfo(
-      id,
-      j['title'] as String,
-      (j['author'] as String?) ?? '',
-      (j['desc'] as String?) ?? '',
-      (j['notice'] as String?) ?? '',
-      j['file'] as String,
-      (j['sourceUrl'] as String?) ?? '',
-      (j['sourcePath'] as String?) ?? '',
-      (j['commit'] as String?) ?? '',
-      (j['sections'] as num).toInt(),
-      style: (j['style'] as String?) ?? '',
-      hidden: j['hidden'] == true,
-      // فهرس قديم بلا serves: السيرة لابن هشام، وما سواها للأنبياء وقصص القرآن.
-      serves: serves != null
-          ? [for (final x in serves) x as String]
-          : (id == 'sira_ibn_hisham' ? const ['seerah'] : const ['prophets', 'quran']),
-    );
-  }
-}
-
-List<StoryBookInfo> parseStoryBooks(String raw) => [
-      for (final b in (json.decode(raw) as List))
-        StoryBookInfo.fromJson(b as Map<String, dynamic>)
-    ];
-
 class StoriesRepo {
   StoriesRepo._();
   static Future<StoriesIndex>? _index;
@@ -185,21 +139,6 @@ class StoriesRepo {
     f.then<void>((_) {}, onError: (Object _) => _index = null);
     return f;
   }
-
-  static Future<List<StoryBookInfo>>? _books;
-  static final Map<String, Future<FiqhBook>> _bookCache = {};
-
-  /// الكتب التي جُلبت فعلًا في هذا البناء؛ قائمة فارغة إن لم تُجلب (لا نعرض ما لا نملك).
-  static Future<List<StoryBookInfo>> books() => _books ??= rootBundle
-      .loadString('assets/stories/books/index.json')
-      .then(parseStoryBooks)
-      .catchError((Object _) => <StoryBookInfo>[]);
-
-  /// النص الكامل بنفس بنية كتب الفقه (أقسام وفقرات).
-  static Future<FiqhBook> book(StoryBookInfo b) => _bookCache.putIfAbsent(b.id, () async {
-        final raw = await rootBundle.loadString('assets/stories/books/${b.file}');
-        return compute(parseFiqhBook, raw);
-      });
 
   static const bookTitles = {'bukhari': 'صحيح البخاري', 'muslim': 'صحيح مسلم'};
 

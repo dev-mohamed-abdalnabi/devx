@@ -3,25 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:azkar_app/data/stories_data.dart';
 
 void main() {
-  test('القصص المكتوبة (blocks) تُقرأ من الفهرس', () {
-    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
-    final withBlocks = [
-      for (final s in idx.sections) for (final e in s.entries) if (e.blocks.isNotEmpty) e
-    ];
-    expect(withBlocks.length, 27);
-    expect(withBlocks.where((e) => e.id.startsWith('quran:')).length, 10);
-    expect(withBlocks.where((e) => e.id.startsWith('prophets:')).length, 17);
-    expect(withBlocks.every((e) => e.blocks.any((b) => b.t == 'q')), isTrue);
-  });
-
-  test('قصص الأنبياء المؤلفة لا تعتمد على مقتطفات الكتب', () {
-    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
-    final prophets = idx.section('prophets').entries;
-    expect(prophets.length, 17);
-    expect(prophets.every((e) => e.blocks.isNotEmpty), isTrue);
-    expect(prophets.every((e) => e.parts.isEmpty), isTrue);
-  });
-
   test('تحليل فهرس حكايات الوحي وبحثه', () {
     final idx = parseStoriesIndex(
         '{"sections":[{"id":"quran","title":"قصص","subtitle":"",'
@@ -43,12 +24,7 @@ void main() {
     for (final s in idx.sections) {
       for (final e in s.entries) {
         expect(ids.add(e.id), isTrue, reason: 'معرّف مكرر ${e.id}');
-        if (s.id == 'prophets') {
-          expect(e.blocks, isNotEmpty);
-          expect(e.parts, isEmpty);
-        } else {
-          expect(e.parts, isNotEmpty);
-        }
+        expect(e.parts, isNotEmpty);
         for (final p in e.parts) {
           if (p.kind == StoryPartKind.quran) {
             expect(p.surah, inInclusiveRange(1, 114));
@@ -63,8 +39,43 @@ void main() {
     final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
     final prophets = idx.section('prophets');
     for (final entry in prophets.entries) {
-      expect(entry.blocks.any((b) => b.t == 'q'), isTrue,
+      expect(entry.parts.any((p) => p.kind == StoryPartKind.quran), isTrue,
           reason: 'لا توجد آيات لقصة ${entry.title}');
     }
+  });
+
+  test('قصص القرآن عشر قصص مكتوبة بكتل صالحة', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    final quran = idx.section('quran');
+    expect(quran.entries.length, 10);
+    for (final e in quran.entries) {
+      expect(e.blocks, isNotEmpty, reason: 'لا سرد لقصة ${e.title}');
+      expect(e.blocks.any((b) => b.t == 'p'), isTrue);
+      expect(e.blocks.any((b) => b.t == 'q'), isTrue);
+      for (final b in e.blocks) {
+        if (b.t == 'q') {
+          expect(b.surah, inInclusiveRange(1, 114));
+          expect(b.from, lessThanOrEqualTo(b.to));
+        }
+        if (b.t == 'hd') expect(b.text, isNotEmpty);
+      }
+    }
+  });
+
+  test('قصص الأنبياء السبع عشرة مكتوبة بكتل صالحة', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    final prophets = idx.section('prophets');
+    expect(prophets.entries.length, 17);
+    for (final e in prophets.entries) {
+      expect(e.blocks.any((b) => b.t == 'p'), isTrue, reason: 'لا سرد لقصة ${e.title}');
+      expect(e.blocks.any((b) => b.t == 'q'), isTrue);
+      expect(e.blocks.last.t, 'src');
+    }
+  });
+
+  test('السيرة النبوية قيد الإعداد: قسم بلا مدخلات', () {
+    final idx = parseStoriesIndex(File('assets/stories/stories.json').readAsStringSync());
+    expect(idx.section('seerah').entries, isEmpty);
+    expect(Directory('assets/stories/books').existsSync(), isFalse);
   });
 }
