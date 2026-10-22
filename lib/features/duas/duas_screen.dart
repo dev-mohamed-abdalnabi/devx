@@ -67,19 +67,9 @@ class _DuasScreenState extends State<DuasScreen> {
                 height: 116,
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  reverse: true,
-                  children: [
-                    _chip(tk, 'all', 'الكل'),
-                    _chip(tk, 'quran', 'أدعية القرآن'),
-                    _chip(tk, 'prophets', 'أدعية الأنبياء'),
-                    _chip(tk, 'prophetic', 'أدعية النبي ﷺ'),
-                    _chip(tk, 'general', 'أدعية جامعة'),
-                  ],
-                ),
+              _DuaTabs(
+                value: _filter,
+                onChanged: (value) => setState(() => _filter = value),
               ),
               const SizedBox(height: 4),
               Expanded(
@@ -122,19 +112,39 @@ class _DuasScreenState extends State<DuasScreen> {
     );
   }
 
-  Widget _chip(HomeTokens tk, String id, String label) => Padding(
-        padding: const EdgeInsets.only(left: 7),
-        child: ChoiceChip(
-          label: Text(label, style: cairoStyle(12.5, weight: 600, color: _filter == id ? tk.card : tk.ink)),
-          selected: _filter == id,
-          onSelected: (_) => setState(() => _filter = id),
-          selectedColor: tk.leaf,
-          backgroundColor: tk.card,
-          side: BorderSide(color: _filter == id ? tk.leaf : tk.line),
-          showCheckmark: false,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-        ),
-      );
+}
+
+class _DuaTabs extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  const _DuaTabs({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = HomeTokens.of(context);
+    const tabs = [
+      ('all', 'الكل'),
+      ('quran', 'القرآن'),
+      ('prophets', 'الأنبياء'),
+      ('prophetic', 'النبي ﷺ'),
+      ('general', 'جامعة'),
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < tabs.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: HomeChip(
+              tk: tk,
+              label: tabs[i].$2,
+              selected: value == tabs[i].$1,
+              onTap: () => onChanged(tabs[i].$1),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _DuaCard extends StatelessWidget {
@@ -149,12 +159,27 @@ class _DuaCard extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ الدعاء')));
   }
 
+  void _showDetails(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _DuaDetailsSheet(tk: tk, dua: dua),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => KitCard(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
             Expanded(child: Text(dua.title, style: cairoStyle(14, weight: 700, color: tk.ink))),
+            TextButton.icon(
+              onPressed: () => _showDetails(context),
+              icon: Icon(Icons.info_outline_rounded, size: 16, color: tk.leaf),
+              label: Text('تفاصيل', style: cairoStyle(11.5, weight: 700, color: tk.leaf)),
+              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 5)),
+            ),
             IconButton(icon: Icon(Icons.copy_rounded, size: 19, color: tk.muted), tooltip: 'نسخ', onPressed: () => _copy(context)),
             IconButton(icon: Icon(Icons.share_rounded, size: 19, color: tk.muted), tooltip: 'مشاركة', onPressed: () => Share.share(_shareText)),
           ]),
@@ -167,6 +192,53 @@ class _DuaCard extends StatelessWidget {
             Expanded(child: Text('${dua.source} · ${dua.reference}', style: cairoStyle(11.5, color: tk.muted))),
           ]),
         ]),
+      );
+}
+
+class _DuaDetailsSheet extends StatelessWidget {
+  final HomeTokens tk;
+  final DuaItem dua;
+  const _DuaDetailsSheet({required this.tk, required this.dua});
+
+  Widget _detail(String label, String value, IconData icon) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, size: 19, color: tk.gold),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: cairoStyle(12, weight: 700, color: tk.muted)),
+              const SizedBox(height: 3),
+              Text(value, style: cairoStyle(13.5, color: tk.ink, height: 1.65)),
+            ]),
+          ),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.only(top: 70),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          decoration: BoxDecoration(
+            color: tk.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: tk.line),
+          ),
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Center(child: Container(width: 42, height: 4, decoration: BoxDecoration(color: tk.line, borderRadius: BorderRadius.circular(4)))),
+              const SizedBox(height: 16),
+              Text('تفاصيل الدعاء', style: cairoStyle(18, weight: 800, color: tk.ink)),
+              const SizedBox(height: 6),
+              Text(dua.title, style: amiriStyle(22, color: tk.leaf, height: 1.5)),
+              const SizedBox(height: 16),
+              _detail('القائل', dua.speaker, Icons.person_outline_rounded),
+              _detail('المناسبة ولماذا يُقال', dua.occasion, Icons.auto_awesome_outlined),
+              _detail('المصدر والمرجع', '${dua.source} · ${dua.reference}', Icons.menu_book_outlined),
+            ]),
+          ),
+        ),
       );
 }
 

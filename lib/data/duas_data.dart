@@ -8,6 +8,8 @@ class DuaItem {
   final String text;
   final String source;
   final String reference;
+  final String speaker;
+  final String occasion;
   final int? surah;
   final int? ayah;
 
@@ -18,6 +20,8 @@ class DuaItem {
     required this.text,
     required this.source,
     required this.reference,
+    required this.speaker,
+    required this.occasion,
     this.surah,
     this.ayah,
   });
@@ -29,6 +33,8 @@ class DuaItem {
         text: j['text'] as String,
         source: j['source'] as String,
         reference: j['reference'] as String,
+        speaker: j['speaker'] as String? ?? 'من القرآن والسنة الصحيحة',
+        occasion: j['occasion'] as String? ?? 'دعاء جامع يُستحب تذكّره والعمل بمعناه',
         surah: (j['surah'] as num?)?.toInt(),
         ayah: (j['ayah'] as num?)?.toInt(),
       );
