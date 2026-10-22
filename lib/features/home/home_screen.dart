@@ -16,6 +16,7 @@ import '../../screens/categories_screen.dart';
 import '../../screens/favorites_screen.dart';
 import '../../screens/zikr_list_screen.dart';
 import '../challenges/challenges_screen.dart';
+import '../duas/duas_screen.dart';
 import '../fiqh/fiqh_screens.dart';
 import '../library/library_screen.dart';
 import '../more/support_screen.dart';
@@ -376,7 +377,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
                     ]),
                     row(108, [
                       slotTile(
-                        span: 3,
+                        span: 2,
                         colW: colW,
                         fullW: fullW,
                         child: HomeTile(
@@ -384,8 +385,21 @@ class _HomeDashboardState extends State<HomeDashboard> {
                           compact: compact,
                           icon: HomeIcons.crescentStar,
                           title: 'حكايات الوحي',
-                          subtitle: 'قصص القرآن · على خُطى الأنبياء · السيرة العَطِرة',
+                          subtitle: 'قصص القرآن والأنبياء',
                           onTap: () => _push(const StoriesHomeScreen()),
+                        ),
+                      ),
+                      slotTile(
+                        span: 1,
+                        colW: colW,
+                        fullW: fullW,
+                        child: HomeTile(
+                          tk: tk,
+                          compact: compact,
+                          icon: HomeIcons.hand,
+                          title: 'الأدعية',
+                          subtitle: 'القرآن والسنة',
+                          onTap: () => _push(const DuasScreen()),
                         ),
                       ),
                     ]),

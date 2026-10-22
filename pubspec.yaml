@@ -47,6 +47,7 @@ flutter:
     - assets/data/quran.json
     - assets/data/tafsir.json
     - assets/data/mushaf.json
+    - assets/data/duas.json
     - assets/qcf/
     - assets/library/
     - assets/fiqh/
