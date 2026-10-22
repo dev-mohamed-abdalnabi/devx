@@ -21,7 +21,7 @@ class _Contributor {
 
 /// أضف أي مساهم جديد هنا وسيظهر تلقائيًا في «المساهمون».
 const _contributors = <_Contributor>[
-  _Contributor('زين محمد', 'Zain Mohamed', 'مساهم في التطبيق'),
+  _Contributor('يزن محمد', 'Yazan Mohamed', 'مساهم في التطبيق'),
 ];
 
 class _ContributorRow extends StatelessWidget {
