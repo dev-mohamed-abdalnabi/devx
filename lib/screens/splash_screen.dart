@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../core/first_run.dart';
 import '../core/home_tokens.dart';
 import '../core/text_utils.dart';
 import '../core/page_background.dart';
@@ -40,9 +40,7 @@ class _SplashScreenState extends State<SplashScreen>
     var done = false;
     try {
       final results = await Future.wait<Object?>([
-        SharedPreferences.getInstance()
-            .timeout(const Duration(seconds: 3))
-            .then((p) => p.getBool('onboarding_completed') ?? false),
+        FirstRun.isCompleted(),
         Future<void>.delayed(Duration(milliseconds: minMs)),
       ]).timeout(Duration(milliseconds: minMs + 4000));
       done = results.first == true;
