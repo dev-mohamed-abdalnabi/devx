@@ -25,6 +25,7 @@ class StoriesHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    context.read<StoriesProvider>().init();
     final tk = HomeTokens.of(context);
     return LibPage(
       title: 'حكايات الوحي',

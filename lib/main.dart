@@ -80,7 +80,8 @@ class AzkarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ActivityProvider()..init()),
         ChangeNotifierProvider(create: (_) => PrayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => RemindersProvider()..init()),
-        ChangeNotifierProvider(create: (_) => StoriesProvider()..init()),
+        // لا نقرأ SharedPreferences أثناء الإقلاع؛ تهيئة القصص تبدأ عند فتحها.
+        ChangeNotifierProvider(create: (_) => StoriesProvider()),
       ],
       child: WidgetSyncHost(
         child: Consumer<AzkarProvider>(

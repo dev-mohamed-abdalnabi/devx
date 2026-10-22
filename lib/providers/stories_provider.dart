@@ -6,11 +6,18 @@ class StoriesProvider extends ChangeNotifier {
   static const _k = 'stories_favs_v1';
   final Set<String> favorites = <String>{};
   SharedPreferences? _prefs;
+  Future<void>? _initFuture;
 
-  Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-    favorites.addAll(_prefs!.getStringList(_k) ?? const []);
-    notifyListeners();
+  Future<void> init() => _initFuture ??= _load();
+
+  Future<void> _load() async {
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      favorites.addAll(_prefs!.getStringList(_k) ?? const []);
+      notifyListeners();
+    } catch (_) {
+      // عدم توفر التخزين لا يمنع قراءة القصص؛ المفضلة فقط تصبح مؤقتة.
+    }
   }
 
   bool isFav(String id) => favorites.contains(id);
