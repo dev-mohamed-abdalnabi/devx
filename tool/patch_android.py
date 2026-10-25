@@ -102,7 +102,7 @@ PROGUARD_RULES = """# flutter_local_notifications deserializes scheduled notific
 """
 
 
-ADMOB_APP_ID = 'ca-app-pub-6238197963590573~3817588900'
+ADMOB_APP_ID = 'ca-app-pub-1413284900163582~9044726786'
 ADMOB_META = f"""        <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="{ADMOB_APP_ID}"/>
