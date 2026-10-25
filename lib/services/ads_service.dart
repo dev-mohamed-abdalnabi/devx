@@ -11,7 +11,7 @@ class AdsService {
 
   // معرّفات AdMob (App ID موجود في AndroidManifest عبر tool/patch_android.py)
   // /885... هو Rewarded الذي أرسله المستخدم، و/994... وحدة Native وليست Banner.
-  static const String rewardedUnitId = 'ca-app-pub-6238197963590573/8854293168';
+  static const String rewardedUnitId = 'ca-app-pub-1413284900163582/2806535772';
 
   // أثناء التطوير (debug) نستخدم إعلانات الاختبار الرسمية من Google لتجنب حظر الحساب.
   static const String _testRewarded = 'ca-app-pub-3940256099942544/5224354917';
