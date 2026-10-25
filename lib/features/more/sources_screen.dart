@@ -96,7 +96,7 @@ const _tech = <_Src>[
 class SourcesScreen extends StatelessWidget {
   const SourcesScreen({super.key});
 
-  static const _version = '1.5.0';
+  static const _version = '1.6.0';
 
   Widget _group(List<_Src> list) {
     return KitCard(
