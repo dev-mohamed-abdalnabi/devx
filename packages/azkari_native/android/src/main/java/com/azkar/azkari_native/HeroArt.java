@@ -299,7 +299,7 @@ final class HeroArt {
         }
     }
 
-    /** المسجد (منقول من _mosque). lit = لون النوافذ المضيئة أو 0 نهارًا. */
+    /** المسجد الجديد (منقول من _mosque في hero_scene.dart). lit = لون النوافذ المضيئة أو 0 نهارًا. */
     private static void mosque(Canvas c, float ox, float oy, float w, int col, int lit) {
         float k = w / 150f;
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -307,41 +307,79 @@ final class HeroArt {
         c.save();
         c.translate(ox, oy - 110 * k);
         c.scale(k, k);
+
+        // الأرض + القاعة الرئيسية + القبة الكبيرة.
         rect(c, 0, 100, 150, 10, p);
-        rect(c, 38, 72, 64, 28, p);
+        rect(c, 38, 76, 66, 24, p);
         Path dome = new Path();
-        dome.moveTo(40, 72);
-        dome.arcTo(new RectF(40, 42, 100, 102), 180, 180);
+        dome.moveTo(42, 76);
+        dome.cubicTo(40, 60, 54, 46, 71, 44);
+        dome.cubicTo(88, 46, 102, 60, 100, 76);
         dome.close();
         c.drawPath(dome, p);
-        rect(c, 69.5f, 27, 1, 16, p);
-        c.drawCircle(70, 24, 3.2f, p);
-        rect(c, 24, 88, 14, 12, p);
-        rect(c, 102, 88, 14, 12, p);
-        for (float x : new float[]{8f, 130f}) {
-            rect(c, x, 54, 12, 46, p);
-            rect(c, x - 3, 52, 18, 3, p);
-            Path cap = new Path();
-            cap.moveTo(x + 1, 52);
-            cap.lineTo(x + 6, 34);
-            cap.lineTo(x + 11, 52);
-            cap.close();
-            c.drawPath(cap, p);
-            rect(c, x + 5.5f, 22, 1, 12, p);
-        }
+        rect(c, 70.4f, 35, 1.2f, 9, p);
+        crescentShape(c, 71, 31, 5, p);
+
+        // القبة الصغيرة اليسرى.
+        rect(c, 8, 86, 28, 14, p);
+        Path dl = new Path();
+        dl.moveTo(8, 86);
+        dl.cubicTo(8, 77, 15, 73, 22, 69);
+        dl.cubicTo(29, 73, 36, 77, 36, 86);
+        dl.close();
+        c.drawPath(dl, p);
+        rect(c, 21.6f, 62, .8f, 7, p);
+        crescentShape(c, 22, 59.5f, 2.3f, p);
+
+        // القبة الصغيرة اليمنى.
+        rect(c, 103, 88, 21, 12, p);
+        Path dr = new Path();
+        dr.moveTo(103, 88);
+        dr.cubicTo(103, 81, 108, 78, 113.5f, 75);
+        dr.cubicTo(119, 78, 124, 81, 124, 88);
+        dr.close();
+        c.drawPath(dr, p);
+        rect(c, 113.1f, 68, .8f, 7, p);
+        crescentShape(c, 113.5f, 65.5f, 2.2f, p);
+
+        // المئذنة.
+        rect(c, 130, 56, 10, 44, p);
+        rect(c, 126.5f, 53, 17, 3, p);
+        rect(c, 131, 43, 8, 10, p);
+        Path md = new Path();
+        md.moveTo(130.5f, 43);
+        md.arcTo(new RectF(130.5f, 38.5f, 139.5f, 47.5f), 180, 180);
+        md.close();
+        c.drawPath(md, p);
+        rect(c, 134.6f, 29, .8f, 9.5f, p);
+        crescentShape(c, 135, 26.5f, 2.5f, p);
+
         if (lit != 0) {
             Paint l = new Paint(Paint.ANTI_ALIAS_FLAG);
             l.setColor(alpha(lit, .9f));
-            for (float x : new float[]{13f, 135f}) {
-                c.drawRoundRect(new RectF(x, 64, x + 2, 72), 1, 1, l);
-                c.drawRoundRect(new RectF(x, 80, x + 2, 88), 1, 1, l);
+            for (float x : new float[]{44f, 54f, 82f, 92f}) {
+                arch(c, x, 92, 6, 6, l);
             }
-            for (float x : new float[]{46f, 86f}) {
-                arch(c, x, 94, 8, 8, l);
+            arch(c, 65, 100, 12, 14, l);
+            arch(c, 19, 100, 6, 8, l);
+            arch(c, 110.5f, 100, 6, 6, l);
+            arch(c, 132, 52, 2.4f, 4, l);
+            arch(c, 135.6f, 52, 2.4f, 4, l);
+            for (float y : new float[]{64f, 80f}) {
+                c.drawRoundRect(new RectF(134, y, 136, y + 9), 1, 1, l);
             }
-            arch(c, 64, 100, 12, 14, l);
         }
         c.restore();
+    }
+
+    /** هلال = دائرة ناقص دائرة مزاحة (نفس شكل Path.combine في Dart). */
+    private static void crescentShape(Canvas c, float cx, float cy, float r, Paint p) {
+        Path a = new Path();
+        a.addCircle(cx, cy, r, Path.Direction.CW);
+        Path b = new Path();
+        b.addCircle(cx + r * .4f, cy - r * .2f, r * .8f, Path.Direction.CW);
+        a.op(b, Path.Op.DIFFERENCE);
+        c.drawPath(a, p);
     }
 
     /** نافذة/باب مقوّس: يبدأ من (x, base) بعرض aw وارتفاع الجسم bodyH ثم قوس نصف دائري. */
