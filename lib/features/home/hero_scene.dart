@@ -443,60 +443,97 @@ class _ScenePainter extends CustomPainter {
     canvas.save();
     canvas.translate(o.dx, o.dy - 110 * k);
     canvas.scale(k);
+
+    void crescent(double cx, double cy, double r) {
+      canvas.drawPath(
+          Path.combine(
+            PathOperation.difference,
+            Path()..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
+            Path()
+              ..addOval(Rect.fromCircle(
+                  center: Offset(cx + r * .4, cy - r * .2), radius: r * .8)),
+          ),
+          p);
+    }
+
+    // الأرض + القاعة الرئيسية + القبة الكبيرة.
     canvas.drawRect(const Rect.fromLTWH(0, 100, 150, 10), p);
-    canvas.drawRect(const Rect.fromLTWH(38, 72, 64, 28), p);
+    canvas.drawRect(const Rect.fromLTWH(38, 76, 66, 24), p);
     canvas.drawPath(
         Path()
-          ..moveTo(40, 72)
-          ..arcToPoint(const Offset(100, 72), radius: const Radius.circular(30))
+          ..moveTo(42, 76)
+          ..cubicTo(40, 60, 54, 46, 71, 44)
+          ..cubicTo(88, 46, 102, 60, 100, 76)
           ..close(),
         p);
-    canvas.drawRect(const Rect.fromLTWH(69.5, 27, 1, 16), p);
-    canvas.drawCircle(const Offset(70, 24), 3.2, p);
-    canvas.drawRect(const Rect.fromLTWH(24, 88, 14, 12), p);
-    canvas.drawRect(const Rect.fromLTWH(102, 88, 14, 12), p);
-    for (final x in [8.0, 130.0]) {
-      canvas.drawRect(Rect.fromLTWH(x, 54, 12, 46), p);
-      canvas.drawRect(Rect.fromLTWH(x - 3, 52, 18, 3), p);
-      canvas.drawPath(
-          Path()
-            ..moveTo(x + 1, 52)
-            ..lineTo(x + 6, 34)
-            ..lineTo(x + 11, 52)
-            ..close(),
-          p);
-      canvas.drawRect(Rect.fromLTWH(x + 5.5, 22, 1, 12), p);
-    }
+    canvas.drawRect(const Rect.fromLTWH(70.4, 35, 1.2, 9), p);
+    crescent(71, 31, 5);
+
+    // القبة الصغيرة اليسرى.
+    canvas.drawRect(const Rect.fromLTWH(8, 86, 28, 14), p);
+    canvas.drawPath(
+        Path()
+          ..moveTo(8, 86)
+          ..cubicTo(8, 77, 15, 73, 22, 69)
+          ..cubicTo(29, 73, 36, 77, 36, 86)
+          ..close(),
+        p);
+    canvas.drawRect(const Rect.fromLTWH(21.6, 62, .8, 7), p);
+    crescent(22, 59.5, 2.3);
+
+    // القبة الصغيرة اليمنى.
+    canvas.drawRect(const Rect.fromLTWH(103, 88, 21, 12), p);
+    canvas.drawPath(
+        Path()
+          ..moveTo(103, 88)
+          ..cubicTo(103, 81, 108, 78, 113.5, 75)
+          ..cubicTo(119, 78, 124, 81, 124, 88)
+          ..close(),
+        p);
+    canvas.drawRect(const Rect.fromLTWH(113.1, 68, .8, 7), p);
+    crescent(113.5, 65.5, 2.2);
+
+    // المئذنة.
+    canvas.drawRect(const Rect.fromLTWH(130, 56, 10, 44), p);
+    canvas.drawRect(const Rect.fromLTWH(126.5, 53, 17, 3), p);
+    canvas.drawRect(const Rect.fromLTWH(131, 43, 8, 10), p);
+    canvas.drawPath(
+        Path()
+          ..moveTo(130.5, 43)
+          ..arcToPoint(const Offset(139.5, 43),
+              radius: const Radius.circular(4.5))
+          ..close(),
+        p);
+    canvas.drawRect(const Rect.fromLTWH(134.6, 29, .8, 9.5), p);
+    crescent(135, 26.5, 2.5);
+
     if (lit != null) {
       final l = Paint()..color = lit.withValues(alpha: .9);
-      for (final x in [13.0, 135.0]) {
+      Path arch(double x, double base, double aw, double bodyH) {
+        final r = aw / 2;
+        return Path()
+          ..moveTo(x, base)
+          ..lineTo(x, base - bodyH)
+          ..arcToPoint(Offset(x + aw, base - bodyH),
+              radius: Radius.circular(r))
+          ..lineTo(x + aw, base)
+          ..close();
+      }
+
+      for (final x in [44.0, 54.0, 82.0, 92.0]) {
+        canvas.drawPath(arch(x, 92, 6, 6), l);
+      }
+      canvas.drawPath(arch(65, 100, 12, 14), l);
+      canvas.drawPath(arch(19, 100, 6, 8), l);
+      canvas.drawPath(arch(110.5, 100, 6, 6), l);
+      canvas.drawPath(arch(132, 52, 2.4, 4), l);
+      canvas.drawPath(arch(135.6, 52, 2.4, 4), l);
+      for (final y in [64.0, 80.0]) {
         canvas.drawRRect(
             RRect.fromRectAndRadius(
-                Rect.fromLTWH(x, 64, 2, 8), const Radius.circular(1)),
-            l);
-        canvas.drawRRect(
-            RRect.fromRectAndRadius(
-                Rect.fromLTWH(x, 80, 2, 8), const Radius.circular(1)),
+                Rect.fromLTWH(134, y, 2, 9), const Radius.circular(1)),
             l);
       }
-      for (final x in [46.0, 86.0]) {
-        canvas.drawPath(
-            Path()
-              ..moveTo(x, 94)
-              ..lineTo(x, 86)
-              ..arcToPoint(Offset(x + 8, 86), radius: const Radius.circular(4))
-              ..lineTo(x + 8, 94)
-              ..close(),
-            l);
-      }
-      canvas.drawPath(
-          Path()
-            ..moveTo(64, 100)
-            ..lineTo(64, 86)
-            ..arcToPoint(const Offset(76, 86), radius: const Radius.circular(6))
-            ..lineTo(76, 100)
-            ..close(),
-          l);
     }
     canvas.restore();
   }

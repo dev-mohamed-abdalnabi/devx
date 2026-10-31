@@ -30,10 +30,10 @@ class HomeIcons {
       '<path d="M4 15v-3a8 8 0 0 1 16 0v3M4 15a2 2 0 0 1 2-2h1v6H6a2 2 0 0 1-2-2zM20 15a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2z"/>';
   /// سبحة (مسبحة) — للأذكار.
   static const misbaha =
-      '<circle cx=\"12\" cy=\"17\" r=\".9\"/><circle cx=\"8.5\" cy=\"16\" r=\".9\"/><circle cx=\"6.1\" cy=\"13.2\" r=\".9\"/><circle cx=\"5.6\" cy=\"9.6\" r=\".9\"/><circle cx=\"7.1\" cy=\"6.2\" r=\".9\"/><circle cx=\"10.2\" cy=\"4.3\" r=\".9\"/><circle cx=\"13.8\" cy=\"4.3\" r=\".9\"/><circle cx=\"16.9\" cy=\"6.2\" r=\".9\"/><circle cx=\"18.4\" cy=\"9.6\" r=\".9\"/><circle cx=\"17.9\" cy=\"13.2\" r=\".9\"/><circle cx=\"15.5\" cy=\"16\" r=\".9\"/><path d=\"M12 17.9v1.6\"/><circle cx=\"12\" cy=\"21\" r=\".9\"/>';
+      '<circle cx="12" cy="17" r=".9"/><circle cx="8.5" cy="16" r=".9"/><circle cx="6.1" cy="13.2" r=".9"/><circle cx="5.6" cy="9.6" r=".9"/><circle cx="7.1" cy="6.2" r=".9"/><circle cx="10.2" cy="4.3" r=".9"/><circle cx="13.8" cy="4.3" r=".9"/><circle cx="16.9" cy="6.2" r=".9"/><circle cx="18.4" cy="9.6" r=".9"/><circle cx="17.9" cy="13.2" r=".9"/><circle cx="15.5" cy="16" r=".9"/><path d="M12 17.9v1.6"/><circle cx="12" cy="21" r=".9"/>';
   /// هلال ونجمة — هوية التطبيق.
   static const crescentStar =
-      '<path d=\"M19 14.500A8 8 0 1 1 9.500 5a6.500 6.500 0 0 0 9.500 9.500z\"/><path d=\"M17 4l.8 1.700 1.700.8-1.700.8L17 9l-.8-1.700-1.700-.8 1.700-.8z\"/>';
+      '<path d="M19 14.500A8 8 0 1 1 9.500 5a6.500 6.500 0 0 0 9.500 9.500z"/><path d="M17 4l.8 1.700 1.700.8-1.700.8L17 9l-.8-1.700-1.700-.8 1.700-.8z"/>';
   static const sparkle =
       '<path d="M9 4l1.800 4.200L15 10l-4.200 1.800L9 16l-1.800-4.200L3 10l4.200-1.800zM17 14l.9 2.100L20 17l-2.100.9L17 20l-.9-2.100L14 17l2.100-.9z"/>';
   static const heart =
@@ -71,7 +71,7 @@ class HomeIcon extends StatelessWidget {
   }
 }
 
-/// رسمة المسجد: منقولة حرفيًا من <svg class="art"> مع استبدال المتغيّرات بألوان الثيم.
+/// رسمة المسجد الجديدة (قبة كبيرة + مئذنة + قباب صغيرة) بألوان الثيم.
 class MosqueArt extends StatelessWidget {
   final double width;
   final HomeTokens tokens;
@@ -84,24 +84,25 @@ class MosqueArt extends StatelessWidget {
     final svg = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 110">
 <g fill="$ink" opacity=".3">
 <rect x="0" y="100" width="150" height="10"/>
-<path d="M38 72h64v28H38z"/><path d="M40 72a30 30 0 0 1 60 0z"/>
-<path d="M24 100V90a7 7 0 0 1 14 0v10zM102 100V90a7 7 0 0 1 14 0v10z"/>
-<rect x="8" y="54" width="12" height="46"/><rect x="5" y="52" width="18" height="3"/><rect x="10" y="42" width="8" height="10"/><path d="M9 42l5-14 5 14z"/>
-<rect x="130" y="54" width="12" height="46"/><rect x="127" y="52" width="18" height="3"/><rect x="132" y="42" width="8" height="10"/><path d="M131 42l5-14 5 14z"/>
+<path d="M38 76h66v24H38z"/><path d="M42 76C40 60 54 46 71 44C88 46 102 60 100 76z"/><rect x="70.4" y="35" width="1.2" height="9"/>
+<rect x="8" y="86" width="28" height="14"/><path d="M8 86C8 77 15 73 22 69C29 73 36 77 36 86z"/><rect x="21.6" y="62" width=".8" height="7"/>
+<rect x="103" y="88" width="21" height="12"/><path d="M103 88C103 81 108 78 113.5 75C119 78 124 81 124 88z"/><rect x="113.1" y="68" width=".8" height="7"/>
+<rect x="130" y="56" width="10" height="44"/><rect x="126.5" y="53" width="17" height="3"/><rect x="131" y="43" width="8" height="10"/><path d="M130.5 43a4.5 4.5 0 0 1 9 0z"/><rect x="134.6" y="29" width=".8" height="9.5"/>
 </g>
 <g fill="$mint">
-<path d="M46 94v-8a4 4 0 0 1 8 0v8zM86 94v-8a4 4 0 0 1 8 0v8z"/>
-<path d="M64 100V86a6 6 0 0 1 12 0v14z"/>
-<rect x="13" y="64" width="2" height="8" rx="1"/><rect x="13" y="80" width="2" height="8" rx="1"/>
-<rect x="135" y="64" width="2" height="8" rx="1"/><rect x="135" y="80" width="2" height="8" rx="1"/>
-<path d="M28 100v-6a3 3 0 0 1 6 0v6zM106 100v-6a3 3 0 0 1 6 0v6z"/>
+<path d="M44 92v-6a3 3 0 0 1 6 0v6zM54 92v-6a3 3 0 0 1 6 0v6zM82 92v-6a3 3 0 0 1 6 0v6zM92 92v-6a3 3 0 0 1 6 0v6z"/>
+<path d="M65 100V86a6 6 0 0 1 12 0v14z"/>
+<path d="M19 100v-8a3 3 0 0 1 6 0v8zM110.5 100v-6a3 3 0 0 1 6 0v6z"/>
+<path d="M132 52v-4a1.2 1.2 0 0 1 2.4 0v4zM135.6 52v-4a1.2 1.2 0 0 1 2.4 0v4z"/>
+<rect x="134" y="64" width="2" height="9" rx="1"/><rect x="134" y="80" width="2" height="9" rx="1"/>
 </g>
-<g fill="none" stroke="$mint" stroke-width="1.2" stroke-linecap="round"><path d="M70 43v28M56 49q-4 11-4 22M84 49q4 11 4 22"/><path d="M40 72h60"/></g>
+<g fill="none" stroke="$mint" stroke-width="1.2" stroke-linecap="round"><path d="M71 48v26M58 54q-4 10-4 20M84 54q4 10 4 20"/><path d="M42 76h58"/></g>
 <g fill="#B8923A">
-<rect x="69.5" y="27" width="1" height="16"/>
-<circle cx="70" cy="19" r="7"/><circle cx="72.5" cy="18" r="5.5" fill="$mint"/>
-<circle cx="14" cy="26" r="1.6"/><circle cx="136" cy="26" r="1.6"/>
-<circle cx="100" cy="12" r="1.2"/><circle cx="40" cy="14" r="1.2"/><circle cx="118" cy="30" r="1"/>
+<circle cx="71" cy="31" r="5"/><circle cx="73" cy="30" r="4" fill="$mint"/>
+<circle cx="135" cy="26.5" r="2.5"/><circle cx="136" cy="26" r="2" fill="$mint"/>
+<circle cx="22" cy="59.5" r="2.3"/><circle cx="22.9" cy="59.2" r="1.9" fill="$mint"/>
+<circle cx="113.5" cy="65.5" r="2.2"/><circle cx="114.3" cy="65.2" r="1.8" fill="$mint"/>
+<circle cx="14" cy="36" r="1.6"/><circle cx="100" cy="18" r="1.2"/><circle cx="40" cy="22" r="1.2"/><circle cx="118" cy="34" r="1"/>
 </g></svg>''';
     return SvgPicture.string(svg, width: width, height: width * 110 / 150);
   }
